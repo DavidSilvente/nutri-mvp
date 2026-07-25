@@ -2,30 +2,28 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/core/result.dart';
 import 'package:nutri_mvp/features/nutrition/data/database/nutrition_database.dart';
-import 'package:nutri_mvp/features/nutrition/data/sources/sql_nutrition_source.dart';
-import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dart';
+import 'package:nutri_mvp/features/nutrition/data/sources/sql_hydration_source.dart';
+import 'package:nutri_mvp/features/nutrition/domain/entities/hydration_entry.dart';
 import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
-import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
-import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
+import 'package:nutri_mvp/features/nutrition/domain/value_objects/water_volume.dart';
 
-NutritionEntry buildEntry({required String id, required DateTime recordedAt}) {
-  return NutritionEntry(
+HydrationEntry buildEntry({required String id, required DateTime recordedAt}) {
+  return HydrationEntry(
     id: id,
     recordedAt: recordedAt,
-    energy: Energy(kcal: 500),
-    macros: Macros(proteinG: 30, carbsG: 40, fatG: 15),
+    volume: WaterVolume(ml: 250),
   );
 }
 
 void main() {
-  group('SqlNutritionSource', () {
+  group('SqlHydrationSource', () {
     late NutritionDatabase database;
-    late SqlNutritionSource source;
+    late SqlHydrationSource source;
 
     setUp(() {
       database = NutritionDatabase(NativeDatabase.memory());
-      source = SqlNutritionSource(database);
+      source = SqlHydrationSource(database);
     });
 
     tearDown(() async {
@@ -42,7 +40,7 @@ void main() {
 
       expect(recordResult, isA<Ok<void, NutritionFailure>>());
       final entries =
-          (queryResult as Ok<List<NutritionEntry>, NutritionFailure>).value;
+          (queryResult as Ok<List<HydrationEntry>, NutritionFailure>).value;
       expect(entries, [entry]);
     });
 
@@ -58,7 +56,7 @@ void main() {
       );
 
       final entries =
-          (result as Ok<List<NutritionEntry>, NutritionFailure>).value;
+          (result as Ok<List<HydrationEntry>, NutritionFailure>).value;
       expect(entries, [day1]);
     });
 
@@ -68,11 +66,11 @@ void main() {
       );
 
       final entries =
-          (result as Ok<List<NutritionEntry>, NutritionFailure>).value;
+          (result as Ok<List<HydrationEntry>, NutritionFailure>).value;
       expect(entries, isEmpty);
     });
 
-    test('data persists across separate SqlNutritionSource instances '
+    test('data persists across separate SqlHydrationSource instances '
         'sharing the same database (simulates surviving a restart)', () async {
       final entry = buildEntry(
         id: 'restart',
@@ -80,13 +78,13 @@ void main() {
       );
       await source.record(entry);
 
-      final reopenedSource = SqlNutritionSource(database);
+      final reopenedSource = SqlHydrationSource(database);
       final result = await reopenedSource.entriesOn(
         NutritionDay.fromDateTime(entry.recordedAt),
       );
 
       final entries =
-          (result as Ok<List<NutritionEntry>, NutritionFailure>).value;
+          (result as Ok<List<HydrationEntry>, NutritionFailure>).value;
       expect(entries, [entry]);
     });
   });

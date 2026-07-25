@@ -63,6 +63,10 @@ dev_dependencies:
   drift_dev: ^2.24.0
   build_runner: ^2.4.13
 
+  # Used directly (not just transitively via drift) in the v1->v2 schema
+  # migration test, to open an in-memory DB with hand-written v1 DDL.
+  sqlite3: ^3.5.0
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

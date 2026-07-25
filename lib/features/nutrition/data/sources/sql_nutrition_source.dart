@@ -7,7 +7,6 @@ import 'package:nutri_mvp/features/nutrition/domain/ports/nutrition_health_sourc
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
-import 'package:nutri_mvp/features/nutrition/domain/value_objects/water_volume.dart';
 
 /// Production [NutritionHealthSource] adapter backed by local `drift`
 /// (SQLite) storage. Entries persist on disk and survive app restarts.
@@ -57,7 +56,6 @@ class SqlNutritionSource implements NutritionHealthSource {
       proteinG: entry.macros.proteinG.toDouble(),
       carbsG: entry.macros.carbsG.toDouble(),
       fatG: entry.macros.fatG.toDouble(),
-      waterMl: entry.water.ml.toDouble(),
     );
   }
 
@@ -71,7 +69,6 @@ class SqlNutritionSource implements NutritionHealthSource {
         carbsG: row.carbsG,
         fatG: row.fatG,
       ),
-      water: WaterVolume(ml: row.waterMl),
     );
   }
 }

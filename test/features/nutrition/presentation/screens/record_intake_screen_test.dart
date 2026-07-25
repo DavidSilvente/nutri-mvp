@@ -12,7 +12,7 @@ import '../../_fakes/fake_nutrition_source.dart';
 
 void main() {
   group('RecordIntakeScreen', () {
-    testWidgets('submits energy, macros and water to the fake source', (
+    testWidgets('submits energy and macros to the fake source, no water', (
       tester,
     ) async {
       final fake = FakeNutritionSource();
@@ -28,7 +28,6 @@ void main() {
       await tester.enterText(find.byKey(const Key('proteinField')), '30');
       await tester.enterText(find.byKey(const Key('carbsField')), '40');
       await tester.enterText(find.byKey(const Key('fatField')), '10');
-      await tester.enterText(find.byKey(const Key('waterField')), '250');
 
       await tester.tap(find.byKey(const Key('submitButton')));
       await tester.pumpAndSettle();
@@ -44,7 +43,6 @@ void main() {
       expect(entries.single.macros.proteinG, 30);
       expect(entries.single.macros.carbsG, 40);
       expect(entries.single.macros.fatG, 10);
-      expect(entries.single.water.ml, 250);
     });
   });
 }

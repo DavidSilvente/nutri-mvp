@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
-import 'package:nutri_mvp/features/nutrition/domain/value_objects/water_volume.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart';
 
-/// Screen to register a new nutrition intake: energy, macros (protein,
-/// carbs, fat) and water.
+/// Screen to register a new nutrition intake: energy and macros (protein,
+/// carbs, fat). Water is NOT part of this flow — hydration has its own
+/// dedicated screen.
 class RecordIntakeScreen extends ConsumerStatefulWidget {
   const RecordIntakeScreen({super.key});
 
@@ -21,7 +21,6 @@ class _RecordIntakeScreenState extends ConsumerState<RecordIntakeScreen> {
   final _proteinController = TextEditingController();
   final _carbsController = TextEditingController();
   final _fatController = TextEditingController();
-  final _waterController = TextEditingController();
 
   @override
   void dispose() {
@@ -29,7 +28,6 @@ class _RecordIntakeScreenState extends ConsumerState<RecordIntakeScreen> {
     _proteinController.dispose();
     _carbsController.dispose();
     _fatController.dispose();
-    _waterController.dispose();
     super.dispose();
   }
 
@@ -45,7 +43,6 @@ class _RecordIntakeScreenState extends ConsumerState<RecordIntakeScreen> {
         carbsG: num.parse(_carbsController.text),
         fatG: num.parse(_fatController.text),
       ),
-      water: WaterVolume(ml: num.parse(_waterController.text)),
     );
 
     await ref.read(nutritionControllerProvider.notifier).record(entry);
@@ -104,15 +101,6 @@ class _RecordIntakeScreenState extends ConsumerState<RecordIntakeScreen> {
               key: const Key('fatField'),
               controller: _fatController,
               decoration: const InputDecoration(labelText: 'Grasa (g)'),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              validator: _requiredNonNegativeNumber,
-            ),
-            TextFormField(
-              key: const Key('waterField'),
-              controller: _waterController,
-              decoration: const InputDecoration(labelText: 'Agua (ml)'),
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),

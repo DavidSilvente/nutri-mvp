@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nutri_mvp/core/health_failure_exception.dart';
 import 'package:nutri_mvp/core/result.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dart';
 import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
@@ -7,7 +8,6 @@ import 'package:nutri_mvp/features/nutrition/domain/ports/nutrition_health_sourc
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
-import 'package:nutri_mvp/features/nutrition/domain/value_objects/water_volume.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/controllers/nutrition_controller.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart';
 
@@ -37,7 +37,6 @@ NutritionEntry buildEntry({required String id, required DateTime recordedAt}) {
     recordedAt: recordedAt,
     energy: Energy(kcal: 500),
     macros: Macros(proteinG: 30, carbsG: 40, fatG: 15),
-    water: WaterVolume(ml: 250),
   );
 }
 
@@ -83,7 +82,7 @@ void main() {
 
       await expectLater(
         container.read(nutritionControllerProvider.future),
-        throwsA(isA<NutritionFailureException>()),
+        throwsA(isA<HealthFailureException>()),
       );
 
       final entry = buildEntry(id: 'b', recordedAt: DateTime.now());
@@ -91,7 +90,7 @@ void main() {
 
       final state = container.read(nutritionControllerProvider);
       expect(state, isA<AsyncError<List<NutritionEntry>>>());
-      expect(state.error, isA<NutritionFailureException>());
+      expect(state.error, isA<HealthFailureException>());
     });
   });
 }
