@@ -35,6 +35,19 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  # State management / DI for the nutrition feature (Riverpod)
+  flutter_riverpod: ^2.6.1
+
+  # Local persistence (SQLite, type-safe) for the manual nutrition adapter
+  drift: ^2.24.0
+  sqlite3_flutter_libs: ^0.5.32
+
+  # Resolves the on-disk documents directory for the production drift
+  # database file (path is already a transitive dep of drift; declared
+  # directly here since we import it explicitly in nutrition_providers.dart).
+  path_provider: ^2.1.5
+  path: ^1.9.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -45,6 +58,14 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+  # Codegen for drift tables/DAOs
+  drift_dev: ^2.24.0
+  build_runner: ^2.4.13
+
+  # Used directly (not just transitively via drift) in the v1->v2 schema
+  # migration test, to open an in-memory DB with hand-written v1 DDL.
+  sqlite3: ^3.5.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
