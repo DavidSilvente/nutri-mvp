@@ -59,3 +59,23 @@ final class StorageFailure extends NutritionFailure {
   @override
   String toString() => 'StorageFailure(reason: $reason)';
 }
+
+/// A conflict failure reported when a uniqueness or ordering constraint is
+/// violated (e.g. a duplicate template name or a slot already planned for the
+/// same day).
+final class ConflictFailure extends NutritionFailure {
+  const ConflictFailure(this.reason);
+
+  final String reason;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ConflictFailure && other.reason == reason);
+
+  @override
+  int get hashCode => reason.hashCode;
+
+  @override
+  String toString() => 'ConflictFailure(reason: $reason)';
+}
