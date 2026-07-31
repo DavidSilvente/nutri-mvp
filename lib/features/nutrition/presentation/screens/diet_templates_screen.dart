@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_template_editor_screen.dart';
 
-/// Lists reusable diet templates.
-///
-/// Template creation/editing is intentionally deferred to the next slice; this
-/// screen is the first autonomous UI step in the diet planning flow.
+/// Lists reusable diet templates and navigates to the editor for create/edit.
 class DietTemplatesScreen extends ConsumerWidget {
   const DietTemplatesScreen({super.key});
 
@@ -39,6 +37,7 @@ class DietTemplatesScreen extends ConsumerWidget {
                   'F: ${template.dailyTarget.macros.fatG.round()}g · '
                   '${template.slots.length} slots',
                 ),
+                onTap: () => _openEditor(context, template.id),
               );
             },
           );
@@ -48,13 +47,16 @@ class DietTemplatesScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         key: const Key('addTemplateButton'),
-        onPressed: () {
-          // Editor deferred to PR 3B-B; this placeholder keeps the FAB present.
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Template editor coming soon')),
-          );
-        },
+        onPressed: () => _openEditor(context, null),
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  void _openEditor(BuildContext context, String? templateId) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => DietTemplateEditorScreen(templateId: templateId),
       ),
     );
   }
