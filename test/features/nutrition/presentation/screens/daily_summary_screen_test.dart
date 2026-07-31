@@ -6,11 +6,13 @@ import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dar
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/water_volume.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/hydration_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/daily_summary_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/hydration_screen.dart';
 
+import '../../_fakes/fake_diet_plan_source.dart';
 import '../../_fakes/fake_hydration_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
 
@@ -24,6 +26,7 @@ void main() {
           overrides: [
             nutritionSourceProvider.overrideWithValue(FakeNutritionSource()),
             hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
+            dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
           ],
           child: const MaterialApp(home: DailySummaryScreen()),
         ),
