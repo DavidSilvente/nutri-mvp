@@ -6,6 +6,7 @@ import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_target.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_template_editor_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_templates_screen.dart';
 
 import '../../_fakes/fake_diet_plan_source.dart';
@@ -84,9 +85,7 @@ void main() {
       );
     });
 
-    testWidgets('FAB shows a placeholder for the deferred editor', (
-      tester,
-    ) async {
+    testWidgets('FAB navigates to the editor for create', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -100,7 +99,8 @@ void main() {
       await tester.tap(find.byKey(const Key('addTemplateButton')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Template editor coming soon'), findsOneWidget);
+      expect(find.byType(DietTemplateEditorScreen), findsOneWidget);
+      expect(find.text('Create diet template'), findsOneWidget);
     });
   });
 }
