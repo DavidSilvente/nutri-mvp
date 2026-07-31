@@ -264,4 +264,3 @@ class _PlannedMealScreenState extends ConsumerState<PlannedMealScreen> {
     );
   }
 }
-
