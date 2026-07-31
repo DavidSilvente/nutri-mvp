@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Reject focused tests
+        run: |
+          focused=0
+          if grep -R '\.only(' test/; then
+            focused=1
+          fi
+          if grep -R 'solo: true' test/; then
+            focused=1
+          fi
+          if [ "$focused" -ne 0 ]; then
+            echo "Focused tests detected. Remove .only() / solo: true before merging."
+            exit 1
+          fi
+
+      - name: Run tests
+        run: flutter test
