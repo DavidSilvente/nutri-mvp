@@ -7,6 +7,7 @@ import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_target.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/screens/planned_meal_screen.dart';
 
 /// Creates a new diet template or edits an existing one.
 ///
@@ -269,6 +270,19 @@ class _TemplateFormState extends State<_TemplateForm> {
     });
   }
 
+  void _openPlannedMealScreen(String slotId) {
+    final template = widget.template;
+    if (template == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PlannedMealScreen.assign(
+          templateId: template.id,
+          slotId: slotId,
+        ),
+      ),
+    );
+  }
+
   static double _parse(String text) {
     final parsed = num.tryParse(text.trim());
     return parsed?.toDouble() ?? 0;
@@ -405,14 +419,31 @@ class _TemplateFormState extends State<_TemplateForm> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextFormField(
-                key: Key('slotLabelField_$index'),
-                controller: slot.label,
-                decoration: const InputDecoration(labelText: 'Slot label'),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) return 'Required';
-                  return null;
-                },
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      key: Key('slotLabelField_$index'),
+                      controller: slot.label,
+                      decoration: const InputDecoration(
+                        labelText: 'Slot label',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Required';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  if (widget.template != null)
+                    IconButton(
+                      key: Key('planSlotButton_$index'),
+                      icon: const Icon(Icons.event_available),
+                      tooltip: 'Plan meal',
+                      onPressed: () => _openPlannedMealScreen(slot.id),
+                    ),
+                ],
               ),
               const SizedBox(height: 8),
               Row(
