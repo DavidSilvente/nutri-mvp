@@ -566,5 +566,112 @@ void main() {
       expect(templates.first.dailyTarget, updatedDailyTarget);
       expect(templates.first.slots, [updatedSlotA, updatedSlotB]);
     });
+
+    test('saveTemplate preserves planned meals when slot identity is unchanged',
+        () async {
+      final slot = _slot(
+        id: 'slot-a',
+        label: 'Breakfast',
+        position: 0,
+      );
+      final template = _template(
+        id: 't1',
+        name: 'Cut-A',
+        slots: [slot],
+      );
+      await source.saveTemplate(template);
+
+      final day = NutritionDay.fromDateTime(DateTime(2026, 8, 1));
+      final meal = _plannedMeal(
+        id: 'pm1',
+        slotId: 'slot-a',
+        day: day,
+        targetSnapshot: _target(kcal: 700, proteinG: 40, carbsG: 60, fatG: 20),
+      );
+      await source.savePlannedMeal(meal);
+      await source.saveSubstitute(
+        _substitute(id: 'sub1', plannedMealId: 'pm1'),
+      );
+
+      final updatedSlot = _slot(
+        id: 'slot-a',
+        label: 'Brunch',
+        position: 0,
+        target: _target(kcal: 800, proteinG: 50, carbsG: 70, fatG: 25),
+      );
+      final updated = _template(
+        id: 't1',
+        name: 'Cut-A',
+        slots: [updatedSlot],
+      );
+      final result = await source.saveTemplate(updated);
+      final plannedResult = await source.listPlannedMeals();
+      final substituteResult = await source.listSubstitutes('pm1');
+      final templates =
+          (await source.listTemplates() as Ok<List<DietTemplate>, NutritionFailure>)
+              .value;
+
+      expect(result, isA<Ok<DietTemplate, NutritionFailure>>());
+      expect(templates, [updated]);
+      final meals =
+          (plannedResult as Ok<List<PlannedMeal>, NutritionFailure>).value;
+      expect(meals, [meal]);
+      final substitutes =
+          (substituteResult as Ok<List<MealSubstitute>, NutritionFailure>).value;
+      expect(substitutes, isNotEmpty);
+    });
+
+    test('saveTemplate deletes planned meals for removed slots', () async {
+      final slotA = _slot(
+        id: 'slot-a',
+        label: 'Breakfast',
+        position: 0,
+      );
+      final slotB = _slot(
+        id: 'slot-b',
+        label: 'Lunch',
+        position: 1,
+      );
+      final template = _template(
+        id: 't1',
+        name: 'Cut-A',
+        slots: [slotA, slotB],
+      );
+      await source.saveTemplate(template);
+
+      final day = NutritionDay.fromDateTime(DateTime(2026, 8, 1));
+      final mealA = _plannedMeal(
+        id: 'pm-a',
+        slotId: 'slot-a',
+        day: day,
+      );
+      final mealB = _plannedMeal(
+        id: 'pm-b',
+        slotId: 'slot-b',
+        day: day,
+      );
+      await source.savePlannedMeal(mealA);
+      await source.savePlannedMeal(mealB);
+      await source.saveSubstitute(
+        _substitute(id: 'sub-b', plannedMealId: 'pm-b'),
+      );
+
+      final updated = _template(
+        id: 't1',
+        name: 'Cut-A',
+        slots: [slotA],
+      );
+      final result = await source.saveTemplate(updated);
+      final plannedResult = await source.listPlannedMeals();
+      final substituteResult = await source.listSubstitutes('pm-b');
+
+      expect(result, isA<Ok<DietTemplate, NutritionFailure>>());
+      final meals =
+          (plannedResult as Ok<List<PlannedMeal>, NutritionFailure>).value;
+      expect(meals, [mealA]);
+      final substitutes =
+          (substituteResult as Ok<List<MealSubstitute>, NutritionFailure>).value;
+      expect(substitutes, isEmpty);
+    });
   });
 }

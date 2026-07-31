@@ -55,10 +55,10 @@ class SqlDietPlanSource implements DietPlanSource {
     try {
       final result = await _db.transaction<Result<DietTemplate, NutritionFailure>>(
         () async {
-          final existing = await (_db.select(_db.dietTemplates)
+          final existingByName = await (_db.select(_db.dietTemplates)
                 ..where((row) => row.name.equals(template.name)))
               .getSingleOrNull();
-          if (existing != null && existing.id != template.id) {
+          if (existingByName != null && existingByName.id != template.id) {
             return Err(
               ConflictFailure(
                 'Template name "${template.name}" already exists',
@@ -66,18 +66,43 @@ class SqlDietPlanSource implements DietPlanSource {
             );
           }
 
-          await _db
-              .into(_db.dietTemplates)
-              .insert(_toTemplateCompanion(template), mode: InsertMode.insertOrReplace);
+          // Use UPDATE for an existing template id. INSERT OR REPLACE would
+          // delete the old parent row first, which cascades to the slot rows
+          // and destroys planned meals/substitutes.
+          final existingById = await (_db.select(_db.dietTemplates)
+                ..where((row) => row.id.equals(template.id)))
+              .getSingleOrNull();
+          final templateCompanion = _toTemplateCompanion(template);
+          if (existingById != null) {
+            await _db.update(_db.dietTemplates).replace(templateCompanion);
+          } else {
+            await _db.into(_db.dietTemplates).insert(templateCompanion);
+          }
 
-          await (_db.delete(_db.dietMealSlots)
+          // Update slots in-place so that unchanged slot identities keep their
+          // primary keys and FK-backed planned meals/substitutes survive the
+          // edit. Removed slots are intentionally deleted and cascade as
+          // declared.
+          final existingSlotIds = await (_db.select(_db.dietMealSlots)
                 ..where((row) => row.templateId.equals(template.id)))
-              .go();
+              .map((row) => row.id)
+              .get();
+          final newSlotIds = template.slots.map((s) => s.id).toSet();
+          final removedSlotIds =
+              existingSlotIds.where((id) => !newSlotIds.contains(id)).toList();
+          if (removedSlotIds.isNotEmpty) {
+            await (_db.delete(_db.dietMealSlots)
+                  ..where((row) => row.id.isIn(removedSlotIds)))
+                .go();
+          }
 
           for (final slot in template.slots) {
-            await _db
-                .into(_db.dietMealSlots)
-                .insert(_toSlotCompanion(slot, template.id));
+            final companion = _toSlotCompanion(slot, template.id);
+            if (existingSlotIds.contains(slot.id)) {
+              await _db.update(_db.dietMealSlots).replace(companion);
+            } else {
+              await _db.into(_db.dietMealSlots).insert(companion);
+            }
           }
 
           return Ok(template);
