@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/hydration_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/daily_summary_screen.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_templates_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/hydration_screen.dart';
 
+import '../../_fakes/fake_diet_plan_source.dart';
 import '../../_fakes/fake_hydration_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
 
@@ -21,6 +24,7 @@ void main() {
           overrides: [
             nutritionSourceProvider.overrideWithValue(fake),
             hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
+            dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
           ],
           child: const MaterialApp(home: DailySummaryScreen()),
         ),
@@ -61,6 +65,7 @@ void main() {
           overrides: [
             nutritionSourceProvider.overrideWithValue(nutritionFake),
             hydrationSourceProvider.overrideWithValue(hydrationFake),
+            dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
           ],
           child: const MaterialApp(home: DailySummaryScreen()),
         ),
@@ -86,6 +91,29 @@ void main() {
       expect(find.textContaining('250'), findsOneWidget);
       // Meals remain untouched by the water registration.
       expect(find.text('Sin ingestas registradas hoy'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'navigating to diet templates from the daily summary opens the '
+    'DietTemplatesScreen',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            nutritionSourceProvider.overrideWithValue(FakeNutritionSource()),
+            hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
+            dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
+          ],
+          child: const MaterialApp(home: DailySummaryScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('goToDietTemplatesButton')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DietTemplatesScreen), findsOneWidget);
     },
   );
 }

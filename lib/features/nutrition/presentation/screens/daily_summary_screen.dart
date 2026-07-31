@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/hydration_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_templates_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/hydration_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/record_intake_screen.dart';
 
@@ -22,6 +23,18 @@ class DailySummaryScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Ingestas de hoy'),
         actions: [
+          IconButton(
+            key: const Key('goToDietTemplatesButton'),
+            icon: const Icon(Icons.restaurant_menu),
+            tooltip: 'Diet templates',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const DietTemplatesScreen(),
+                ),
+              );
+            },
+          ),
           IconButton(
             key: const Key('goToHydrationButton'),
             icon: const Icon(Icons.water_drop),
