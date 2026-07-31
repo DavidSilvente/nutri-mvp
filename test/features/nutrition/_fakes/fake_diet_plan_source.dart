@@ -36,6 +36,26 @@ class FakeDietPlanSource implements DietPlanSource {
         ConflictFailure('Template name "${template.name}" already exists'),
       );
     }
+
+    // Mirror the SQL cascade: removing a slot drops its planned meals and
+    // their substitutes. Unchanged slot identities survive the edit.
+    final previous = _templates[template.id];
+    if (previous != null) {
+      final keptSlotIds = template.slots.map((s) => s.id).toSet();
+      final removedSlotIds = previous.slots
+          .map((s) => s.id)
+          .where((id) => !keptSlotIds.contains(id))
+          .toList();
+      if (removedSlotIds.isNotEmpty) {
+        final removedMealIds = _plannedMeals.values
+            .where((m) => removedSlotIds.contains(m.slotId))
+            .map((m) => m.id)
+            .toSet();
+        _plannedMeals.removeWhere((_, m) => removedMealIds.contains(m.id));
+        _substitutes.removeWhere((_, s) => removedMealIds.contains(s.plannedMealId));
+      }
+    }
+
     _templates[template.id] = template;
     return Ok(template);
   }
