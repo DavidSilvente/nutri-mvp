@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/core/result.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dart';
@@ -8,6 +7,7 @@ import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.
 import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/record_intake_screen.dart';
 
+import '../../../../_helpers/pump_app.dart';
 import '../../_fakes/fake_nutrition_source.dart';
 
 void main() {
@@ -17,11 +17,10 @@ void main() {
     ) async {
       final fake = FakeNutritionSource();
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [nutritionSourceProvider.overrideWithValue(fake)],
-          child: const MaterialApp(home: RecordIntakeScreen()),
-        ),
+      await pumpApp(
+        tester,
+        const RecordIntakeScreen(),
+        overrides: [nutritionSourceProvider.overrideWithValue(fake)],
       );
 
       await tester.enterText(find.byKey(const Key('energyField')), '500');

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/core/result.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/hydration_entry.dart';
@@ -8,6 +7,7 @@ import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.
 import 'package:nutri_mvp/features/nutrition/presentation/providers/hydration_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/hydration_screen.dart';
 
+import '../../../../_helpers/pump_app.dart';
 import '../../_fakes/fake_hydration_source.dart';
 
 void main() {
@@ -15,13 +15,12 @@ void main() {
     testWidgets('shows an empty message when there are no entries today', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
-          ],
-          child: const MaterialApp(home: HydrationScreen()),
-        ),
+      await pumpApp(
+        tester,
+        const HydrationScreen(),
+        overrides: [
+          hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
+        ],
       );
       await tester.pumpAndSettle();
 
@@ -33,11 +32,10 @@ void main() {
     ) async {
       final fake = FakeHydrationSource();
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [hydrationSourceProvider.overrideWithValue(fake)],
-          child: const MaterialApp(home: HydrationScreen()),
-        ),
+      await pumpApp(
+        tester,
+        const HydrationScreen(),
+        overrides: [hydrationSourceProvider.overrideWithValue(fake)],
       );
       await tester.pumpAndSettle();
 

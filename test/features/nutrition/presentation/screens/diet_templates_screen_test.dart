@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
@@ -9,6 +8,7 @@ import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_pr
 import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_template_editor_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_templates_screen.dart';
 
+import '../../../../_helpers/pump_app.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 
 NutritionTarget _target({
@@ -50,13 +50,12 @@ void main() {
     testWidgets('shows an empty message when there are no templates', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
-          ],
-          child: const MaterialApp(home: DietTemplatesScreen()),
-        ),
+      await pumpApp(
+        tester,
+        const DietTemplatesScreen(),
+        overrides: [
+          dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
+        ],
       );
       await tester.pumpAndSettle();
 
@@ -68,13 +67,10 @@ void main() {
       final template = _template(id: 't1', name: 'Cut-A');
       await fake.saveTemplate(template);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            dietPlanSourceProvider.overrideWithValue(fake),
-          ],
-          child: const MaterialApp(home: DietTemplatesScreen()),
-        ),
+      await pumpApp(
+        tester,
+        const DietTemplatesScreen(),
+        overrides: [dietPlanSourceProvider.overrideWithValue(fake)],
       );
       await tester.pumpAndSettle();
 
@@ -85,13 +81,12 @@ void main() {
     });
 
     testWidgets('FAB navigates to the editor for create', (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
-          ],
-          child: const MaterialApp(home: DietTemplatesScreen()),
-        ),
+      await pumpApp(
+        tester,
+        const DietTemplatesScreen(),
+        overrides: [
+          dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
+        ],
       );
       await tester.pumpAndSettle();
 

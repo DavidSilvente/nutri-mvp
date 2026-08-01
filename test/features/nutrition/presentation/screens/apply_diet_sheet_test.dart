@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/core/result.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
@@ -15,6 +14,7 @@ import 'package:nutri_mvp/features/nutrition/presentation/providers/hydration_pr
 import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/day_plan_screen.dart';
 
+import '../../../../_helpers/pump_app.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 import '../../_fakes/fake_hydration_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
@@ -68,16 +68,15 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1000, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          nutritionSourceProvider.overrideWithValue(FakeNutritionSource()),
-          dietPlanSourceProvider.overrideWithValue(dietSource),
-          hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
-          todayProvider.overrideWithValue(monday),
-        ],
-        child: MaterialApp(home: DayPlanScreen(day: monday)),
-      ),
+    await pumpApp(
+      tester,
+      DayPlanScreen(day: monday),
+      overrides: [
+        nutritionSourceProvider.overrideWithValue(FakeNutritionSource()),
+        dietPlanSourceProvider.overrideWithValue(dietSource),
+        hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
+        todayProvider.overrideWithValue(monday),
+      ],
     );
     await tester.pumpAndSettle();
 
