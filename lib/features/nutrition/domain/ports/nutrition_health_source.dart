@@ -23,4 +23,15 @@ abstract interface class NutritionHealthSource {
   Future<Result<List<NutritionEntry>, NutritionFailure>> entriesOn(
     NutritionDay day,
   );
+
+  /// Returns every entry recorded between [from] and [to], BOTH INCLUSIVE,
+  /// ordered by recording time.
+  ///
+  /// Exists so a calendar can evaluate a whole month in one round trip
+  /// instead of one query per day. An inverted range ([from] after [to]) MUST
+  /// yield an empty list wrapped in [Ok], not an error.
+  Future<Result<List<NutritionEntry>, NutritionFailure>> entriesBetween(
+    NutritionDay from,
+    NutritionDay to,
+  );
 }

@@ -29,4 +29,17 @@ class FakeNutritionSource implements NutritionHealthSource {
         .toList(growable: false);
     return Ok(matches);
   }
+
+  @override
+  Future<Result<List<NutritionEntry>, NutritionFailure>> entriesBetween(
+    NutritionDay from,
+    NutritionDay to,
+  ) async {
+    if (from.epochDay > to.epochDay) return const Ok([]);
+    final matches = _entries.where((entry) {
+      final day = NutritionDay.fromDateTime(entry.recordedAt);
+      return day.epochDay >= from.epochDay && day.epochDay <= to.epochDay;
+    }).toList(growable: false);
+    return Ok(matches);
+  }
 }

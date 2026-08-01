@@ -85,6 +85,20 @@ class FakeDietPlanSource implements DietPlanSource {
   }
 
   @override
+  Future<Result<List<PlannedMeal>, NutritionFailure>> plannedMealsBetween(
+    NutritionDay from,
+    NutritionDay to,
+  ) async {
+    if (from.epochDay > to.epochDay) return const Ok([]);
+    final matches = _plannedMeals.values.where((meal) {
+      final day = meal.day;
+      if (day == null) return false;
+      return day.epochDay >= from.epochDay && day.epochDay <= to.epochDay;
+    }).toList(growable: false);
+    return Ok(matches);
+  }
+
+  @override
   Future<Result<PlannedMeal, NutritionFailure>> savePlannedMeal(
     PlannedMeal meal,
   ) async {

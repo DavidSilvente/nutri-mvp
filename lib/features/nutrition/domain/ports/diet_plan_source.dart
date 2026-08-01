@@ -31,6 +31,17 @@ abstract interface class DietPlanSource {
     NutritionDay? day,
   });
 
+  /// Returns every planned meal assigned to a day between [from] and [to],
+  /// BOTH INCLUSIVE.
+  ///
+  /// Meals with no day are EXCLUDED — they are templates-in-waiting, not
+  /// calendar commitments. Exists so a calendar can load a whole month in one
+  /// round trip. An inverted range MUST yield an empty list, not an error.
+  Future<Result<List<PlannedMeal>, NutritionFailure>> plannedMealsBetween(
+    NutritionDay from,
+    NutritionDay to,
+  );
+
   /// Persists [meal]. Returns [ConflictFailure] if the same slot is already
   /// planned for the same day.
   Future<Result<PlannedMeal, NutritionFailure>> savePlannedMeal(

@@ -29,6 +29,14 @@ class _AlwaysFailingSource implements NutritionHealthSource {
   ) async {
     return const Err(StorageFailure('disk full'));
   }
+
+  @override
+  Future<Result<List<NutritionEntry>, NutritionFailure>> entriesBetween(
+    NutritionDay from,
+    NutritionDay to,
+  ) async {
+    return const Err(StorageFailure('disk full'));
+  }
 }
 
 NutritionEntry buildEntry({required String id, required DateTime recordedAt}) {

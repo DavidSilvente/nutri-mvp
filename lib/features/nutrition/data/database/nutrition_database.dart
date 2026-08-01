@@ -23,6 +23,18 @@ class NutritionEntries extends Table {
   RealColumn get carbsG => real()();
   RealColumn get fatG => real()();
 
+  /// Optional link to the [PlannedMeals] row this intake was logged against.
+  ///
+  /// Nullable because unplanned intake must still be recordable. The delete
+  /// action is `setNull`, NOT `cascade`: un-planning a meal must never erase
+  /// the historical fact that food was eaten — the entry survives and simply
+  /// stops counting towards adherence.
+  TextColumn get plannedMealId => text().nullable().references(
+        PlannedMeals,
+        #id,
+        onDelete: KeyAction.setNull,
+      )();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -201,7 +213,7 @@ class NutritionDatabase extends _$NutritionDatabase {
   NutritionDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -224,7 +236,18 @@ class NutritionDatabase extends _$NutritionDatabase {
           // Portably drops `water_ml`: recreates `nutrition_entries` using
           // the current Dart table definition (which no longer declares
           // the column) instead of `ALTER TABLE ... DROP COLUMN`.
-          await m.alterTable(TableMigration(nutritionEntries));
+          //
+          // `newColumns` lists every column added to the Dart definition
+          // AFTER v2. Without it, the recreate would try to copy those
+          // columns out of the v1 table, which does not have them, and the
+          // whole v1 -> v4 path would fail with "no such column". Anything
+          // added to this table in a future version MUST be listed here too.
+          await m.alterTable(
+            TableMigration(
+              nutritionEntries,
+              newColumns: [nutritionEntries.plannedMealId],
+            ),
+          );
         }
         if (from < 3) {
           // v2 -> v3: create the six diet/menu tables. No backfill is
@@ -236,6 +259,21 @@ class NutritionDatabase extends _$NutritionDatabase {
           await m.createTable(menuPhotos);
           await m.createTable(menuItems);
         }
+        if (from < 4) {
+          // v3 -> v4: link intake to the planned meal it fulfils, so
+          // adherence can be computed. Existing rows keep NULL — historical
+          // intake was logged before planning existed and is not retroactively
+          // attributable to any meal.
+          //
+          // Guarded because the v1 -> v2 step above already recreates
+          // `nutrition_entries` from the current Dart definition, so a
+          // database coming all the way from v1 arrives here with the column
+          // already present; an unconditional ADD COLUMN would abort with
+          // "duplicate column name".
+          if (!await _hasColumn('nutrition_entries', 'planned_meal_id')) {
+            await m.addColumn(nutritionEntries, nutritionEntries.plannedMealId);
+          }
+        }
       });
     },
     beforeOpen: (details) async {
@@ -245,4 +283,13 @@ class NutritionDatabase extends _$NutritionDatabase {
       await customStatement('PRAGMA foreign_keys = ON;');
     },
   );
+
+  /// Whether [column] already exists on [table], read straight from SQLite.
+  ///
+  /// Migration steps cannot assume the shape of the table they receive: an
+  /// earlier step may have recreated it from the current Dart definition.
+  Future<bool> _hasColumn(String table, String column) async {
+    final rows = await customSelect("PRAGMA table_info('$table');").get();
+    return rows.any((row) => row.read<String>('name') == column);
+  }
 }
