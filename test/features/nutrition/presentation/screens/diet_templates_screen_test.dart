@@ -79,10 +79,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Cut-A'), findsOneWidget);
-      expect(
-        find.text('700 kcal · P: 40g · C: 60g · F: 20g · 1 slots'),
-        findsOneWidget,
-      );
+      expect(find.text('700 kcal'), findsOneWidget);
+      expect(find.text('P 40 · C 60 · F 20'), findsOneWidget);
+      expect(find.text('1 meal a day'), findsOneWidget);
     });
 
     testWidgets('FAB navigates to the editor for create', (tester) async {

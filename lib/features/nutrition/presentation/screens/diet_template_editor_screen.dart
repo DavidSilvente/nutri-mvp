@@ -379,8 +379,11 @@ class _TemplateFormState extends State<_TemplateForm> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Meal slots'),
-              ElevatedButton.icon(
+              Text(
+                'Meal slots',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              FilledButton.tonalIcon(
                 key: const Key('addSlotButton'),
                 onPressed: _addSlot,
                 icon: const Icon(Icons.add),
@@ -399,7 +402,7 @@ class _TemplateFormState extends State<_TemplateForm> {
             ),
           ],
           const SizedBox(height: 24),
-          ElevatedButton(
+          FilledButton(
             key: const Key('saveTemplateButton'),
             onPressed: _save,
             child: const Text('Save template'),

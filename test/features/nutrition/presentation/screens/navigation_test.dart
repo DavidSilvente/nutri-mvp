@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/providers/adherence_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/hydration_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart';
-import 'package:nutri_mvp/features/nutrition/presentation/screens/daily_summary_screen.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_calendar_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_templates_screen.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/screens/home_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/hydration_screen.dart';
 
 import '../../_fakes/fake_diet_plan_source.dart';
@@ -13,28 +16,42 @@ import '../../_fakes/fake_hydration_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
 
 void main() {
-  testWidgets(
-    'registering an intake from the record screen makes it appear in the '
-    'daily summary list, sharing the same source',
-    (tester) async {
-      final fake = FakeNutritionSource();
+  /// Pins "today" so the calendar and day headings do not drift with the
+  /// machine clock.
+  final today = NutritionDay.fromDateTime(DateTime.now());
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            nutritionSourceProvider.overrideWithValue(fake),
-            hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
-            dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
-          ],
-          child: const MaterialApp(home: DailySummaryScreen()),
+  Widget app({
+    FakeNutritionSource? nutrition,
+    FakeHydrationSource? hydration,
+    FakeDietPlanSource? dietPlan,
+  }) {
+    return ProviderScope(
+      overrides: [
+        nutritionSourceProvider.overrideWithValue(
+          nutrition ?? FakeNutritionSource(),
         ),
-      );
+        hydrationSourceProvider.overrideWithValue(
+          hydration ?? FakeHydrationSource(),
+        ),
+        dietPlanSourceProvider.overrideWithValue(
+          dietPlan ?? FakeDietPlanSource(),
+        ),
+        todayProvider.overrideWithValue(today),
+      ],
+      child: const MaterialApp(home: HomeScreen()),
+    );
+  }
+
+  testWidgets(
+    'an intake logged from the FAB shows up on today\'s plan as off-plan, '
+    'sharing the same source',
+    (tester) async {
+      await tester.pumpWidget(app());
       await tester.pumpAndSettle();
 
-      expect(find.text('Sin ingestas registradas hoy'), findsOneWidget);
+      expect(find.text('Extras'), findsNothing);
 
-      // Navigate to the record screen via the FAB.
-      await tester.tap(find.byKey(const Key('addIntakeButton')));
+      await tester.tap(find.byKey(const Key('logUnplannedIntakeButton')));
       await tester.pumpAndSettle();
 
       expect(find.text('Registrar ingesta'), findsOneWidget);
@@ -46,34 +63,28 @@ void main() {
       await tester.tap(find.byKey(const Key('submitButton')));
       await tester.pumpAndSettle();
 
-      // Back on the daily summary screen, the newly recorded entry shows up.
-      expect(find.text('Ingestas de hoy'), findsOneWidget);
-      expect(find.text('Sin ingestas registradas hoy'), findsNothing);
-      expect(find.textContaining('500'), findsOneWidget);
+      // Back on today's plan, the entry appears under the off-plan section:
+      // it counts towards the totals, not towards adherence. It sits below
+      // the fold, so scroll it into view first.
+      await tester.scrollUntilVisible(
+        find.text('Extras'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Extras'), findsOneWidget);
+      expect(find.textContaining('500'), findsWidgets);
     },
   );
 
   testWidgets(
-    'registering water from the dedicated hydration screen updates the '
-    'daily summary hydration total, independently from meals',
+    'water logged from the hydration screen updates today\'s water total, '
+    'independently from meals',
     (tester) async {
-      final nutritionFake = FakeNutritionSource();
-      final hydrationFake = FakeHydrationSource();
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            nutritionSourceProvider.overrideWithValue(nutritionFake),
-            hydrationSourceProvider.overrideWithValue(hydrationFake),
-            dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
-          ],
-          child: const MaterialApp(home: DailySummaryScreen()),
-        ),
-      );
+      await tester.pumpWidget(app());
       await tester.pumpAndSettle();
 
-      // Navigate to the dedicated hydration screen via its own entry point
-      // (NOT the meal FAB).
       await tester.tap(find.byKey(const Key('goToHydrationButton')));
       await tester.pumpAndSettle();
 
@@ -83,37 +94,33 @@ void main() {
       await tester.tap(find.byKey(const Key('submitButton')));
       await tester.pumpAndSettle();
 
-      // Go back to the daily summary screen.
       await tester.pageBack();
       await tester.pumpAndSettle();
 
-      expect(find.byType(DailySummaryScreen), findsOneWidget);
-      expect(find.textContaining('250'), findsOneWidget);
+      expect(find.text('250 ml'), findsOneWidget);
       // Meals remain untouched by the water registration.
-      expect(find.text('Sin ingestas registradas hoy'), findsOneWidget);
+      expect(find.text('Extras'), findsNothing);
     },
   );
 
-  testWidgets(
-    'navigating to diet templates from the daily summary opens the '
-    'DietTemplatesScreen',
-    (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            nutritionSourceProvider.overrideWithValue(FakeNutritionSource()),
-            hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
-            dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
-          ],
-          child: const MaterialApp(home: DailySummaryScreen()),
-        ),
-      );
-      await tester.pumpAndSettle();
+  testWidgets('the diet tab opens the template list', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('goToDietTemplatesButton')));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('dietTab')));
+    await tester.pumpAndSettle();
 
-      expect(find.byType(DietTemplatesScreen), findsOneWidget);
-    },
-  );
+    expect(find.byType(DietTemplatesScreen), findsOneWidget);
+  });
+
+  testWidgets('the calendar tab opens the month grid', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('calendarTab')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DietCalendarScreen), findsOneWidget);
+    expect(find.byKey(Key('calendarDay-${today.epochDay}')), findsOneWidget);
+  });
 }

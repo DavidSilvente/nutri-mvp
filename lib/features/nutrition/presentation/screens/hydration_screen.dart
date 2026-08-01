@@ -75,7 +75,7 @@ class _HydrationScreenState extends ConsumerState<HydrationScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  ElevatedButton(
+                  FilledButton(
                     key: const Key('submitButton'),
                     onPressed: _submit,
                     child: const Text('Guardar'),
