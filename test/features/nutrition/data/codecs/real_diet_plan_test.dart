@@ -52,8 +52,36 @@ void main() {
   }
 
   group('food table asset', () {
-    test('decodes every food and resolves each id uniquely', () {
-      expect(table.length, 48);
+    test('carries a large searchable pool plus the curated slugs', () {
+      // The pool exists so an importer can match arbitrary plan wording; the
+      // curated slugs are the ids plan documents reference directly. Asserted as
+      // properties rather than an exact count, which would need an edit every
+      // time the dataset is regenerated.
+      expect(table.length, greaterThan(5000));
+      expect(
+        table.all.where((food) => food.id.startsWith('usda_')).length,
+        greaterThan(5000),
+      );
+      for (final slug in [
+        'chicken_breast_grilled',
+        'rice_white_raw',
+        'rice_white_boiled',
+        'pasta_raw',
+        'ham_serrano',
+      ]) {
+        expect(table.byId(slug), isNotNull, reason: slug);
+      }
+    });
+
+    test('resolves each id uniquely', () {
+      // FoodCatalog throws on duplicate ids, so construction already proved it;
+      // this pins that curated slugs never collide with a pool id.
+      final curated =
+          table.all.where((food) => !food.id.startsWith('usda_')).toList();
+      expect(curated.length, 48);
+      for (final food in curated) {
+        expect(food.id.startsWith('usda_'), isFalse);
+      }
     });
 
     test('marks only the foods with no USDA equivalent as estimated', () {

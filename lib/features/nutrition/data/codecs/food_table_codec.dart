@@ -15,7 +15,7 @@ class FoodTableCodec {
   const FoodTableCodec();
 
   /// The only schema version this codec understands.
-  static const int supportedSchemaVersion = 1;
+  static const int supportedSchemaVersion = 2;
 
   Result<List<FoodItem>, NutritionFailure> decode(String source) {
     final Object? raw;
@@ -47,7 +47,8 @@ class FoodTableCodec {
     final per100g = reader.child('per100g');
     return FoodItem(
       id: reader.string('id'),
-      name: reader.string('nameEs'),
+      name: reader.string('name'),
+      branded: reader.has('branded') && reader.boolean('branded'),
       preparation: FoodPreparation.parse(reader.string('preparation')),
       per100g: NutritionTarget(
         energy: Energy(kcal: per100g.number('energyKcal')),

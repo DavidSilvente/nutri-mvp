@@ -61,6 +61,16 @@ class JsonReader {
     return value;
   }
 
+  bool boolean(String key) {
+    final value = _require(key);
+    if (value is! bool) {
+      throw JsonReadException(
+        '$path.$key: expected a boolean, got ${_type(value)}',
+      );
+    }
+    return value;
+  }
+
   num number(String key) {
     final value = _require(key);
     if (value is! num) {

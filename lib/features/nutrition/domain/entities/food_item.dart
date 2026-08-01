@@ -81,6 +81,7 @@ class FoodItem {
     required this.per100g,
     required this.source,
     this.sourceRef,
+    this.branded = false,
   }) {
     if (id.trim().isEmpty) {
       throw ArgumentError.value(id, 'id', 'must not be empty');
@@ -106,6 +107,14 @@ class FoodItem {
   /// Identifier within [source] (e.g. an FDC id). Null for estimates.
   final String? sourceRef;
 
+  /// Whether the entry names a brand or restaurant chain rather than a generic
+  /// food.
+  ///
+  /// Kept rather than filtered out, because for a few products the branded row
+  /// is the only entry there is. Matching treats it as a tie-breaker: a plan
+  /// line should land on the generic food unless it clearly asks otherwise.
+  final bool branded;
+
   /// Scales this food's composition to [quantity].
   NutritionTarget targetFor(FoodQuantity quantity) {
     final factor = quantity.per100gFactor;
@@ -128,11 +137,12 @@ class FoodItem {
           other.preparation == preparation &&
           other.per100g == per100g &&
           other.source == source &&
-          other.sourceRef == sourceRef);
+          other.sourceRef == sourceRef &&
+          other.branded == branded);
 
   @override
   int get hashCode =>
-      Object.hash(id, name, preparation, per100g, source, sourceRef);
+      Object.hash(id, name, preparation, per100g, source, sourceRef, branded);
 
   @override
   String toString() =>

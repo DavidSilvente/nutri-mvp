@@ -141,7 +141,10 @@ void main() {
     await harness.importer.import(pdfBytes, sourceLabel: 'x.pdf');
 
     expect(harness.extractor.receivedKnownFoodIds, contains('rice_white_raw'));
-    expect(harness.extractor.receivedKnownFoodIds, hasLength(48));
+    expect(
+      harness.extractor.receivedKnownFoodIds,
+      hasLength(foodTable.foods.length),
+    );
   });
 
   test('does not store anything when rendering fails', () async {

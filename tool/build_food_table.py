@@ -2,8 +2,7 @@
 """Generate assets/nutrition/food_table.json from USDA FoodData Central.
 
 The USDA SR Legacy dataset is public domain (CC0 1.0), so its values can be
-redistributed inside the app. Every generic food referenced by an imported diet
-plan resolves to one row here, keyed by a stable slug.
+redistributed inside the app.
 
 Run:
     python3 tool/build_food_table.py [--dataset DIR]
@@ -12,8 +11,20 @@ Without --dataset the SR Legacy archive is downloaded to a temp directory.
 
 Why a generator instead of a hand-written asset: the macro numbers stay
 traceable. Each row records the exact FDC id it came from, so any value can be
-re-derived and audited. Foods with no USDA equivalent are declared explicitly in
-ESTIMATED below and marked so the UI can flag them for review.
+re-derived and audited.
+
+The table holds three kinds of row, all in one flat `foods` list so the app's
+lookup stays a plain map access:
+
+* `usda_<fdcid>` — the bulk of the dataset, the pool an importer matches
+  free-text plan lines against.
+* curated slugs (`chicken_breast_grilled`) — stable ids referenced directly by
+  plan documents. Each is EXPANDED into a full row carrying the macros of the
+  USDA entry it points at, plus a Spanish display name. Expanding instead of
+  storing an alias mapping keeps both the asset self-contained and the runtime
+  catalog free of indirection; the cost is a few dozen duplicated rows.
+* `estimated` slugs — foods absent from SR Legacy, shipped with reference values
+  and flagged so the UI never presents a guess as a published figure.
 """
 
 from __future__ import annotations
@@ -22,6 +33,7 @@ import argparse
 import csv
 import json
 import os
+import re
 import sys
 import tempfile
 import urllib.request
@@ -39,12 +51,61 @@ NUTRIENT_IDS = {1008: 'energyKcal', 1003: 'proteinG', 1005: 'carbsG', 1004: 'fat
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUTPUT = os.path.join(REPO_ROOT, 'assets', 'nutrition', 'food_table.json')
 
-# Slug -> (FDC id, Spanish label, preparation state).
+SCHEMA_VERSION = 2
+
+# Categories dropped wholesale: none of them describe a food a diet plan
+# prescribes by weight, and keeping them only adds noise for the matcher.
+EXCLUDED_CATEGORIES = {
+    'Baby Foods',
+    'Fast Foods',
+    'Restaurant Foods',
+    'American Indian/Alaska Native Foods',
+    'Quality Control Materials',
+}
+
+# Preparation keywords, most specific first: 'cooked, boiled' must read as
+# boiled, not as the generic cooked.
+PREPARATION_PATTERNS = [
+    ('boiled', 'boiled'),
+    ('grilled', 'grilled'),
+    ('broiled', 'grilled'),
+    ('roasted', 'roasted'),
+    ('baked', 'baked'),
+    ('canned', 'canned'),
+    ('cured', 'cured'),
+    ('dried', 'cured'),
+    ('smoked', 'cured'),
+    ('raw', 'raw'),
+    ('uncooked', 'raw'),
+    ('cooked', 'cooked'),
+    ('fried', 'cooked'),
+    ('braised', 'cooked'),
+    ('stewed', 'cooked'),
+    ('steamed', 'cooked'),
+    ('microwaved', 'cooked'),
+]
+
+# A run of 3+ capitals is how SR Legacy writes brand and chain names
+# ("PIZZA HUT", "CHOBANI", "QUAKER"). Brand rows are kept — some are the only
+# entry for a common product — but flagged so matching prefers generics.
+BRAND_PATTERN = re.compile(r'\b[A-Z][A-Z&\'-]{2,}\b')
+
+# Capitalised words that are not brands and must not trigger the flag.
+BRAND_ALLOWLIST = {
+    'USDA', 'NFS', 'RTE', 'UHT', 'DHA', 'EPA', 'FDA', 'GMO', 'NS',
+    'II', 'III', 'IV',
+}
+
+# Curated slug -> (FDC id, Spanish label, preparation state).
+#
+# These are the ids plan documents reference directly, so they are part of the
+# app's contract: renaming or dropping one orphans the plans that use it.
 #
 # `preparation` is NOT decoration: raw and cooked forms of the same food differ
 # by up to 3x in energy (raw rice 365 kcal/100 g vs boiled 130 kcal/100 g), so a
-# match that loses the preparation state produces badly wrong day totals.
-USDA_FOODS = {
+# match that loses the preparation state produces badly wrong day totals. The
+# curated entries pin it by hand rather than inferring it from the description.
+CURATED = {
     # --- meat & poultry ---
     'beef_loin':                 ('171814', 'Ternera, lomo', 'raw'),
     'beef_tenderloin_raw':       ('171812', 'Ternera, solomillo, sin grasa', 'raw'),
@@ -158,22 +219,48 @@ def resolve_dataset(explicit: str | None) -> str:
     return target
 
 
-def read_macros(dataset: str, wanted: set[str]) -> dict[str, dict]:
-    """Return {fdc_id: {'desc': str, 'macros': {...}}} for the wanted ids."""
+def infer_preparation(description: str) -> str:
+    """Best-effort preparation state read off a USDA description."""
+    lowered = description.lower()
+    for keyword, preparation in PREPARATION_PATTERNS:
+        if keyword in lowered:
+            return preparation
+    # No stated preparation means the entry describes the food as eaten.
+    return 'ready_to_eat'
+
+
+def is_branded(description: str) -> bool:
+    """Whether the description carries a brand or chain name."""
+    for match in BRAND_PATTERN.findall(description):
+        if match not in BRAND_ALLOWLIST:
+            return True
+    return False
+
+
+def read_dataset(dataset: str) -> tuple[dict[str, dict], dict[str, str]]:
+    """Return ({fdc_id: {'desc', 'category', 'macros'}}, {category_id: name})."""
     csv.field_size_limit(10 ** 7)
-    out: dict[str, dict] = {}
-    with open(os.path.join(dataset, 'food.csv'), newline='', encoding='utf-8') as fh:
-        for row in csv.DictReader(fh):
-            if row['fdc_id'] in wanted:
-                out[row['fdc_id']] = {'desc': row['description'], 'macros': {}}
 
-    missing = wanted - out.keys()
-    if missing:
-        sys.exit(f'error: FDC ids not found in dataset: {sorted(missing)}')
-
-    with open(os.path.join(dataset, 'food_nutrient.csv'), newline='', encoding='utf-8') as fh:
+    categories: dict[str, str] = {}
+    with open(os.path.join(dataset, 'food_category.csv'), newline='',
+              encoding='utf-8') as fh:
         for row in csv.DictReader(fh):
-            entry = out.get(row['fdc_id'])
+            categories[row['id']] = row['description']
+
+    foods: dict[str, dict] = {}
+    with open(os.path.join(dataset, 'food.csv'), newline='',
+              encoding='utf-8') as fh:
+        for row in csv.DictReader(fh):
+            foods[row['fdc_id']] = {
+                'desc': row['description'],
+                'category': categories.get(row['food_category_id'], ''),
+                'macros': {},
+            }
+
+    with open(os.path.join(dataset, 'food_nutrient.csv'), newline='',
+              encoding='utf-8') as fh:
+        for row in csv.DictReader(fh):
+            entry = foods.get(row['fdc_id'])
             if entry is None:
                 continue
             nid = row['nutrient_id']
@@ -187,44 +274,81 @@ def read_macros(dataset: str, wanted: set[str]) -> dict[str, dict]:
             except ValueError:
                 pass
 
-    incomplete = {k: v['macros'].keys() for k, v in out.items()
-                  if len(v['macros']) != len(NUTRIENT_IDS)}
-    if incomplete:
-        sys.exit(f'error: incomplete macro profiles: {incomplete}')
-    return out
+    return foods, categories
 
 
 def build(dataset: str) -> dict:
-    usda = read_macros(dataset, {fdc for fdc, _, _ in USDA_FOODS.values()})
+    all_foods, _ = read_dataset(dataset)
+
+    # Every curated id must still resolve, or the plans referencing it break.
+    missing = {fdc for fdc, _, _ in CURATED.values()} - all_foods.keys()
+    if missing:
+        sys.exit(f'error: curated FDC ids not in dataset: {sorted(missing)}')
+
+    def macros_of(fdc_id: str) -> dict:
+        entry = all_foods[fdc_id]
+        if len(entry['macros']) != len(NUTRIENT_IDS):
+            sys.exit(f'error: incomplete macro profile for {fdc_id} '
+                     f'({entry["desc"]})')
+        return {k: entry['macros'][k]
+                for k in ('energyKcal', 'proteinG', 'carbsG', 'fatG')}
 
     foods = []
-    for slug, (fdc_id, name_es, preparation) in sorted(USDA_FOODS.items()):
-        entry = usda[fdc_id]
+
+    # 1. The searchable pool.
+    for fdc_id, entry in sorted(all_foods.items(), key=lambda kv: int(kv[0])):
+        if entry['category'] in EXCLUDED_CATEGORIES:
+            continue
+        if len(entry['macros']) != len(NUTRIENT_IDS):
+            continue
         foods.append({
-            'id': slug,
-            'nameEs': name_es,
-            'preparation': preparation,
-            'per100g': {k: entry['macros'][k] for k in
-                        ('energyKcal', 'proteinG', 'carbsG', 'fatG')},
+            'id': f'usda_{fdc_id}',
+            'name': entry['desc'],
+            'preparation': infer_preparation(entry['desc']),
+            'branded': is_branded(entry['desc']),
+            'per100g': macros_of(fdc_id),
             'source': 'usda_sr_legacy',
             'sourceRef': fdc_id,
-            'sourceDescription': entry['desc'],
         })
 
+    pool_size = len(foods)
+
+    # 2. Curated slugs, expanded into full rows so the runtime lookup needs no
+    #    alias indirection.
+    for slug, (fdc_id, name_es, preparation) in sorted(CURATED.items()):
+        foods.append({
+            'id': slug,
+            'name': name_es,
+            'preparation': preparation,
+            'branded': False,
+            'per100g': macros_of(fdc_id),
+            'source': 'usda_sr_legacy',
+            'sourceRef': fdc_id,
+            'sourceDescription': all_foods[fdc_id]['desc'],
+        })
+
+    # 3. Foods SR Legacy does not carry.
     for slug, spec in sorted(ESTIMATED.items()):
         foods.append({
             'id': slug,
-            'nameEs': spec['nameEs'],
+            'name': spec['nameEs'],
             'preparation': spec['preparation'],
+            'branded': False,
             'per100g': spec['per100g'],
             'source': 'estimated',
             'sourceRef': None,
             'estimationReason': spec['reason'],
         })
 
+    ids = [food['id'] for food in foods]
+    if len(set(ids)) != len(ids):
+        duplicates = sorted({i for i in ids if ids.count(i) > 1})
+        sys.exit(f'error: duplicate food ids: {duplicates}')
+
     return {
-        'schemaVersion': 1,
+        'schemaVersion': SCHEMA_VERSION,
         'generatedBy': 'tool/build_food_table.py',
+        'searchablePoolSize': pool_size,
         'sources': [
             {
                 'id': 'usda_sr_legacy',
@@ -254,14 +378,23 @@ def main() -> None:
     table = build(resolve_dataset(args.dataset))
     os.makedirs(os.path.dirname(OUTPUT), exist_ok=True)
     with open(OUTPUT, 'w', encoding='utf-8') as fh:
-        json.dump(table, fh, ensure_ascii=False, indent=2)
+        # Compact separators, no indent: this is a generated asset shipped in the
+        # app bundle, and pretty-printing several thousand rows would roughly
+        # double its size for nobody's benefit.
+        json.dump(table, fh, ensure_ascii=False, separators=(',', ':'))
         fh.write('\n')
 
     by_source: dict[str, int] = {}
+    branded = 0
     for food in table['foods']:
         by_source[food['source']] = by_source.get(food['source'], 0) + 1
-    print(f"wrote {len(table['foods'])} foods to "
-          f"{os.path.relpath(OUTPUT, REPO_ROOT)}  {by_source}")
+        if food.get('branded'):
+            branded += 1
+    size_kb = os.path.getsize(OUTPUT) / 1024
+    print(f"wrote {len(table['foods'])} foods "
+          f"({table['searchablePoolSize']} searchable, {branded} branded) to "
+          f"{os.path.relpath(OUTPUT, REPO_ROOT)}  {by_source}  "
+          f"{size_kb:.0f} KB")
 
 
 if __name__ == '__main__':
