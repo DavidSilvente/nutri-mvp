@@ -5,6 +5,7 @@ import 'package:nutri_mvp/core/health_failure_exception.dart';
 import 'package:nutri_mvp/core/result.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/providers/data_revision_provider.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart';
 
 /// Orchestrates the nutrition use cases for the current day's entries.
@@ -22,6 +23,7 @@ class NutritionController extends AsyncNotifier<List<NutritionEntry>> {
     final recordResult = await ref.read(recordEntryProvider).call(entry);
     switch (recordResult) {
       case Ok():
+        bumpDataRevision(ref);
         state = await AsyncValue.guard(_loadToday);
       case Err(failure: final failure):
         state = AsyncValue.error(
