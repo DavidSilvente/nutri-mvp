@@ -192,6 +192,68 @@ class MenuItems extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// An imported diet plan, stored as its normalized document.
+///
+/// The plan itself is IMMUTABLE once imported, so it is persisted verbatim as
+/// the normalized JSON document rather than exploded across tables for meals,
+/// components and options. Two reasons:
+///
+/// * re-importing the same source reproduces the same document, and because
+///   component ids are positional, the user's saved alternative choices keep
+///   resolving;
+/// * the mutable state (which plan is active, which alternative was picked on a
+///   given day) is small and lives in its own tables, so nothing needs to be
+///   migrated when the plan document schema grows a field.
+///
+/// [isDefault] marks the user's current diet. Exactly one row may carry it; the
+/// data source enforces that transactionally, since SQLite partial unique
+/// indexes are not expressible through drift's table DSL.
+@DataClassName('DietPlanRow')
+class DietPlanRecords extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text().unique()();
+
+  /// The normalized plan JSON, as decoded by `DietPlanCodec`.
+  TextColumn get document => text()();
+
+  /// Headline daily energy the source plan advertised, for display only.
+  RealColumn get declaredDailyEnergyKcal => real().nullable()();
+
+  BoolColumn get isDefault =>
+      boolean().withDefault(const Constant(false))();
+
+  /// Where the plan came from, e.g. the imported file name.
+  TextColumn get sourceLabel => text().nullable()();
+
+  DateTimeColumn get importedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Which alternative the user picked for a meal component on a given day.
+///
+/// Absence is meaningful: a component with no row falls back to the plan's
+/// default option. Only DEVIATIONS from the dietitian's first choice are stored,
+/// so a normal day writes nothing at all.
+///
+/// Not foreign-keyed to a plan row on purpose: a selection is keyed by the
+/// positional component id, which survives a re-import of the same plan.
+@DataClassName('ComponentSelectionRow')
+class ComponentSelections extends Table {
+  /// Day the choice applies to, as a `NutritionDay` epoch day.
+  IntColumn get dayEpoch => integer()();
+
+  /// The `MealComponent.id` being decided.
+  TextColumn get componentId => text()();
+
+  /// The chosen `ComponentOption.id`.
+  TextColumn get optionId => text()();
+
+  @override
+  Set<Column> get primaryKey => {dayEpoch, componentId};
+}
+
 /// Drift database for the nutrition feature.
 ///
 /// Production usage opens a file on disk (via `driftDatabase(name: ...)`);
@@ -208,12 +270,14 @@ class MenuItems extends Table {
   MealSubstitutes,
   MenuPhotos,
   MenuItems,
+  DietPlanRecords,
+  ComponentSelections,
 ])
 class NutritionDatabase extends _$NutritionDatabase {
   NutritionDatabase(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -273,6 +337,14 @@ class NutritionDatabase extends _$NutritionDatabase {
           if (!await _hasColumn('nutrition_entries', 'planned_meal_id')) {
             await m.addColumn(nutritionEntries, nutritionEntries.plannedMealId);
           }
+        }
+        if (from < 5) {
+          // v4 -> v5: imported diet plans and the per-day alternative choices
+          // made against them. Both start empty; nothing to backfill, and no
+          // existing table is touched, so a database at any earlier version
+          // reaches v5 by creating these two.
+          await m.createTable(dietPlanRecords);
+          await m.createTable(componentSelections);
         }
       });
     },

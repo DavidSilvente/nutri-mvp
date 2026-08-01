@@ -9,6 +9,18 @@ class NutritionDay {
     return NutritionDay._(dateTime.year, dateTime.month, dateTime.day);
   }
 
+  /// Rebuilds a [NutritionDay] from the [epochDay] key.
+  ///
+  /// The inverse of [epochDay], so a day round-trips through local storage
+  /// without going back through a `DateTime` in local time.
+  factory NutritionDay.fromEpochDay(int epochDay) {
+    final utc = DateTime.fromMillisecondsSinceEpoch(
+      epochDay * Duration.millisecondsPerDay,
+      isUtc: true,
+    );
+    return NutritionDay._(utc.year, utc.month, utc.day);
+  }
+
   final int year;
   final int month;
   final int day;
@@ -18,6 +30,13 @@ class NutritionDay {
   int get epochDay =>
       DateTime.utc(year, month, day).millisecondsSinceEpoch ~/
       Duration.millisecondsPerDay;
+
+  /// ISO weekday, 1 = Monday .. 7 = Sunday.
+  ///
+  /// Read in UTC deliberately: this value object has no timezone, and computing
+  /// it from a local `DateTime` would shift the weekday for dates near
+  /// midnight in some zones.
+  int get weekday => DateTime.utc(year, month, day).weekday;
 
   @override
   bool operator ==(Object other) =>
