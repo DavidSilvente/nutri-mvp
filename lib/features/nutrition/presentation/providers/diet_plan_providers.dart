@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutri_mvp/features/nutrition/data/sources/sql_diet_plan_source.dart';
 import 'package:nutri_mvp/features/nutrition/domain/ports/diet_plan_source.dart';
+import 'package:nutri_mvp/features/nutrition/domain/usecases/apply_template_to_days.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/controllers/diet_plan_controller.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart'
     show nutritionDatabaseProvider;
@@ -11,6 +12,11 @@ import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_pr
 /// `FakeDietPlanSource` to avoid touching drift entirely.
 final dietPlanSourceProvider = Provider<DietPlanSource>((ref) {
   return SqlDietPlanSource(ref.watch(nutritionDatabaseProvider));
+});
+
+/// Turns a template into actual planned meals on given days.
+final applyTemplateProvider = Provider<ApplyTemplateToDays>((ref) {
+  return ApplyTemplateToDays(ref.watch(dietPlanSourceProvider));
 });
 
 /// Orchestrates diet templates and planned meals for the planning UI.

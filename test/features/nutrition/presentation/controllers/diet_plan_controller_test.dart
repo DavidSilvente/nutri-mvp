@@ -47,6 +47,14 @@ class _AlwaysFailingSource implements DietPlanSource {
   }
 
   @override
+  Future<Result<List<PlannedMeal>, NutritionFailure>> plannedMealsBetween(
+    NutritionDay from,
+    NutritionDay to,
+  ) async {
+    return const Err(StorageFailure('disk full'));
+  }
+
+  @override
   Future<Result<PlannedMeal, NutritionFailure>> savePlannedMeal(
     PlannedMeal meal,
   ) async {
@@ -103,6 +111,14 @@ class _PlannedMealsLoadFailingSource implements DietPlanSource {
     String? templateId,
     NutritionDay? day,
   }) async {
+    return const Err(StorageFailure('planned meals unavailable'));
+  }
+
+  @override
+  Future<Result<List<PlannedMeal>, NutritionFailure>> plannedMealsBetween(
+    NutritionDay from,
+    NutritionDay to,
+  ) async {
     return const Err(StorageFailure('planned meals unavailable'));
   }
 

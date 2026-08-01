@@ -26,6 +26,14 @@ class _AlwaysFailingSource implements NutritionHealthSource {
   ) async {
     return const Ok([]);
   }
+
+  @override
+  Future<Result<List<NutritionEntry>, NutritionFailure>> entriesBetween(
+    NutritionDay from,
+    NutritionDay to,
+  ) async {
+    return const Ok([]);
+  }
 }
 
 NutritionEntry buildEntry({required String id, required DateTime recordedAt}) {

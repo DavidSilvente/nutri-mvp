@@ -154,6 +154,29 @@ class SqlDietPlanSource implements DietPlanSource {
   }
 
   @override
+  Future<Result<List<PlannedMeal>, NutritionFailure>> plannedMealsBetween(
+    NutritionDay from,
+    NutritionDay to,
+  ) async {
+    if (from.epochDay > to.epochDay) return const Ok([]);
+    try {
+      // `isBetweenValues` on a nullable column already excludes NULL days,
+      // which is the documented contract: unscheduled meals are not calendar
+      // commitments.
+      final query = _db.select(_db.plannedMeals)
+        ..where(
+          (row) =>
+              row.dayEpoch.isBiggerOrEqualValue(from.epochDay) &
+              row.dayEpoch.isSmallerOrEqualValue(to.epochDay),
+        );
+      final rows = await query.get();
+      return Ok(rows.map(_toPlannedMeal).toList(growable: false));
+    } catch (e) {
+      return Err(StorageFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Result<PlannedMeal, NutritionFailure>> savePlannedMeal(
     PlannedMeal meal,
   ) async {

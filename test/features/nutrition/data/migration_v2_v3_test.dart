@@ -367,9 +367,11 @@ void main() {
         expect(result, isNotEmpty, reason: 'table $name should exist');
       }
 
-      // (3) The database reports version 3.
+      // (3) A v1 database is migrated all the way to the CURRENT schema
+      // version in one open — not just to v3. Asserting a hardcoded 3 here
+      // would break on every future migration; assert the invariant instead.
       final versionResult = raw.select('PRAGMA user_version;');
-      expect(versionResult.single['user_version'], 3);
+      expect(versionResult.single['user_version'], database.schemaVersion);
     });
   });
 }

@@ -254,7 +254,7 @@ class _PlannedMealScreenState extends ConsumerState<PlannedMealScreen> {
             ),
           ],
           const SizedBox(height: 24),
-          ElevatedButton(
+          FilledButton(
             key: const Key('savePlannedMealButton'),
             onPressed: _save,
             child: const Text('Save planned meal'),

@@ -1,31 +1,55 @@
-// Smoke test for the real Nutrition MVP app (replaces the old Flutter
-// counter demo). Overrides `nutritionSourceProvider` with the in-memory
-// fake so the test never touches drift/disk.
+// Smoke test for the real Nutrition app. Overrides the source providers with
+// in-memory fakes so the test never touches drift/disk.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/providers/hydration_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/screens/home_screen.dart';
 import 'package:nutri_mvp/main.dart';
 
+import 'features/nutrition/_fakes/fake_diet_plan_source.dart';
+import 'features/nutrition/_fakes/fake_hydration_source.dart';
 import 'features/nutrition/_fakes/fake_nutrition_source.dart';
 
 void main() {
-  testWidgets('NutritionApp starts on the daily summary screen', (
-    tester,
-  ) async {
+  testWidgets('NutritionApp starts on today\'s plan', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           nutritionSourceProvider.overrideWithValue(FakeNutritionSource()),
+          hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
+          dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
         ],
         child: const NutritionApp(),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Ingestas de hoy'), findsOneWidget);
-    expect(find.text('Sin ingestas registradas hoy'), findsOneWidget);
-    expect(find.byKey(const Key('addIntakeButton')), findsOneWidget);
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(find.text('Today'), findsWidgets);
+    // Nothing planned yet, so the empty state invites building a plan.
+    expect(find.text('No meals planned'), findsOneWidget);
+    expect(find.byKey(const Key('logUnplannedIntakeButton')), findsOneWidget);
+  });
+
+  testWidgets('the three destinations are reachable', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          nutritionSourceProvider.overrideWithValue(FakeNutritionSource()),
+          hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
+          dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
+        ],
+        child: const NutritionApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('todayTab')), findsOneWidget);
+    expect(find.byKey(const Key('calendarTab')), findsOneWidget);
+    expect(find.byKey(const Key('dietTab')), findsOneWidget);
   });
 }

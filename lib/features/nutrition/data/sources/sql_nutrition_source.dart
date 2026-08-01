@@ -47,6 +47,27 @@ class SqlNutritionSource implements NutritionHealthSource {
     }
   }
 
+  @override
+  Future<Result<List<NutritionEntry>, NutritionFailure>> entriesBetween(
+    NutritionDay from,
+    NutritionDay to,
+  ) async {
+    if (from.epochDay > to.epochDay) return const Ok([]);
+    try {
+      final query = _db.select(_db.nutritionEntries)
+        ..where(
+          (row) =>
+              row.dayEpoch.isBiggerOrEqualValue(from.epochDay) &
+              row.dayEpoch.isSmallerOrEqualValue(to.epochDay),
+        )
+        ..orderBy([(row) => OrderingTerm.asc(row.recordedAt)]);
+      final rows = await query.get();
+      return Ok(rows.map(_toEntity).toList(growable: false));
+    } catch (e) {
+      return Err(StorageFailure(e.toString()));
+    }
+  }
+
   NutritionEntriesCompanion _toCompanion(NutritionEntry entry) {
     return NutritionEntriesCompanion.insert(
       id: entry.id,
@@ -56,6 +77,7 @@ class SqlNutritionSource implements NutritionHealthSource {
       proteinG: entry.macros.proteinG.toDouble(),
       carbsG: entry.macros.carbsG.toDouble(),
       fatG: entry.macros.fatG.toDouble(),
+      plannedMealId: Value(entry.plannedMealId),
     );
   }
 
@@ -69,6 +91,7 @@ class SqlNutritionSource implements NutritionHealthSource {
         carbsG: row.carbsG,
         fatG: row.fatG,
       ),
+      plannedMealId: row.plannedMealId,
     );
   }
 }
