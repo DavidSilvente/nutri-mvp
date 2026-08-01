@@ -60,6 +60,66 @@ final class StorageFailure extends NutritionFailure {
   String toString() => 'StorageFailure(reason: $reason)';
 }
 
+/// Structured plan or food-table data could not be read because it is missing
+/// required fields, carries the wrong types, or declares an unsupported schema
+/// version.
+///
+/// Distinct from [StorageFailure]: the bytes were retrieved fine, their SHAPE is
+/// wrong. Keeping them apart lets the UI say "this file is not a plan we
+/// understand" instead of blaming the database.
+final class MalformedPlanFailure extends NutritionFailure {
+  const MalformedPlanFailure(this.reason);
+
+  final String reason;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MalformedPlanFailure && other.reason == reason);
+
+  @override
+  int get hashCode => reason.hashCode;
+
+  @override
+  String toString() => 'MalformedPlanFailure(reason: $reason)';
+}
+
+/// A meal component references food ids that the food catalog cannot resolve,
+/// so its macros cannot be derived.
+///
+/// Carries EVERY unresolved id rather than just the first, so an import can
+/// report the whole gap in one pass instead of surfacing them one at a time.
+final class UnknownFoodFailure extends NutritionFailure {
+  UnknownFoodFailure(Set<String> foodIds)
+      : foodIds = Set.unmodifiable(foodIds) {
+    if (foodIds.isEmpty) {
+      throw ArgumentError.value(
+        foodIds,
+        'foodIds',
+        'must name at least one unresolved food',
+      );
+    }
+  }
+
+  final Set<String> foodIds;
+
+  /// Ids in a stable order, for messages and assertions.
+  List<String> get sortedIds => foodIds.toList()..sort();
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UnknownFoodFailure &&
+          other.foodIds.length == foodIds.length &&
+          other.foodIds.containsAll(foodIds));
+
+  @override
+  int get hashCode => Object.hashAllUnordered(foodIds);
+
+  @override
+  String toString() => 'UnknownFoodFailure(foodIds: ${sortedIds.join(', ')})';
+}
+
 /// A conflict failure reported when a uniqueness or ordering constraint is
 /// violated (e.g. a duplicate template name or a slot already planned for the
 /// same day).

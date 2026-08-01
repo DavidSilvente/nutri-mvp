@@ -1,0 +1,694 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "tool/build_food_table.py",
+  "sources": [
+    {
+      "id": "usda_sr_legacy",
+      "name": "USDA FoodData Central, SR Legacy (April 2018)",
+      "license": "CC0 1.0 (public domain)",
+      "url": "https://fdc.nal.usda.gov/",
+      "attribution": "U.S. Department of Agriculture, Agricultural Research Service. FoodData Central."
+    },
+    {
+      "id": "estimated",
+      "name": "Reference values for foods absent from SR Legacy",
+      "license": null,
+      "url": null,
+      "attribution": "Flagged in-app for user review."
+    }
+  ],
+  "foods": [
+    {
+      "id": "apple_raw_with_skin",
+      "nameEs": "Manzana con piel",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 52.0,
+        "proteinG": 0.26,
+        "carbsG": 13.81,
+        "fatG": 0.17
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "171688",
+      "sourceDescription": "Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)"
+    },
+    {
+      "id": "beef_loin",
+      "nameEs": "Ternera, lomo",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 138.0,
+        "proteinG": 22.93,
+        "carbsG": 0.0,
+        "fatG": 5.15
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "171814",
+      "sourceDescription": "Beef, short loin, top loin steak, separable lean only, trimmed to 1/8\" fat, all grades, raw"
+    },
+    {
+      "id": "beef_mince_lean",
+      "nameEs": "Carne picada de vacuno 95% magra",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 137.0,
+        "proteinG": 21.41,
+        "carbsG": 0.0,
+        "fatG": 5.0
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "171790",
+      "sourceDescription": "Beef, ground, 95% lean meat / 5% fat, raw"
+    },
+    {
+      "id": "beef_tenderloin_raw",
+      "nameEs": "Ternera, solomillo, sin grasa",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 153.0,
+        "proteinG": 22.12,
+        "carbsG": 0.0,
+        "fatG": 6.52
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "171812",
+      "sourceDescription": "Beef, tenderloin, steak, separable lean only, trimmed to 1/8\" fat, all grades, raw"
+    },
+    {
+      "id": "blueberry_raw",
+      "nameEs": "Arándano",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 57.0,
+        "proteinG": 0.74,
+        "carbsG": 14.49,
+        "fatG": 0.33
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "171711",
+      "sourceDescription": "Blueberries, raw"
+    },
+    {
+      "id": "bread_burger_bun",
+      "nameEs": "Pan tipo hamburguesa",
+      "preparation": "baked",
+      "per100g": {
+        "energyKcal": 279.0,
+        "proteinG": 9.77,
+        "carbsG": 50.12,
+        "fatG": 3.91
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "172796",
+      "sourceDescription": "Rolls, hamburger or hotdog, plain"
+    },
+    {
+      "id": "bread_white_wheat",
+      "nameEs": "Pan de trigo",
+      "preparation": "baked",
+      "per100g": {
+        "energyKcal": 274.0,
+        "proteinG": 10.67,
+        "carbsG": 47.54,
+        "fatG": 4.53
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "172686",
+      "sourceDescription": "Bread, wheat"
+    },
+    {
+      "id": "bread_wholemeal",
+      "nameEs": "Pan integral",
+      "preparation": "baked",
+      "per100g": {
+        "energyKcal": 252.0,
+        "proteinG": 12.45,
+        "carbsG": 42.71,
+        "fatG": 3.5
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "172688",
+      "sourceDescription": "Bread, whole-wheat, commercially prepared"
+    },
+    {
+      "id": "cheese_mozzarella",
+      "nameEs": "Queso mozzarella",
+      "preparation": "ready_to_eat",
+      "per100g": {
+        "energyKcal": 254.0,
+        "proteinG": 24.26,
+        "carbsG": 2.77,
+        "fatG": 15.92
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "170847",
+      "sourceDescription": "Cheese, mozzarella, part skim milk"
+    },
+    {
+      "id": "chicken_breast_grilled",
+      "nameEs": "Pollo, pechuga, plancha",
+      "preparation": "grilled",
+      "per100g": {
+        "energyKcal": 151.0,
+        "proteinG": 30.54,
+        "carbsG": 0.0,
+        "fatG": 3.17
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "171534",
+      "sourceDescription": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, cooked, grilled"
+    },
+    {
+      "id": "chicken_deli",
+      "nameEs": "Pollo, fiambre de pechuga",
+      "preparation": "cured",
+      "per100g": {
+        "energyKcal": 79.0,
+        "proteinG": 16.79,
+        "carbsG": 2.17,
+        "fatG": 0.39
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "172963",
+      "sourceDescription": "Chicken breast, oven-roasted, fat-free, sliced"
+    },
+    {
+      "id": "chicken_thigh_skinless",
+      "nameEs": "Pollo, contramuslo sin piel",
+      "preparation": "roasted",
+      "per100g": {
+        "energyKcal": 179.0,
+        "proteinG": 24.76,
+        "carbsG": 0.0,
+        "fatG": 8.15
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "172388",
+      "sourceDescription": "Chicken, broilers or fryers, thigh, meat only, cooked, roasted"
+    },
+    {
+      "id": "chocolate_dark",
+      "nameEs": "Chocolate negro 70-85%",
+      "preparation": "ready_to_eat",
+      "per100g": {
+        "energyKcal": 598.0,
+        "proteinG": 7.79,
+        "carbsG": 45.9,
+        "fatG": 42.63
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "170273",
+      "sourceDescription": "Chocolate, dark, 70-85% cacao solids"
+    },
+    {
+      "id": "cornflakes",
+      "nameEs": "Corn flakes",
+      "preparation": "ready_to_eat",
+      "per100g": {
+        "energyKcal": 384.0,
+        "proteinG": 5.9,
+        "carbsG": 88.01,
+        "fatG": 0.91
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "174648",
+      "sourceDescription": "Cereals ready-to-eat, RALSTON Corn Flakes"
+    },
+    {
+      "id": "egg_omelette",
+      "nameEs": "Huevo, tortilla a la francesa",
+      "preparation": "cooked",
+      "per100g": {
+        "energyKcal": 154.0,
+        "proteinG": 10.57,
+        "carbsG": 0.64,
+        "fatG": 11.66
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "172185",
+      "sourceDescription": "Egg, whole, cooked, omelet"
+    },
+    {
+      "id": "egg_white_raw",
+      "nameEs": "Huevo de gallina, clara",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 52.0,
+        "proteinG": 10.9,
+        "carbsG": 0.73,
+        "fatG": 0.17
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "172183",
+      "sourceDescription": "Egg, white, raw, fresh"
+    },
+    {
+      "id": "egg_whole_raw",
+      "nameEs": "Huevo de gallina, entero",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 143.0,
+        "proteinG": 12.56,
+        "carbsG": 0.72,
+        "fatG": 9.51
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "171287",
+      "sourceDescription": "Egg, whole, raw, fresh"
+    },
+    {
+      "id": "ham_cooked",
+      "nameEs": "Jamón cocido",
+      "preparation": "cured",
+      "per100g": {
+        "energyKcal": 164.0,
+        "proteinG": 16.6,
+        "carbsG": 3.63,
+        "fatG": 8.8
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "173864",
+      "sourceDescription": "Ham, sliced, regular (approximately 11% fat)"
+    },
+    {
+      "id": "honey",
+      "nameEs": "Miel",
+      "preparation": "ready_to_eat",
+      "per100g": {
+        "energyKcal": 304.0,
+        "proteinG": 0.3,
+        "carbsG": 82.4,
+        "fatG": 0.0
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "169640",
+      "sourceDescription": "Honey"
+    },
+    {
+      "id": "mackerel_raw",
+      "nameEs": "Caballa",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 205.0,
+        "proteinG": 18.6,
+        "carbsG": 0.0,
+        "fatG": 13.89
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "175119",
+      "sourceDescription": "Fish, mackerel, Atlantic, raw"
+    },
+    {
+      "id": "mandarin_raw",
+      "nameEs": "Mandarina",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 53.0,
+        "proteinG": 0.81,
+        "carbsG": 13.34,
+        "fatG": 0.31
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "169105",
+      "sourceDescription": "Tangerines, (mandarin oranges), raw"
+    },
+    {
+      "id": "oats_crunchy",
+      "nameEs": "Avena crunchy (granola)",
+      "preparation": "ready_to_eat",
+      "per100g": {
+        "energyKcal": 421.0,
+        "proteinG": 10.55,
+        "carbsG": 73.65,
+        "fatG": 11.62
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "173892",
+      "sourceDescription": "Cereals ready-to-eat, QUAKER, 100% Natural Granola, Oats, Wheat and Honey"
+    },
+    {
+      "id": "oats_raw",
+      "nameEs": "Avena en copos",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 379.0,
+        "proteinG": 13.15,
+        "carbsG": 67.7,
+        "fatG": 6.52
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "173904",
+      "sourceDescription": "Cereals, oats, regular and quick, not fortified, dry"
+    },
+    {
+      "id": "orange_raw",
+      "nameEs": "Naranja",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 47.0,
+        "proteinG": 0.94,
+        "carbsG": 11.75,
+        "fatG": 0.12
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "169097",
+      "sourceDescription": "Oranges, raw, all commercial varieties"
+    },
+    {
+      "id": "pasta_raw",
+      "nameEs": "Pasta alimenticia",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 371.0,
+        "proteinG": 13.04,
+        "carbsG": 74.67,
+        "fatG": 1.51
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "169736",
+      "sourceDescription": "Pasta, dry, enriched"
+    },
+    {
+      "id": "pear_raw",
+      "nameEs": "Pera",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 57.0,
+        "proteinG": 0.36,
+        "carbsG": 15.23,
+        "fatG": 0.14
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "169118",
+      "sourceDescription": "Pears, raw"
+    },
+    {
+      "id": "pork_tenderloin",
+      "nameEs": "Cerdo, solomillo",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 109.0,
+        "proteinG": 20.95,
+        "carbsG": 0.0,
+        "fatG": 2.17
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "168249",
+      "sourceDescription": "Pork, fresh, loin, tenderloin, separable lean only, raw"
+    },
+    {
+      "id": "potato_baked",
+      "nameEs": "Patata al horno",
+      "preparation": "baked",
+      "per100g": {
+        "energyKcal": 92.0,
+        "proteinG": 2.1,
+        "carbsG": 21.08,
+        "fatG": 0.15
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "170434",
+      "sourceDescription": "Potatoes, white, flesh and skin, baked"
+    },
+    {
+      "id": "quark_0",
+      "nameEs": "Queso fresco batido 0%",
+      "preparation": "ready_to_eat",
+      "per100g": {
+        "energyKcal": 72.0,
+        "proteinG": 10.34,
+        "carbsG": 6.66,
+        "fatG": 0.29
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "172181",
+      "sourceDescription": "Cheese, cottage, nonfat, uncreamed, dry, large or small curd"
+    },
+    {
+      "id": "rice_brown_boiled",
+      "nameEs": "Arroz integral, hervido",
+      "preparation": "boiled",
+      "per100g": {
+        "energyKcal": 123.0,
+        "proteinG": 2.74,
+        "carbsG": 25.58,
+        "fatG": 0.97
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "169704",
+      "sourceDescription": "Rice, brown, long-grain, cooked (Includes foods for USDA's Food Distribution Program)"
+    },
+    {
+      "id": "rice_cake",
+      "nameEs": "Tortita de arroz",
+      "preparation": "ready_to_eat",
+      "per100g": {
+        "energyKcal": 386.0,
+        "proteinG": 8.1,
+        "carbsG": 79.9,
+        "fatG": 3.8
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "168855",
+      "sourceDescription": "Snacks, rice cakes, brown rice, rye"
+    },
+    {
+      "id": "rice_cream",
+      "nameEs": "Crema de arroz",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 370.0,
+        "proteinG": 6.3,
+        "carbsG": 82.4,
+        "fatG": 0.5
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "173900",
+      "sourceDescription": "Cereals, CREAM OF RICE, dry"
+    },
+    {
+      "id": "rice_white_boiled",
+      "nameEs": "Arroz blanco, hervido",
+      "preparation": "boiled",
+      "per100g": {
+        "energyKcal": 130.0,
+        "proteinG": 2.69,
+        "carbsG": 28.17,
+        "fatG": 0.28
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "168878",
+      "sourceDescription": "Rice, white, long-grain, regular, enriched, cooked"
+    },
+    {
+      "id": "rice_white_raw",
+      "nameEs": "Arroz blanco",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 365.0,
+        "proteinG": 7.13,
+        "carbsG": 79.95,
+        "fatG": 0.66
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "168877",
+      "sourceDescription": "Rice, white, long-grain, regular, raw, enriched"
+    },
+    {
+      "id": "salmon_raw",
+      "nameEs": "Salmón",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 208.0,
+        "proteinG": 20.42,
+        "carbsG": 0.0,
+        "fatG": 13.42
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "175167",
+      "sourceDescription": "Fish, salmon, Atlantic, farmed, raw"
+    },
+    {
+      "id": "seabream_grilled",
+      "nameEs": "Dorada, plancha",
+      "preparation": "cooked",
+      "per100g": {
+        "energyKcal": 124.0,
+        "proteinG": 23.63,
+        "carbsG": 0.0,
+        "fatG": 2.56
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "173694",
+      "sourceDescription": "Fish, sea bass, mixed species, cooked, dry heat"
+    },
+    {
+      "id": "strawberry_raw",
+      "nameEs": "Fresa",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 32.0,
+        "proteinG": 0.67,
+        "carbsG": 7.68,
+        "fatG": 0.3
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "167762",
+      "sourceDescription": "Strawberries, raw"
+    },
+    {
+      "id": "sweet_potato_raw",
+      "nameEs": "Boniato",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 86.0,
+        "proteinG": 1.57,
+        "carbsG": 20.12,
+        "fatG": 0.05
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "168482",
+      "sourceDescription": "Sweet potato, raw, unprepared (Includes foods for USDA's Food Distribution Program)"
+    },
+    {
+      "id": "tuna_canned_water_drained",
+      "nameEs": "Atún al natural, escurrido",
+      "preparation": "canned",
+      "per100g": {
+        "energyKcal": 116.0,
+        "proteinG": 25.51,
+        "carbsG": 0.0,
+        "fatG": 0.82
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "171986",
+      "sourceDescription": "Fish, tuna, light, canned in water, without salt, drained solids"
+    },
+    {
+      "id": "turkey_breast_grilled",
+      "nameEs": "Pavo, pechuga sin piel, plancha",
+      "preparation": "roasted",
+      "per100g": {
+        "energyKcal": 147.0,
+        "proteinG": 30.13,
+        "carbsG": 0.0,
+        "fatG": 2.08
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "171496",
+      "sourceDescription": "Turkey, whole, breast, meat only, cooked, roasted"
+    },
+    {
+      "id": "turkey_burger",
+      "nameEs": "Hamburguesa de pavo",
+      "preparation": "raw",
+      "per100g": {
+        "energyKcal": 150.0,
+        "proteinG": 18.73,
+        "carbsG": 0.0,
+        "fatG": 8.34
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "172850",
+      "sourceDescription": "Turkey, ground, 93% lean, 7% fat, raw"
+    },
+    {
+      "id": "whey_protein_isolate",
+      "nameEs": "Proteína de suero en polvo",
+      "preparation": "ready_to_eat",
+      "per100g": {
+        "energyKcal": 352.0,
+        "proteinG": 78.13,
+        "carbsG": 6.25,
+        "fatG": 1.56
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "173180",
+      "sourceDescription": "Beverages, Protein powder whey based"
+    },
+    {
+      "id": "yogurt_drink_high_protein",
+      "nameEs": "Yogur líquido alto en proteína",
+      "preparation": "ready_to_eat",
+      "per100g": {
+        "energyKcal": 59.0,
+        "proteinG": 10.19,
+        "carbsG": 3.6,
+        "fatG": 0.39
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "170894",
+      "sourceDescription": "Yogurt, Greek, plain, nonfat (Includes foods for USDA's Food Distribution Program)"
+    },
+    {
+      "id": "yogurt_greek_light",
+      "nameEs": "Yogur griego desnatado",
+      "preparation": "ready_to_eat",
+      "per100g": {
+        "energyKcal": 59.0,
+        "proteinG": 10.19,
+        "carbsG": 3.6,
+        "fatG": 0.39
+      },
+      "source": "usda_sr_legacy",
+      "sourceRef": "170894",
+      "sourceDescription": "Yogurt, Greek, plain, nonfat (Includes foods for USDA's Food Distribution Program)"
+    },
+    {
+      "id": "gelatin_0",
+      "nameEs": "Gelatina 0%",
+      "preparation": "ready_to_eat",
+      "per100g": {
+        "energyKcal": 8,
+        "proteinG": 1.5,
+        "carbsG": 0.5,
+        "fatG": 0.0
+      },
+      "source": "estimated",
+      "sourceRef": null,
+      "estimationReason": "SR Legacy carries dry gelatin mix and sugar-sweetened prepared desserts, not a ready-to-eat sugar-free gelatin."
+    },
+    {
+      "id": "ham_serrano",
+      "nameEs": "Jamón serrano",
+      "preparation": "cured",
+      "per100g": {
+        "energyKcal": 241,
+        "proteinG": 31.0,
+        "carbsG": 0.3,
+        "fatG": 13.0
+      },
+      "source": "estimated",
+      "sourceRef": null,
+      "estimationReason": "SR Legacy has no dry-cured Spanish ham; closest USDA entries are brine-cured hams with a materially different fat and water profile."
+    },
+    {
+      "id": "pizza_base_thin",
+      "nameEs": "Base de pizza extrafina",
+      "preparation": "baked",
+      "per100g": {
+        "energyKcal": 270,
+        "proteinG": 9.0,
+        "carbsG": 50.0,
+        "fatG": 3.5
+      },
+      "source": "estimated",
+      "sourceRef": null,
+      "estimationReason": "SR Legacy only carries assembled pizzas, not a plain pizza base."
+    },
+    {
+      "id": "pork_loin_cured",
+      "nameEs": "Lomo embuchado",
+      "preparation": "cured",
+      "per100g": {
+        "energyKcal": 217,
+        "proteinG": 35.0,
+        "carbsG": 1.0,
+        "fatG": 8.0
+      },
+      "source": "estimated",
+      "sourceRef": null,
+      "estimationReason": "SR Legacy has no dry-cured pork loin."
+    }
+  ]
+}

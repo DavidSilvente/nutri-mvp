@@ -1,0 +1,1401 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "kind": "nutrium_pdf",
+    "pageCount": 14,
+    "planPages": [1, 4],
+    "recipePages": [5, 14],
+    "createdOn": "2026-07-22",
+    "hasTextLayer": false,
+    "extraction": "vision"
+  },
+  "diet": {
+    "name": "Ajuste 2950 kcal",
+    "declaredDailyEnergyKcal": 2950,
+    "notes": [
+      "Declared energy comes from the document title only; the plan itself lists no per-meal macros. Every macro value is DERIVED from foods and quantities."
+    ],
+    "dayGroups": [
+      {
+        "label": "LU Y VI",
+        "weekdays": [1, 5],
+        "meals": [
+          {
+            "time": "07:30",
+            "label": "DESAYUNO",
+            "sections": [
+              {
+                "label": null,
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "2 porciones de huevo de tortilla, a la francesa (110 g)",
+                        "foodRef": "egg_omelette",
+                        "quantity": { "grams": 110, "count": 2, "unit": "porcion" }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "60 gramos de jamón cocido, extra",
+                        "foodRef": "ham_cooked",
+                        "quantity": { "grams": 60 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "140 gramos de chapata cristal Mercadona",
+                        "foodRef": "bread_white_wheat",
+                        "quantity": { "grams": 140 },
+                        "brandNormalizedFrom": "chapata cristal Mercadona"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": []
+          },
+          {
+            "time": "11:00",
+            "label": "MEDIA MAÑANA",
+            "sections": [
+              {
+                "label": null,
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "100 gramos de corn Flakes",
+                        "foodRef": "cornflakes",
+                        "quantity": { "grams": 100 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "100 gramos de yogur griego light",
+                        "foodRef": "yogurt_greek_light",
+                        "quantity": { "grams": 100 }
+                      },
+                      {
+                        "rawText": "150 gramos de queso fresco batido 0%",
+                        "foodRef": "quark_0",
+                        "quantity": { "grams": 150 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "50 gramos de arandano",
+                        "foodRef": "blueberry_raw",
+                        "quantity": { "grams": 50 }
+                      },
+                      {
+                        "rawText": "1 unidad mediana de manzana, con piel, cruda (180 g)",
+                        "foodRef": "apple_raw_with_skin",
+                        "quantity": { "grams": 180, "count": 1, "unit": "unidad mediana" }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": []
+          },
+          {
+            "time": "14:00",
+            "label": "COMIDA",
+            "sections": [
+              {
+                "label": "PRIMER PLATO",
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "140 gramos de pollo, pechuga, plancha",
+                        "foodRef": "chicken_breast_grilled",
+                        "quantity": { "grams": 140 }
+                      },
+                      {
+                        "rawText": "150 gramos de lomo ternera Mercadona",
+                        "foodRef": "beef_loin",
+                        "quantity": { "grams": 150 },
+                        "brandNormalizedFrom": "lomo ternera Mercadona"
+                      },
+                      {
+                        "rawText": "150 gramos de pollo, fiambre",
+                        "foodRef": "chicken_deli",
+                        "quantity": { "grams": 150 }
+                      },
+                      {
+                        "rawText": "200 gramos de fiambre de Pavo",
+                        "foodRef": "recipe_turkey_deli_loaf",
+                        "quantity": { "grams": 200 }
+                      }
+                    ],
+                    "sourceQuirk": "The PDF repeats '150 gramos de lomo ternera Mercadona' twice in this alternative list; the duplicate is collapsed."
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "100 gramos de arroz blanco, crudo",
+                        "foodRef": "rice_white_raw",
+                        "quantity": { "grams": 100 }
+                      },
+                      {
+                        "rawText": "80 gramos de tortita de arroz",
+                        "foodRef": "rice_cake",
+                        "quantity": { "grams": 80 }
+                      },
+                      {
+                        "rawText": "140 gramos de pan integral, de barra",
+                        "foodRef": "bread_wholemeal",
+                        "quantity": { "grams": 140 }
+                      },
+                      {
+                        "rawText": "295 gramos de arroz blanco, hervido",
+                        "foodRef": "rice_white_boiled",
+                        "quantity": { "grams": 295 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "150 gramos de parrillada de verduras",
+                        "foodRef": "recipe_grilled_vegetable_platter",
+                        "quantity": { "grams": 150 }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "label": "POSTRE",
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "100 gramos de fresa",
+                        "foodRef": "strawberry_raw",
+                        "quantity": { "grams": 100 }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              "La opción de fiambre de pollo la puedes encontrar en Mercadona en formato \"pechuguita de pollo\" siendo una muy buena opción a nivel nutricional y por comodidad. Puedes acompañarlas fácilmente de las tortitas de arroz/maiz con el chorro de aove, si quieres facilitar el añadir el aove te recomiendo que compres monodosis de aceite o un bote de aceite de oliva pequeño. Importante que lo conserves en un espacio fresco y seco lejos de fuentes de calor."
+            ]
+          },
+          {
+            "time": "16:30",
+            "label": "MERIENDA",
+            "sections": [
+              {
+                "label": null,
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "90 gramos de avena, cruda",
+                        "foodRef": "oats_raw",
+                        "quantity": { "grams": 90 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "100 gramos de huevo de gallina, clara, cruda",
+                        "foodRef": "egg_white_raw",
+                        "quantity": { "grams": 100 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "1 pastilla de chocolate, negro (8 g)",
+                        "foodRef": "chocolate_dark",
+                        "quantity": { "grams": 8, "count": 1, "unit": "pastilla" }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "80 gramos de arandano",
+                        "foodRef": "blueberry_raw",
+                        "quantity": { "grams": 80 }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": []
+          },
+          {
+            "time": "22:00",
+            "label": "CENA",
+            "sections": [
+              {
+                "label": "PRIMER PLATO",
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "180 gramos de salmón",
+                        "foodRef": "salmon_raw",
+                        "quantity": { "grams": 180 }
+                      },
+                      {
+                        "rawText": "180 gramos de sardinas fritas",
+                        "foodRef": "recipe_fried_sardines",
+                        "quantity": { "grams": 180 }
+                      },
+                      {
+                        "rawText": "180 gramos de caballa, cruda",
+                        "foodRef": "mackerel_raw",
+                        "quantity": { "grams": 180 }
+                      },
+                      {
+                        "rawText": "200 gramos de dorada, plancha",
+                        "foodRef": "seabream_grilled",
+                        "quantity": { "grams": 200 }
+                      },
+                      {
+                        "rawText": "4 latas redondas pequeñas de atún, enlatado al natural, escurrido (200 g)",
+                        "foodRef": "tuna_canned_water_drained",
+                        "quantity": { "grams": 200, "count": 4, "unit": "lata redonda pequeña" }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "400 gramos de patata, al horno",
+                        "foodRef": "potato_baked",
+                        "quantity": { "grams": 400 }
+                      },
+                      {
+                        "rawText": "500 gramos de patata cocida",
+                        "foodRef": "recipe_boiled_potato",
+                        "quantity": { "grams": 500 }
+                      },
+                      {
+                        "rawText": "335 gramos de gnocchis",
+                        "foodRef": "recipe_gnocchi",
+                        "quantity": { "grams": 335 }
+                      },
+                      {
+                        "rawText": "120 gramos de pasta alimenticia, cruda",
+                        "foodRef": "pasta_raw",
+                        "quantity": { "grams": 120 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "150 gramos de verduras a la parrilla",
+                        "foodRef": "recipe_grilled_vegetables",
+                        "quantity": { "grams": 150 }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "label": "POSTRE",
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "100 gramos de gelatina 0%, hacendado",
+                        "foodRef": "gelatin_0",
+                        "quantity": { "grams": 100 },
+                        "brandNormalizedFrom": "gelatina 0%, hacendado"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": []
+          }
+        ]
+      },
+      {
+        "label": "MA Y JU",
+        "weekdays": [2, 4],
+        "meals": [
+          {
+            "time": "07:30",
+            "label": "DESAYUNO",
+            "sections": [
+              {
+                "label": null,
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "200 gramos de yogur líquido, desnatado, de fresa y frambuesa alto en proteína sin lactosa y sin azúcar añadido YoPRO",
+                        "foodRef": "yogurt_drink_high_protein",
+                        "quantity": { "grams": 200 },
+                        "brandNormalizedFrom": "YoPRO"
+                      },
+                      {
+                        "rawText": "30 gramos de suplemento de proteína aislada e hidrolizada de fresa Iso Whey Crown Sport Nutrition",
+                        "foodRef": "whey_protein_isolate",
+                        "quantity": { "grams": 30 },
+                        "brandNormalizedFrom": "Iso Whey Crown Sport Nutrition"
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "80 gramos de avena en copos, para el desayuno",
+                        "foodRef": "oats_raw",
+                        "quantity": { "grams": 80 }
+                      },
+                      {
+                        "rawText": "85 gramos de corn Flakes",
+                        "foodRef": "cornflakes",
+                        "quantity": { "grams": 85 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "20gr chocolate negro 80%",
+                        "foodRef": "chocolate_dark",
+                        "quantity": { "grams": 20 }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              "La avena es muy aconsejable que la dejes en remojo la noche anterior 8-10h, añades unos 200ml de agua y 1/2 cucharada de vinagre o unas gotas de limón. Por la mañana la escurres bien y ya la preparas. Esto mejora mucho su digestión."
+            ]
+          },
+          {
+            "time": "11:00",
+            "label": "MEDIA MAÑANA",
+            "sections": [
+              {
+                "label": null,
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "80 gramos de pollo, fiambre",
+                        "foodRef": "chicken_deli",
+                        "quantity": { "grams": 80 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "120 gramos de chapata cristal Mercadona",
+                        "foodRef": "bread_white_wheat",
+                        "quantity": { "grams": 120 },
+                        "brandNormalizedFrom": "chapata cristal Mercadona"
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "100 gramos de queso fresco batido 0%",
+                        "foodRef": "quark_0",
+                        "quantity": { "grams": 100 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "60 gramos de arandano",
+                        "foodRef": "blueberry_raw",
+                        "quantity": { "grams": 60 }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              "En caso de escoger el pudding proteico, omite el yogur/queso fresco."
+            ]
+          },
+          {
+            "time": "14:00",
+            "label": "COMIDA",
+            "sections": [
+              {
+                "label": "PRIMER PLATO",
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "150 gramos de pollo, pechuga, plancha",
+                        "foodRef": "chicken_breast_grilled",
+                        "quantity": { "grams": 150 }
+                      },
+                      {
+                        "rawText": "140 gramos de ternera, solomillo, sin grasa, crudo",
+                        "foodRef": "beef_tenderloin_raw",
+                        "quantity": { "grams": 140 }
+                      },
+                      {
+                        "rawText": "170 gramos de contramuslo de pollo sin piel Mercadona",
+                        "foodRef": "chicken_thigh_skinless",
+                        "quantity": { "grams": 170 },
+                        "brandNormalizedFrom": "contramuslo de pollo sin piel Mercadona"
+                      },
+                      {
+                        "rawText": "150 gramos de pollo, fiambre",
+                        "foodRef": "chicken_deli",
+                        "quantity": { "grams": 150 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "80 gramos de arroz blanco, crudo",
+                        "foodRef": "rice_white_raw",
+                        "quantity": { "grams": 80 }
+                      },
+                      {
+                        "rawText": "230 gramos de arroz integral, hervido",
+                        "foodRef": "rice_brown_boiled",
+                        "quantity": { "grams": 230 }
+                      },
+                      {
+                        "rawText": "80 gramos de pasta alimenticia, cruda",
+                        "foodRef": "pasta_raw",
+                        "quantity": { "grams": 80 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "150 gramos de verduras a la parrilla",
+                        "foodRef": "recipe_grilled_vegetables",
+                        "quantity": { "grams": 150 }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "label": "POSTRE",
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "2 raciones individuales de mandarina (430 g)",
+                        "foodRef": "mandarin_raw",
+                        "quantity": { "grams": 430, "count": 2, "unit": "ración individual" }
+                      },
+                      {
+                        "rawText": "300 gramos de fresa",
+                        "foodRef": "strawberry_raw",
+                        "quantity": { "grams": 300 }
+                      },
+                      {
+                        "rawText": "1 unidad grande de pera (230 g)",
+                        "foodRef": "pear_raw",
+                        "quantity": { "grams": 230, "count": 1, "unit": "unidad grande" }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              "El arroz congelado precocido de Mercadona es una opción muy cómoda, lo ideal sería que lo llevaras a la oficina ya descongelado junto a la comida que vayas a incluir y en un tupper hermético, ya allí lo calientas en el micro. La parrillada de verduras sin patata la puedes encontrar en Mercadona también.",
+              "Si cocinas en cantidad la pasta, arroz, patata o avena, es muy interesante dejarla atemperar e introducirla durante 8-10h en la nevera para así reducir el índice glucémico, reducir los picos de insulina y tener una liberación de energía más sostenida además de los múltiples beneficios para la microbiota."
+            ]
+          },
+          {
+            "time": "18:00",
+            "label": "PRE ENTRENO",
+            "sections": [
+              {
+                "label": null,
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "90 gramos de tortita de arroz",
+                        "foodRef": "rice_cake",
+                        "quantity": { "grams": 90 }
+                      },
+                      {
+                        "rawText": "100 gramos de crema de arroz",
+                        "foodRef": "rice_cream",
+                        "quantity": { "grams": 100 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "10 gramos de miel",
+                        "foodRef": "honey",
+                        "quantity": { "grams": 10 }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              "Puedes hacer una papilla con la crema de arroz, si optas por las tortas de arroz mezcla la proteina con 50ml de leche o agua, la vas echando poco a poco según remueves y quedará cremosa para añadirla encima de las tortas de arroz y la miel, en ese caso omite los arandanos."
+            ]
+          },
+          {
+            "time": "22:00",
+            "label": "CENA",
+            "sections": [
+              {
+                "label": "PRIMER PLATO",
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "150 gramos de hamburguesa de pollo",
+                        "foodRef": "recipe_chicken_burger",
+                        "quantity": { "grams": 150 }
+                      },
+                      {
+                        "rawText": "150 gramos de hamburguesa de pavo Mercadona",
+                        "foodRef": "turkey_burger",
+                        "quantity": { "grams": 150 },
+                        "brandNormalizedFrom": "hamburguesa de pavo Mercadona"
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "330 gramos de gnocchis",
+                        "foodRef": "recipe_gnocchi",
+                        "quantity": { "grams": 330 }
+                      },
+                      {
+                        "rawText": "40 gramos de boniato, crudo",
+                        "foodRef": "sweet_potato_raw",
+                        "quantity": { "grams": 40 },
+                        "sourceQuirk": "40 g of raw sweet potato is not energetically equivalent to the other options in this group (~30 kcal vs ~400 kcal). Transcribed verbatim from the PDF; flag for review."
+                      },
+                      {
+                        "rawText": "120 gramos de pasta alimenticia, cruda",
+                        "foodRef": "pasta_raw",
+                        "quantity": { "grams": 120 }
+                      },
+                      {
+                        "rawText": "395 gramos de patata, al horno",
+                        "foodRef": "potato_baked",
+                        "quantity": { "grams": 395 }
+                      },
+                      {
+                        "rawText": "155 gramos de pan, tipo hamburguesa",
+                        "foodRef": "bread_burger_bun",
+                        "quantity": { "grams": 155 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "1 unidad mediana de huevo de gallina, entero, crudo (50 g)",
+                        "foodRef": "egg_whole_raw",
+                        "quantity": { "grams": 50, "count": 1, "unit": "unidad mediana" }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "5 gramos de ración/día AOVE",
+                        "foodRef": "recipe_daily_evoo",
+                        "quantity": { "grams": 5 }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "label": "POSTRE",
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "100 gramos de gelatina 0%, hacendado",
+                        "foodRef": "gelatin_0",
+                        "quantity": { "grams": 100 },
+                        "brandNormalizedFrom": "gelatina 0%, hacendado"
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "1 unidad grande de manzana (230 g)",
+                        "foodRef": "apple_raw_with_skin",
+                        "quantity": { "grams": 230, "count": 1, "unit": "unidad grande" }
+                      },
+                      {
+                        "rawText": "200 gramos de fresa",
+                        "foodRef": "strawberry_raw",
+                        "quantity": { "grams": 200 }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": []
+          }
+        ]
+      },
+      {
+        "label": "MI Y DO",
+        "weekdays": [3, 7],
+        "meals": [
+          {
+            "time": "07:30",
+            "label": "DESAYUNO",
+            "sections": [
+              {
+                "label": null,
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "2 porciones de huevo de tortilla, a la francesa (110 g)",
+                        "foodRef": "egg_omelette",
+                        "quantity": { "grams": 110, "count": 2, "unit": "porcion" }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "60 gramos de jamón cocido, extra",
+                        "foodRef": "ham_cooked",
+                        "quantity": { "grams": 60 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "140 gramos de chapata cristal Mercadona",
+                        "foodRef": "bread_white_wheat",
+                        "quantity": { "grams": 140 },
+                        "brandNormalizedFrom": "chapata cristal Mercadona"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": []
+          },
+          {
+            "time": "11:00",
+            "label": "MEDIA MAÑANA",
+            "sections": [
+              {
+                "label": null,
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "20 gramos de suplemento de proteína aislada e hidrolizada de fresa Iso Whey Crown Sport Nutrition",
+                        "foodRef": "whey_protein_isolate",
+                        "quantity": { "grams": 20 },
+                        "brandNormalizedFrom": "Iso Whey Crown Sport Nutrition"
+                      },
+                      {
+                        "rawText": "160 gramos de queso fresco batido 0%",
+                        "foodRef": "quark_0",
+                        "quantity": { "grams": 160 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "100 gramos de corn Flakes",
+                        "foodRef": "cornflakes",
+                        "quantity": { "grams": 100 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "100 gramos de yogur griego light",
+                        "foodRef": "yogurt_greek_light",
+                        "quantity": { "grams": 100 }
+                      },
+                      {
+                        "rawText": "150 gramos de queso fresco batido 0%",
+                        "foodRef": "quark_0",
+                        "quantity": { "grams": 150 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "50 gramos de arandano",
+                        "foodRef": "blueberry_raw",
+                        "quantity": { "grams": 50 }
+                      },
+                      {
+                        "rawText": "1 unidad mediana de manzana, con piel, cruda (180 g)",
+                        "foodRef": "apple_raw_with_skin",
+                        "quantity": { "grams": 180, "count": 1, "unit": "unidad mediana" }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "10 gramos de chocolate, negro",
+                        "foodRef": "chocolate_dark",
+                        "quantity": { "grams": 10 }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              "Si no tienes proteina en polvo metes 300gr de queso fresco batido en total."
+            ]
+          },
+          {
+            "time": "14:00",
+            "label": "COMIDA",
+            "sections": [
+              {
+                "label": "PRIMER PLATO",
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "150 gramos de pollo, pechuga, plancha",
+                        "foodRef": "chicken_breast_grilled",
+                        "quantity": { "grams": 150 }
+                      },
+                      {
+                        "rawText": "150 gramos de lomo ternera Mercadona",
+                        "foodRef": "beef_loin",
+                        "quantity": { "grams": 150 },
+                        "brandNormalizedFrom": "lomo ternera Mercadona"
+                      }
+                    ],
+                    "sourceQuirk": "The PDF repeats '150 gramos de lomo ternera Mercadona' twice in this alternative list; the duplicate is collapsed."
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "100 gramos de arroz blanco, crudo",
+                        "foodRef": "rice_white_raw",
+                        "quantity": { "grams": 100 }
+                      },
+                      {
+                        "rawText": "95 gramos de pasta alimenticia, cruda",
+                        "foodRef": "pasta_raw",
+                        "quantity": { "grams": 95 }
+                      },
+                      {
+                        "rawText": "295 gramos de arroz blanco, hervido",
+                        "foodRef": "rice_white_boiled",
+                        "quantity": { "grams": 295 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "180 gramos de parrillada de verduras",
+                        "foodRef": "recipe_grilled_vegetable_platter",
+                        "quantity": { "grams": 180 }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "label": "POSTRE",
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "150 gramos de fresa",
+                        "foodRef": "strawberry_raw",
+                        "quantity": { "grams": 150 }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": []
+          },
+          {
+            "time": "18:00",
+            "label": "PRE ENTRENO",
+            "sections": [
+              {
+                "label": null,
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "90 gramos de tortita de arroz",
+                        "foodRef": "rice_cake",
+                        "quantity": { "grams": 90 }
+                      },
+                      {
+                        "rawText": "100 gramos de crema de arroz",
+                        "foodRef": "rice_cream",
+                        "quantity": { "grams": 100 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "10 gramos de miel",
+                        "foodRef": "honey",
+                        "quantity": { "grams": 10 }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              "Puedes hacer una papilla con la crema de arroz, si optas por las tortas de arroz mezcla la proteina con 50ml de leche o agua, la vas echando poco a poco según remueves y quedará cremosa para añadirla encima de las tortas de arroz y la miel, en ese caso omite los arandanos."
+            ]
+          },
+          {
+            "time": "22:00",
+            "label": "CENA",
+            "sections": [
+              {
+                "label": "PRIMER PLATO",
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "200 gramos de alitas de pollo",
+                        "foodRef": "recipe_chicken_wings",
+                        "quantity": { "grams": 200 }
+                      },
+                      {
+                        "rawText": "180 gramos de solomillo de cerdo Mercadona",
+                        "foodRef": "pork_tenderloin",
+                        "quantity": { "grams": 180 },
+                        "brandNormalizedFrom": "solomillo de cerdo Mercadona"
+                      },
+                      {
+                        "rawText": "130 gramos carne picada vacuno Mercadona 99%",
+                        "foodRef": "beef_mince_lean",
+                        "quantity": { "grams": 130 },
+                        "brandNormalizedFrom": "carne picada vacuno Mercadona 99%"
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "350 gramos de patata, al horno",
+                        "foodRef": "potato_baked",
+                        "quantity": { "grams": 350 }
+                      },
+                      {
+                        "rawText": "455 gramos de patata cocida",
+                        "foodRef": "recipe_boiled_potato",
+                        "quantity": { "grams": 455 }
+                      },
+                      {
+                        "rawText": "295 gramos de gnocchis",
+                        "foodRef": "recipe_gnocchi",
+                        "quantity": { "grams": 295 }
+                      },
+                      {
+                        "rawText": "105 gramos de pasta alimenticia, cruda",
+                        "foodRef": "pasta_raw",
+                        "quantity": { "grams": 105 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "200 gramos de verduras a la parrilla",
+                        "foodRef": "recipe_grilled_vegetables",
+                        "quantity": { "grams": 200 }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "label": "POSTRE",
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "100 gramos de gelatina 0%, hacendado",
+                        "foodRef": "gelatin_0",
+                        "quantity": { "grams": 100 },
+                        "brandNormalizedFrom": "gelatina 0%, hacendado"
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "1 unidad grande de manzana (230 g)",
+                        "foodRef": "apple_raw_with_skin",
+                        "quantity": { "grams": 230, "count": 1, "unit": "unidad grande" }
+                      },
+                      {
+                        "rawText": "200 gramos de fresa",
+                        "foodRef": "strawberry_raw",
+                        "quantity": { "grams": 200 }
+                      },
+                      {
+                        "rawText": "1 unidad grande de naranja (310 g)",
+                        "foodRef": "orange_raw",
+                        "quantity": { "grams": 310, "count": 1, "unit": "unidad grande" }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": []
+          }
+        ]
+      },
+      {
+        "label": "SÁBADO",
+        "weekdays": [6],
+        "meals": [
+          {
+            "time": "07:30",
+            "label": "DESAYUNO",
+            "sections": [
+              {
+                "label": null,
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "80 gramos de lomo embuchado",
+                        "foodRef": "pork_loin_cured",
+                        "quantity": { "grams": 80 }
+                      },
+                      {
+                        "rawText": "70 gramos de gran reserva jamón serrano Mercadona",
+                        "foodRef": "ham_serrano",
+                        "quantity": { "grams": 70 },
+                        "brandNormalizedFrom": "gran reserva jamón serrano Mercadona"
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "140 gramos de chapata cristal Mercadona",
+                        "foodRef": "bread_white_wheat",
+                        "quantity": { "grams": 140 },
+                        "brandNormalizedFrom": "chapata cristal Mercadona"
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "5 gramos de ración/día AOVE",
+                        "foodRef": "recipe_daily_evoo",
+                        "quantity": { "grams": 5 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "1 unidad pequeña de manzana (150 g)",
+                        "foodRef": "apple_raw_with_skin",
+                        "quantity": { "grams": 150, "count": 1, "unit": "unidad pequeña" }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": []
+          },
+          {
+            "time": "11:00",
+            "label": "MEDIA MAÑANA",
+            "sections": [
+              {
+                "label": null,
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "20 gramos de suplemento de proteína aislada e hidrolizada de fresa Iso Whey Crown Sport Nutrition",
+                        "foodRef": "whey_protein_isolate",
+                        "quantity": { "grams": 20 },
+                        "brandNormalizedFrom": "Iso Whey Crown Sport Nutrition"
+                      },
+                      {
+                        "rawText": "1/2 unidad de yogur líquido, desnatado, de fresa y frambuesa alto en proteína sin lactosa y sin azúcar añadido YoPRO (150 g)",
+                        "foodRef": "yogurt_drink_high_protein",
+                        "quantity": { "grams": 150, "count": 0.5, "unit": "unidad" },
+                        "brandNormalizedFrom": "YoPRO"
+                      },
+                      {
+                        "rawText": "160 gramos de queso fresco batido 0%",
+                        "foodRef": "quark_0",
+                        "quantity": { "grams": 160 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "100 gramos de corn Flakes",
+                        "foodRef": "cornflakes",
+                        "quantity": { "grams": 100 }
+                      },
+                      {
+                        "rawText": "70 gramos de avena Crunchy",
+                        "foodRef": "oats_crunchy",
+                        "quantity": { "grams": 70 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "100 gramos de yogur griego light",
+                        "foodRef": "yogurt_greek_light",
+                        "quantity": { "grams": 100 }
+                      },
+                      {
+                        "rawText": "100 gramos de queso fresco batido 0%",
+                        "foodRef": "quark_0",
+                        "quantity": { "grams": 100 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "50 gramos de arandano",
+                        "foodRef": "blueberry_raw",
+                        "quantity": { "grams": 50 }
+                      },
+                      {
+                        "rawText": "1 unidad mediana de manzana, con piel, cruda (180 g)",
+                        "foodRef": "apple_raw_with_skin",
+                        "quantity": { "grams": 180, "count": 1, "unit": "unidad mediana" }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              "En caso de escoger el queso fresco batido de primera opción, pon un total de 260gr"
+            ]
+          },
+          {
+            "time": "14:00",
+            "label": "COMIDA",
+            "sections": [
+              {
+                "label": "PRIMER PLATO",
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "100 gramos de arroz",
+                        "foodRef": "rice_white_raw",
+                        "quantity": { "grams": 100 }
+                      },
+                      {
+                        "rawText": "110 gramos de pasta alimenticia, cruda",
+                        "foodRef": "pasta_raw",
+                        "quantity": { "grams": 110 }
+                      },
+                      {
+                        "rawText": "130 gramos de chapata cristal Mercadona",
+                        "foodRef": "bread_white_wheat",
+                        "quantity": { "grams": 130 },
+                        "brandNormalizedFrom": "chapata cristal Mercadona"
+                      },
+                      {
+                        "rawText": "310 gramos de arroz congelado, mercadona",
+                        "foodRef": "rice_white_boiled",
+                        "quantity": { "grams": 310 },
+                        "brandNormalizedFrom": "arroz congelado, mercadona"
+                      },
+                      {
+                        "rawText": "475 gramos de patata cocida",
+                        "foodRef": "recipe_boiled_potato",
+                        "quantity": { "grams": 475 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "130 gramos de pollo, pechuga, plancha",
+                        "foodRef": "chicken_breast_grilled",
+                        "quantity": { "grams": 130 }
+                      },
+                      {
+                        "rawText": "130 gramos de pavo, pechuga, sin piel, a la plancha",
+                        "foodRef": "turkey_breast_grilled",
+                        "quantity": { "grams": 130 }
+                      },
+                      {
+                        "rawText": "150 gramos de ternera, solomillo, sin grasa, crudo",
+                        "foodRef": "beef_tenderloin_raw",
+                        "quantity": { "grams": 150 }
+                      },
+                      {
+                        "rawText": "3 unidades medianas de huevo de gallina, entero, crudo (150 g)",
+                        "foodRef": "egg_whole_raw",
+                        "quantity": { "grams": 150, "count": 3, "unit": "unidad mediana" }
+                      },
+                      {
+                        "rawText": "4 latas redondas pequeñas de atún, enlatado al natural, escurrido (200 g)",
+                        "foodRef": "tuna_canned_water_drained",
+                        "quantity": { "grams": 200, "count": 4, "unit": "lata redonda pequeña" }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "150 gramos de verduras a la parrilla",
+                        "foodRef": "recipe_grilled_vegetables",
+                        "quantity": { "grams": 150 }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              "La patata cocida en bote es una muy buena opción y rápida, escúrrela bien y lávala, trocea y añades especias al gusto. 15´y 200º en air fryer y estarán listas. El arroz congelado de Mercadona también es una opción rápida y buena, en este caso puedes hacer dos bolsitas en el microondas, utilizar 300gr cómo está marcado y el resto conservarlo en la nevera o aprovecharlo en otra comida del día."
+            ]
+          },
+          {
+            "time": "18:00",
+            "label": "PRE ENTRENO",
+            "sections": [
+              {
+                "label": null,
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "90 gramos de tortita de arroz",
+                        "foodRef": "rice_cake",
+                        "quantity": { "grams": 90 }
+                      },
+                      {
+                        "rawText": "100 gramos de crema de arroz",
+                        "foodRef": "rice_cream",
+                        "quantity": { "grams": 100 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "10 gramos de miel",
+                        "foodRef": "honey",
+                        "quantity": { "grams": 10 }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              "Puedes hacer una papilla con la crema de arroz, si optas por las tortas de arroz mezcla la proteina con 50ml de leche o agua, la vas echando poco a poco según remueves y quedará cremosa para añadirla encima de las tortas de arroz y la miel, en ese caso omite los arandanos."
+            ]
+          },
+          {
+            "time": "22:00",
+            "label": "CENA",
+            "sections": [
+              {
+                "label": "PRIMER PLATO",
+                "components": [
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "100 gramos de base de pizza Extrafina, Hacendado",
+                        "foodRef": "pizza_base_thin",
+                        "quantity": { "grams": 100 },
+                        "brandNormalizedFrom": "base de pizza Extrafina, Hacendado"
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "80 gramos de pollo, pechuga, plancha",
+                        "foodRef": "chicken_breast_grilled",
+                        "quantity": { "grams": 80 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "1 lata redonda pequeña de atún, enlatado al natural, escurrido (50 g)",
+                        "foodRef": "tuna_canned_water_drained",
+                        "quantity": { "grams": 50, "count": 1, "unit": "lata redonda pequeña" }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "150 gramos de tomate triturado",
+                        "foodRef": "recipe_crushed_tomato",
+                        "quantity": { "grams": 150 }
+                      }
+                    ]
+                  },
+                  {
+                    "alternatives": [
+                      {
+                        "rawText": "60 gramos de queso mozzarella",
+                        "foodRef": "cheese_mozzarella",
+                        "quantity": { "grams": 60 }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "notes": [
+              "Ejemplo de Pizza casera, puedes añadir una salsa al gusto y verduras de cualquier tipo. La cena es libre, puedes introducir otros alimentos o prepararte algo casero que te guste, tipo hamburguesa con patatas, fajita de pollo estilo kebad con alguna guarnición o alguna carne roja a la brasa etc. Evitaremos dulces o productos ultra procesados."
+            ]
+          }
+        ]
+      }
+    ],
+    "recipes": [
+      {
+        "id": "recipe_turkey_deli_loaf",
+        "name": "Fiambre de pavo",
+        "per100g": { "energyKcal": 67, "proteinG": 9, "carbsG": 4, "fatG": 1 },
+        "portionG": null,
+        "page": 5
+      },
+      {
+        "id": "recipe_fried_sardines",
+        "name": "Sardinas fritas",
+        "per100g": { "energyKcal": 185, "proteinG": 16, "carbsG": 5, "fatG": 11 },
+        "portionG": 170,
+        "page": 6
+      },
+      {
+        "id": "recipe_grilled_vegetables",
+        "name": "Verduras a la parrilla",
+        "per100g": { "energyKcal": 51, "proteinG": 1, "carbsG": 7, "fatG": 2 },
+        "portionG": null,
+        "page": 7
+      },
+      {
+        "id": "recipe_chicken_burger",
+        "name": "Hamburguesa de pollo",
+        "per100g": { "energyKcal": 121, "proteinG": 21, "carbsG": 0, "fatG": 4 },
+        "portionG": 183,
+        "page": 8
+      },
+      {
+        "id": "recipe_grilled_vegetable_platter",
+        "name": "Parrillada de verduras",
+        "per100g": { "energyKcal": 25, "proteinG": 2, "carbsG": 3, "fatG": 0 },
+        "portionG": 282,
+        "page": 9
+      },
+      {
+        "id": "recipe_boiled_potato",
+        "name": "Patata cocida",
+        "per100g": { "energyKcal": 82, "proteinG": 2, "carbsG": 18, "fatG": 0 },
+        "portionG": null,
+        "page": 10
+      },
+      {
+        "id": "recipe_chicken_wings",
+        "name": "Alitas de pollo",
+        "per100g": { "energyKcal": 101, "proteinG": 10, "carbsG": 7, "fatG": 3 },
+        "portionG": 580,
+        "page": 11
+      },
+      {
+        "id": "recipe_daily_evoo",
+        "name": "Ración/día AOVE",
+        "per100g": { "energyKcal": 899, "proteinG": 0, "carbsG": 0, "fatG": 100 },
+        "portionG": 30,
+        "page": 12
+      },
+      {
+        "id": "recipe_gnocchi",
+        "name": "Gnocchis",
+        "per100g": { "energyKcal": 126, "proteinG": 5, "carbsG": 25, "fatG": 1 },
+        "portionG": 145,
+        "page": 13
+      },
+      {
+        "id": "recipe_crushed_tomato",
+        "name": "Tomate triturado",
+        "per100g": { "energyKcal": 76, "proteinG": 1, "carbsG": 4, "fatG": 6 },
+        "portionG": 147,
+        "page": 14
+      }
+    ]
+  }
+}
