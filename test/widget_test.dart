@@ -4,25 +4,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
-import 'package:nutri_mvp/features/nutrition/presentation/providers/hydration_providers.dart';
-import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/home_screen.dart';
 import 'package:nutri_mvp/main.dart';
 
-import 'features/nutrition/_fakes/fake_diet_plan_source.dart';
-import 'features/nutrition/_fakes/fake_hydration_source.dart';
-import 'features/nutrition/_fakes/fake_nutrition_source.dart';
+import '_helpers/fake_overrides.dart';
 
 void main() {
   testWidgets('NutritionApp starts on today\'s plan', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          nutritionSourceProvider.overrideWithValue(FakeNutritionSource()),
-          hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
-          dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
-        ],
+        overrides: fakeAppOverrides(),
         child: const NutritionApp(),
       ),
     );
@@ -35,20 +26,17 @@ void main() {
     expect(find.byKey(const Key('logUnplannedIntakeButton')), findsOneWidget);
   });
 
-  testWidgets('the three destinations are reachable', (tester) async {
+  testWidgets('every destination is reachable', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          nutritionSourceProvider.overrideWithValue(FakeNutritionSource()),
-          hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
-          dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
-        ],
+        overrides: fakeAppOverrides(),
         child: const NutritionApp(),
       ),
     );
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('todayTab')), findsOneWidget);
+    expect(find.byKey(const Key('myDietTab')), findsOneWidget);
     expect(find.byKey(const Key('calendarTab')), findsOneWidget);
     expect(find.byKey(const Key('dietTab')), findsOneWidget);
   });
