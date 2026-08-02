@@ -47,6 +47,7 @@ dependencies:
   # directly here since we import it explicitly in nutrition_providers.dart).
   path_provider: ^2.1.5
   path: ^1.9.0
+  printing: ^5.14.3
 
 dev_dependencies:
   flutter_test:
