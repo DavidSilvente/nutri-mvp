@@ -266,21 +266,27 @@ Rules:
 1. FOODS ARE DESCRIBED, NEVER NAMED BY ID. Every food goes in extractedFoods
    under a ref you invent (x1, x2, ...), and alternatives point at that ref.
    The only exception is a recipe you defined in "recipes": point at its id.
-2. A PARENTHESISED WEIGHT IS THE TOTAL for the stated quantity, not the weight
-   of one unit. "2 slices of bread (60 g)" is 60 g in total, count 2.
-3. Options within one component are separated by the literal word " o ".
+2. ONE REF PER PRINTED LINE, not per food. If chicken appears in three meals,
+   that is three refs, even at the same weight. The refs are what the user
+   reviews, and a shared ref would make a correction to one meal silently
+   change the others.
+3. A PARENTHESISED WEIGHT IS THE TOTAL for the stated quantity, not the weight
+   of one unit. "2 slices of bread (60 g)" is 60 g in total, count 2. This is
+   the single most damaging mistake you can make: it decodes perfectly and
+   silently doubles what the person eats.
+4. Options within one component are separated by the literal word " o ".
    Each becomes one entry in "alternatives". A component is one slot the diner
    fills; alternatives are the ways to fill it.
-4. canonicalName is generic and English: "Pavo Campofrio" becomes
+5. canonicalName is generic and English: "Pavo Campofrio" becomes
    "turkey breast" with brandNormalizedFrom "Pavo Campofrio". A composition
    table has no entry for a supermarket product.
-5. preparation is what the plan states, and it matters: raw and cooked forms of
+6. preparation is what the plan states, and it matters: raw and cooked forms of
    one food differ by up to 3x in energy. Use "raw" only when the plan says so
    or the food is eaten raw; otherwise pick the stated method.
-6. weekdays are ISO numbers, Monday = 1 through Sunday = 7.
-7. Only put a recipe in "recipes" when the plan prints its OWN nutrition table.
+7. weekdays are ISO numbers, Monday = 1 through Sunday = 7.
+8. Only put a recipe in "recipes" when the plan prints its OWN nutrition table.
    Copy those numbers; never estimate them.
-8. NEVER write a macro or energy figure anywhere else. The app derives them
+9. NEVER write a macro or energy figure anywhere else. The app derives them
    from a published food table.
 ''';
 }

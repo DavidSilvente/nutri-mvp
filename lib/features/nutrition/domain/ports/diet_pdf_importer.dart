@@ -5,6 +5,7 @@ import 'package:nutri_mvp/core/result.dart';
 import '../failures/nutrition_failure.dart';
 import '../services/extracted_food_resolver.dart';
 import '../services/import_review.dart';
+import '../value_objects/food_quantity.dart';
 
 /// One rendered page of a source PDF.
 class PdfPageImage {
@@ -114,6 +115,23 @@ abstract interface class DietPlanExtractor {
   Future<Result<String, NutritionFailure>> extract(List<PdfPageImage> pages);
 }
 
+/// What one draft ref resolved to, once the user settled it.
+class SettledFood {
+  const SettledFood({required this.foodId, this.quantity});
+
+  /// The catalog id every mention of this ref becomes.
+  final String foodId;
+
+  /// The quantity to write over the document's own, or null to leave each
+  /// mention's quantity as the extraction read it.
+  ///
+  /// Null is not "the same numbers". One described food can appear in several
+  /// meals at different weights, so writing a single quantity everywhere would
+  /// rewrite meals the user never looked at — an override happens only when the
+  /// user actually corrected the amount.
+  final FoodQuantity? quantity;
+}
+
 /// Reads and rewrites the draft document produced by extraction.
 ///
 /// A port because the draft's JSON is a data-layer concern, while the import use
@@ -123,13 +141,13 @@ abstract interface class DietPlanDraftCodec {
   /// The foods [draft] describes but has not placed, in document order.
   Result<List<PendingFood>, NutritionFailure> readPendingFoods(String draft);
 
-  /// Rewrites [draft] with every pending ref replaced by the chosen catalog id,
-  /// yielding a document `DietPlanDecoder` can decode.
+  /// Rewrites [draft] with every pending ref replaced by what the user settled
+  /// it to, yielding a document `DietPlanDecoder` can decode.
   ///
-  /// [chosenFoodIds] maps a [PendingFood.ref] to the id the user settled on.
+  /// [settled] maps a [PendingFood.ref] to its outcome.
   Result<String, NutritionFailure> resolveRefs(
     String draft,
-    Map<String, String> chosenFoodIds,
+    Map<String, SettledFood> settled,
   );
 }
 

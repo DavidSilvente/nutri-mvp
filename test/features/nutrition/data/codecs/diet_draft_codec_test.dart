@@ -6,10 +6,15 @@ import 'package:nutri_mvp/core/result.dart';
 import 'package:nutri_mvp/features/nutrition/data/codecs/diet_draft_codec.dart';
 import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
 import 'package:nutri_mvp/features/nutrition/domain/ports/diet_pdf_importer.dart';
+import 'package:nutri_mvp/features/nutrition/domain/value_objects/food_quantity.dart';
 
 import '../../_fixtures/draft_document.dart';
 
 const codec = DietDraftCodec();
+
+/// What one ref settled to, with the quantity left alone unless stated.
+SettledFood settled(String foodId, {FoodQuantity? quantity}) =>
+    SettledFood(foodId: foodId, quantity: quantity);
 
 List<PendingFood> pendingOf(String draft) {
   return switch (codec.readPendingFoods(draft)) {
@@ -141,7 +146,7 @@ void main() {
           {"foodRef":"x1","rawText":"a","quantity":{"grams":140}},
           {"foodRef":"x1","rawText":"b","quantity":{"grams":100}}
         ]'''),
-        {'x1': 'chicken_breast_grilled'},
+        {'x1': settled('chicken_breast_grilled')},
       );
 
       final document = switch (rewritten) {
@@ -158,7 +163,7 @@ void main() {
 
     test('drops the draft section, so the result is a plain document', () {
       // Leaving it in would make the stored document fail its own schema.
-      final rewritten = codec.resolveRefs(draft(), {'x1': 'rice_white_raw'});
+      final rewritten = codec.resolveRefs(draft(), {'x1': settled('rice_white_raw')});
       final document = switch (rewritten) {
         Ok(value: final value) => value,
         Err(failure: final failure) => fail('$failure'),
@@ -167,6 +172,51 @@ void main() {
       final diet = (jsonDecode(document) as Map)['diet'] as Map;
       expect(diet.containsKey('extractedFoods'), isFalse);
       expect(jsonDecode(document)['schemaVersion'], 1);
+    });
+
+    test('leaves the quantity alone when the user did not correct it', () {
+      // One described food can appear in several meals at different weights, so
+      // an untouched line must keep each mention's own quantity. Writing a
+      // single reading everywhere would rewrite meals nobody looked at.
+      final rewritten = codec.resolveRefs(
+        draft(alternatives: '''
+        [
+          {"foodRef":"x1","rawText":"a","quantity":{"grams":140}},
+          {"foodRef":"x1","rawText":"b","quantity":{"grams":100}}
+        ]'''),
+        {'x1': settled('chicken_breast_grilled')},
+      );
+
+      final document = switch (rewritten) {
+        Ok(value: final value) => value,
+        Err(failure: final failure) => fail('$failure'),
+      };
+      final alternatives = _alternativesOf(document);
+      expect(alternatives[0]['quantity']['grams'], 140);
+      expect(alternatives[1]['quantity']['grams'], 100);
+    });
+
+    test('writes a corrected quantity over what the extraction read', () {
+      // The invisible failure this guards: "2 portions (110 g)" read as 220 g
+      // decodes perfectly and doubles the meal forever.
+      final rewritten = codec.resolveRefs(
+        draft(),
+        {
+          'x1': settled(
+            'chicken_breast_grilled',
+            quantity: FoodQuantity(grams: 110, count: 2, unit: 'porcion'),
+          ),
+        },
+      );
+
+      final document = switch (rewritten) {
+        Ok(value: final value) => value,
+        Err(failure: final failure) => fail('$failure'),
+      };
+      final quantity = _alternativesOf(document).single['quantity'];
+      expect(quantity['grams'], 110);
+      expect(quantity['count'], 2);
+      expect(quantity['unit'], 'porcion');
     });
 
     test('refuses to rewrite while a ref is unsettled', () {
@@ -184,7 +234,7 @@ void main() {
           {"foodRef":"x1","rawText":"a","quantity":{"grams":140}},
           {"foodRef":"x2","rawText":"b","quantity":{"grams":80}}
         ]'''),
-        {'x1': 'chicken_breast_grilled'},
+        {'x1': settled('chicken_breast_grilled')},
       );
 
       final failure = failureOf(result);
@@ -206,7 +256,7 @@ void main() {
             {"foodRef":"recipe_turkey","rawText":"b","quantity":{"grams":50}}
           ]''',
         ),
-        {'x1': 'chicken_breast_grilled'},
+        {'x1': settled('chicken_breast_grilled')},
       );
 
       final document = switch (rewritten) {
@@ -266,8 +316,9 @@ void main() {
       // back in, and what comes out is byte-identical to the shipped plan.
       final pending = pendingOf(realDraft);
       final ids = originalFoodIds(document);
-      final decisions = <String, String>{
-        for (var i = 0; i < pending.length; i++) pending[i].ref: ids[i],
+      final decisions = <String, SettledFood>{
+        for (var i = 0; i < pending.length; i++)
+          pending[i].ref: settled(ids[i]),
       };
 
       final rewritten = codec.resolveRefs(realDraft, decisions);
@@ -279,4 +330,13 @@ void main() {
       expect(jsonDecode(result), jsonDecode(document));
     });
   });
+}
+
+/// The alternatives of the single component in a rewritten minimal document.
+List<dynamic> _alternativesOf(String document) {
+  final diet = (jsonDecode(document) as Map)['diet'] as Map;
+  final meal = ((diet['dayGroups'] as List).single as Map)['meals'] as List;
+  final section = ((meal.single as Map)['sections'] as List).single as Map;
+  final component = (section['components'] as List).single as Map;
+  return component['alternatives'] as List;
 }

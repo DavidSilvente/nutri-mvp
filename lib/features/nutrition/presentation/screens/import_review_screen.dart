@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutri_mvp/core/format/nutrition_format.dart';
-import 'package:nutri_mvp/features/nutrition/domain/ports/diet_pdf_importer.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/extracted_food_resolver.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/food_matcher.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/import_review.dart';
+import 'package:nutri_mvp/features/nutrition/domain/value_objects/food_quantity.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
 
 /// Where the user settles what an imported plan actually says.
@@ -76,6 +76,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   entry: _review.entries[index],
                   index: index,
                   onChoose: () => _choose(index),
+                  onEditQuantity: () => _editQuantity(index),
                 ),
               ),
             ),
@@ -120,6 +121,22 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     setState(() {
       _review = _review.select(index, picked.food, score: picked.score);
     });
+  }
+
+  /// Corrects how much a line calls for.
+  ///
+  /// The other half of the check: the right food at the wrong weight is still
+  /// wrong, and misreading a parenthesised total as a per-unit weight is the
+  /// mistake an extraction is most likely to make invisibly.
+  Future<void> _editQuantity(int index) async {
+    final entry = _review.entries[index];
+    final corrected = await showDialog<FoodQuantity>(
+      context: context,
+      builder: (_) => _QuantityDialog(entry: entry),
+    );
+    if (corrected == null) return;
+
+    setState(() => _review = _review.setQuantity(index, corrected));
   }
 
   void _confirm() => Navigator.of(context).pop(_review.decisions);
@@ -178,11 +195,13 @@ class _ReviewLineCard extends StatelessWidget {
     required this.entry,
     required this.index,
     required this.onChoose,
+    required this.onEditQuantity,
   });
 
   final ImportReviewEntry entry;
   final int index;
   final VoidCallback onChoose;
+  final VoidCallback onEditQuantity;
 
   @override
   Widget build(BuildContext context) {
@@ -198,11 +217,28 @@ class _ReviewLineCard extends StatelessWidget {
           children: [
             Text(extracted.rawText, style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),
-            Text(
-              _quantityLine(extracted),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _quantityLine(entry),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: entry.quantityWasCorrected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurfaceVariant,
+                      fontWeight:
+                          entry.quantityWasCorrected ? FontWeight.w600 : null,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  key: Key('editQuantityButton-$index'),
+                  icon: const Icon(Icons.straighten_rounded, size: 18),
+                  tooltip: 'Correct the amount',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onEditQuantity,
+                ),
+              ],
             ),
             if (extracted.brandNormalizedFrom case final brand?) ...[
               const SizedBox(height: 4),
@@ -242,19 +278,20 @@ class _ReviewLineCard extends StatelessWidget {
 
   /// "140 g" or "2 slices · 60 g" — a parenthesised weight in a plan is the
   /// TOTAL for the quantity, so both numbers are shown rather than multiplied.
-  static String _quantityLine(ExtractedFood extracted) {
-    final weight = NutritionFormat.grams(extracted.grams);
+  static String _quantityLine(ImportReviewEntry entry) {
+    final quantity = entry.effectiveQuantity;
     final buffer = StringBuffer();
-    if (extracted.count case final count?) {
+    if (quantity.count case final count?) {
       buffer.write('${NutritionFormat.amount(count)} ');
-      buffer.write(extracted.unit ?? 'units');
+      buffer.write(quantity.unit ?? 'units');
       buffer.write(' · ');
     }
-    buffer.write(weight);
-    buffer.write(' · ${extracted.canonicalName}');
-    if (extracted.preparation.trim().isNotEmpty) {
-      buffer.write(', ${extracted.preparation}');
+    buffer.write(NutritionFormat.grams(quantity.grams));
+    buffer.write(' · ${entry.extracted.canonicalName}');
+    if (entry.extracted.preparation.trim().isNotEmpty) {
+      buffer.write(', ${entry.extracted.preparation}');
     }
+    if (entry.quantityWasCorrected) buffer.write('  (corrected)');
     return buffer.toString();
   }
 
@@ -340,6 +377,145 @@ class _Unsettled extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Corrects the amount one plan line calls for.
+///
+/// The weight is what every macro is derived from, so it is the field that must
+/// be right. Count and unit are the plan's own wording, kept so the day view can
+/// echo it ("2 porciones") instead of translating everything into grams.
+class _QuantityDialog extends StatefulWidget {
+  const _QuantityDialog({required this.entry});
+
+  final ImportReviewEntry entry;
+
+  @override
+  State<_QuantityDialog> createState() => _QuantityDialogState();
+}
+
+class _QuantityDialogState extends State<_QuantityDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final FoodQuantity _current = widget.entry.effectiveQuantity;
+  late final _grams = TextEditingController(
+    text: NutritionFormat.amount(_current.grams),
+  );
+  late final _count = TextEditingController(
+    text: _current.count == null ? '' : NutritionFormat.amount(_current.count!),
+  );
+  late final _unit = TextEditingController(text: _current.unit ?? '');
+
+  @override
+  void dispose() {
+    _grams.dispose();
+    _count.dispose();
+    _unit.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return AlertDialog(
+      title: const Text('Correct the amount'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                widget.entry.extracted.rawText,
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'A weight in brackets is the TOTAL for the quantity, not the '
+                'weight of one unit.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                key: const Key('quantityGramsField'),
+                controller: _grams,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Total weight (g)',
+                  helperText: 'Every macro is derived from this',
+                ),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                validator: (value) {
+                  final parsed = num.tryParse((value ?? '').trim());
+                  if (parsed == null || parsed <= 0) return 'Must be above 0';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                key: const Key('quantityCountField'),
+                controller: _count,
+                decoration: const InputDecoration(
+                  labelText: 'Units (optional)',
+                  hintText: 'e.g. 2 for "2 porciones"',
+                ),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                validator: (value) {
+                  final text = (value ?? '').trim();
+                  if (text.isEmpty) return null;
+                  final parsed = num.tryParse(text);
+                  if (parsed == null || parsed <= 0) return 'Must be above 0';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                key: const Key('quantityUnitField'),
+                controller: _unit,
+                decoration: const InputDecoration(
+                  labelText: 'Unit wording (optional)',
+                  hintText: 'e.g. porcion',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          key: const Key('saveQuantityButton'),
+          onPressed: _submit,
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+
+    final count = num.tryParse(_count.text.trim());
+    final unit = _unit.text.trim();
+    Navigator.of(context).pop(
+      FoodQuantity(
+        grams: num.parse(_grams.text.trim()),
+        count: count,
+        // A unit without a count says nothing, so it is dropped rather than
+        // stored as wording with no number attached.
+        unit: count == null || unit.isEmpty ? null : unit,
+      ),
     );
   }
 }

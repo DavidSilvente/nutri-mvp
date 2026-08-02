@@ -76,7 +76,7 @@ class DietDraftCodec implements DietPlanDraftCodec {
   @override
   Result<String, NutritionFailure> resolveRefs(
     String draft,
-    Map<String, String> chosenFoodIds,
+    Map<String, SettledFood> settled,
   ) {
     final decoded = _decode(draft);
     final Map<Object?, Object?> root;
@@ -165,9 +165,19 @@ class DietDraftCodec implements DietPlanDraftCodec {
                   'draft.diet...alternatives[].foodRef: expected a string',
                 ));
               }
-              final chosen = chosenFoodIds[ref];
+              final chosen = settled[ref];
               if (chosen != null) {
-                alternative['foodRef'] = chosen;
+                alternative['foodRef'] = chosen.foodId;
+                // Only a quantity the user actually corrected is written over
+                // the document's; an untouched line keeps whatever each mention
+                // of it says.
+                if (chosen.quantity case final quantity?) {
+                  alternative['quantity'] = {
+                    'grams': quantity.grams,
+                    'count': quantity.count,
+                    'unit': quantity.unit,
+                  };
+                }
               } else if (declaredRefs.contains(ref)) {
                 // A draft ref nobody settled would become a dangling id in a
                 // stored plan, so it fails here while the user can still fix it.

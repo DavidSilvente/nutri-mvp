@@ -115,12 +115,15 @@ class ImportDietPdf implements DietPdfImporter {
       );
     }
 
-    final chosen = <String, String>{
+    final settled = <String, SettledFood>{
       for (var i = 0; i < decisions.length; i++)
-        draft.pendingFoods[i].ref: decisions[i].food.id,
+        draft.pendingFoods[i].ref: SettledFood(
+          foodId: decisions[i].food.id,
+          quantity: decisions[i].quantity,
+        ),
     };
 
-    final rewritten = _draftCodec.resolveRefs(draft.document, chosen);
+    final rewritten = _draftCodec.resolveRefs(draft.document, settled);
     final String document;
     switch (rewritten) {
       case Err(failure: final failure):

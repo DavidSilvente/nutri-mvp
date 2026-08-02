@@ -4,6 +4,7 @@ import 'package:nutri_mvp/features/nutrition/domain/services/extracted_food_reso
 import 'package:nutri_mvp/features/nutrition/domain/services/food_catalog.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/food_matcher.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/import_review.dart';
+import 'package:nutri_mvp/features/nutrition/domain/value_objects/food_quantity.dart';
 
 import '../../_fakes/fake_diet_plan_store.dart';
 
@@ -119,6 +120,68 @@ void main() {
       expect(settled.entries[0].score, 0.42);
       expect(settled.entries[0].chosenByUser, isTrue);
       expect(settled.correctedCount, 1);
+    });
+  });
+
+  group('correcting how much a line calls for', () {
+    late ImportReview review;
+
+    setUp(() {
+      review = ImportReview.from([
+        resolution('chicken breast', candidates: [('chicken_breast_grilled', 0.9)]),
+      ]);
+    });
+
+    test('starts from what the extraction read, without claiming a correction',
+        () {
+      final entry = review.entries.single;
+
+      expect(entry.quantityWasCorrected, isFalse);
+      expect(entry.quantity, isNull);
+      expect(entry.effectiveQuantity.grams, 100);
+      expect(review.requantifiedCount, 0);
+    });
+
+    test('records a correction as an override', () {
+      // Null and "the same numbers" mean different things downstream: only an
+      // override is written over the document's own quantities.
+      final corrected = review.setQuantity(
+        0,
+        FoodQuantity(grams: 110, count: 2, unit: 'porcion'),
+      );
+
+      final entry = corrected.entries.single;
+      expect(entry.quantityWasCorrected, isTrue);
+      expect(entry.effectiveQuantity.grams, 110);
+      expect(entry.effectiveQuantity.count, 2);
+      expect(corrected.requantifiedCount, 1);
+      expect(corrected.decisions.single.quantity, isNotNull);
+    });
+
+    test('a line nobody corrected hands back no quantity at all', () {
+      expect(review.decisions.single.quantity, isNull);
+    });
+
+    test('does not mutate the review it came from', () {
+      review.setQuantity(0, FoodQuantity(grams: 999));
+
+      expect(review.entries.single.quantityWasCorrected, isFalse);
+    });
+
+    test('survives changing the food afterwards', () {
+      // The two corrections are independent: picking a different food must not
+      // silently undo a weight the user already fixed.
+      final corrected = review
+          .setQuantity(0, FoodQuantity(grams: 110))
+          .select(0, FakeFoodTableSource.food('beef_loin'));
+
+      expect(corrected.entries.single.food!.id, 'beef_loin');
+      expect(corrected.entries.single.effectiveQuantity.grams, 110);
+    });
+
+    test('refuses a weight that cannot be eaten', () {
+      expect(() => FoodQuantity(grams: 0), throwsArgumentError);
+      expect(() => FoodQuantity(grams: -5), throwsArgumentError);
     });
   });
 

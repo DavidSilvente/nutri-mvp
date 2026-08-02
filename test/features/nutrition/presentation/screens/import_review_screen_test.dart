@@ -164,6 +164,168 @@ void main() {
     });
   });
 
+  group('correcting the amount', () {
+    testWidgets('shows what the plan said and lets the user fix it', (
+      tester,
+    ) async {
+      // Picking the right food does not help if the weight is wrong, and a
+      // misread weight produces a perfectly valid plan with wrong macros.
+      await openScreen(tester, [
+        resolution(
+          'chicken breast',
+          candidates: [('chicken_breast_grilled', 0.9)],
+        ),
+      ]);
+
+      expect(find.text('100 g · chicken breast, raw'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('editQuantityButton-0')));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(const Key('quantityGramsField')), '110');
+      await tester.enterText(find.byKey(const Key('quantityCountField')), '2');
+      await tester.enterText(
+        find.byKey(const Key('quantityUnitField')),
+        'porcion',
+      );
+      await tester.tap(find.byKey(const Key('saveQuantityButton')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('2 porcion · 110 g · chicken breast, raw  (corrected)'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the correction reaches the import', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1000, 2400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      List<ReviewedFood>? popped;
+      await pumpApp(
+        tester,
+        Builder(
+          builder: (context) => Center(
+            child: TextButton(
+              onPressed: () async {
+                popped = await Navigator.of(context).push<List<ReviewedFood>>(
+                  MaterialPageRoute(
+                    builder: (_) => ImportReviewScreen(
+                      sourceLabel: 'plan-julio.pdf',
+                      resolutions: [
+                        resolution(
+                          'chicken breast',
+                          candidates: [('chicken_breast_grilled', 0.9)],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              child: const Text('open'),
+            ),
+          ),
+        ),
+        overrides: [
+          foodTableSourceProvider.overrideWithValue(FakeFoodTableSource()),
+        ],
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('editQuantityButton-0')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('quantityGramsField')), '110');
+      await tester.tap(find.byKey(const Key('saveQuantityButton')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('confirmImportButton')));
+      await tester.pumpAndSettle();
+
+      expect(popped!.single.quantity, isNotNull);
+      expect(popped!.single.quantity!.grams, 110);
+    });
+
+    testWidgets('an untouched line hands back no override', (tester) async {
+      // Null and "the same numbers" differ: an untouched line must leave every
+      // mention of that food in the document alone.
+      await tester.binding.setSurfaceSize(const Size(1000, 2400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      List<ReviewedFood>? popped;
+      await pumpApp(
+        tester,
+        Builder(
+          builder: (context) => Center(
+            child: TextButton(
+              onPressed: () async {
+                popped = await Navigator.of(context).push<List<ReviewedFood>>(
+                  MaterialPageRoute(
+                    builder: (_) => ImportReviewScreen(
+                      sourceLabel: 'plan-julio.pdf',
+                      resolutions: [
+                        resolution(
+                          'chicken breast',
+                          candidates: [('chicken_breast_grilled', 0.9)],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              child: const Text('open'),
+            ),
+          ),
+        ),
+        overrides: [
+          foodTableSourceProvider.overrideWithValue(FakeFoodTableSource()),
+        ],
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('confirmImportButton')));
+      await tester.pumpAndSettle();
+
+      expect(popped!.single.quantity, isNull);
+    });
+
+    testWidgets('refuses a weight that cannot be eaten', (tester) async {
+      await openScreen(tester, [
+        resolution(
+          'chicken breast',
+          candidates: [('chicken_breast_grilled', 0.9)],
+        ),
+      ]);
+
+      await tester.tap(find.byKey(const Key('editQuantityButton-0')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('quantityGramsField')), '0');
+      await tester.tap(find.byKey(const Key('saveQuantityButton')));
+      await tester.pumpAndSettle();
+
+      // The dialog stays open with the complaint rather than storing a zero.
+      expect(find.text('Must be above 0'), findsOneWidget);
+      expect(find.byKey(const Key('quantityGramsField')), findsOneWidget);
+    });
+
+    testWidgets('backing out of the dialog changes nothing', (tester) async {
+      await openScreen(tester, [
+        resolution(
+          'chicken breast',
+          candidates: [('chicken_breast_grilled', 0.9)],
+        ),
+      ]);
+
+      await tester.tap(find.byKey(const Key('editQuantityButton-0')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('quantityGramsField')), '999');
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('100 g · chicken breast, raw'), findsOneWidget);
+    });
+  });
+
   group('settling a line', () {
     testWidgets('picking a candidate resolves it and unblocks the import', (
       tester,
