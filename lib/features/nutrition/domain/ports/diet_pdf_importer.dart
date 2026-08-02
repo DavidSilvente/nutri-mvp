@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:nutri_mvp/core/result.dart';
 
 import '../failures/nutrition_failure.dart';
+import '../services/extracted_food_resolver.dart';
+import '../services/import_review.dart';
 
 /// One rendered page of a source PDF.
 class PdfPageImage {
@@ -78,28 +80,95 @@ class ExtractedFood {
   final String? brandNormalizedFrom;
 }
 
-/// Turns rendered pages into a normalized plan document.
+/// A food the extractor described but did not place in the catalog, tagged with
+/// the reference the draft document uses for it.
+///
+/// The reference is what makes the round trip possible: the plan's meals point
+/// at it, and once the user settles which catalog entry it is, every mention is
+/// rewritten at once.
+class PendingFood {
+  const PendingFood({required this.ref, required this.extracted});
+
+  /// The draft-local id the document's `foodRef` fields use, e.g. `x1`.
+  final String ref;
+
+  final ExtractedFood extracted;
+}
+
+/// Turns rendered pages into a DRAFT plan document.
 ///
 /// Implementations are expected to use a multimodal model. The contract is
 /// deliberately narrow: return the document text, or a failure. Everything about
 /// prompts, retries and providers stays inside the adapter.
+///
+/// The model is asked to DESCRIBE foods, never to name catalog ids. It has no
+/// way to know what `usda_167512` is, and listing the table for it would mean
+/// shipping roughly 470 KB of ids and names on every import — to do a matching
+/// job [FoodMatcher] already does locally, deterministically, and traceably.
 abstract interface class DietPlanExtractor {
-  /// Extracts a normalized plan document from [pages].
+  /// Extracts a draft plan document from [pages].
   ///
-  /// The returned string MUST be a document `DietPlanDecoder` can decode.
-  Future<Result<String, NutritionFailure>> extract(
-    List<PdfPageImage> pages, {
-    required List<String> knownFoodIds,
-  });
+  /// The returned string MUST be a document `DietPlanDraftCodec` can read: the
+  /// normal plan shape, plus an `extractedFoods` section whose refs the meals
+  /// point at.
+  Future<Result<String, NutritionFailure>> extract(List<PdfPageImage> pages);
 }
 
-/// Reads a diet PDF end to end: render, extract, validate, store.
+/// Reads and rewrites the draft document produced by extraction.
+///
+/// A port because the draft's JSON is a data-layer concern, while the import use
+/// case needs only two things from it: which foods are still unplaced, and a
+/// document with the user's choices baked in.
+abstract interface class DietPlanDraftCodec {
+  /// The foods [draft] describes but has not placed, in document order.
+  Result<List<PendingFood>, NutritionFailure> readPendingFoods(String draft);
+
+  /// Rewrites [draft] with every pending ref replaced by the chosen catalog id,
+  /// yielding a document `DietPlanDecoder` can decode.
+  ///
+  /// [chosenFoodIds] maps a [PendingFood.ref] to the id the user settled on.
+  Result<String, NutritionFailure> resolveRefs(
+    String draft,
+    Map<String, String> chosenFoodIds,
+  );
+}
+
+/// Everything the review screen needs, plus the draft it came from.
+class DietImportDraft {
+  const DietImportDraft({
+    required this.document,
+    required this.pendingFoods,
+    required this.resolutions,
+  });
+
+  /// The draft document, refs still unresolved.
+  final String document;
+
+  final List<PendingFood> pendingFoods;
+
+  /// The resolver's verdict for each entry in [pendingFoods], same order.
+  final List<FoodResolution> resolutions;
+}
+
+/// Reads a diet PDF in two phases, because the user stands between them.
+///
+/// A plan the app cannot fully place is the normal case, not the exception, so
+/// import cannot be one call: [prepare] gets as far as "here is what the plan
+/// says and what we think each line is", the user settles the rest, and
+/// [complete] stores it.
 abstract interface class DietPdfImporter {
-  /// Imports the plan in [pdfBytes].
+  /// Renders [pdfBytes], extracts a draft, and resolves what it can.
+  Future<Result<DietImportDraft, NutritionFailure>> prepare(Uint8List pdfBytes);
+
+  /// Stores [draft] with [decisions] applied, returning the stored plan's id.
+  ///
+  /// [decisions] must line up with [DietImportDraft.pendingFoods], one per
+  /// entry and in the same order.
   ///
   /// [sourceLabel] is the origin shown to the user, normally the file name.
-  Future<Result<String, NutritionFailure>> import(
-    Uint8List pdfBytes, {
+  Future<Result<String, NutritionFailure>> complete(
+    DietImportDraft draft,
+    List<ReviewedFood> decisions, {
     required String sourceLabel,
     bool makeActive = false,
   });
