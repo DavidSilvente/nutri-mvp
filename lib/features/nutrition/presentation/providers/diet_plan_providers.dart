@@ -8,6 +8,7 @@ import 'package:nutri_mvp/features/nutrition/data/sources/asset_bundled_diet_doc
 import 'package:nutri_mvp/features/nutrition/data/sources/asset_food_table_source.dart';
 import 'package:nutri_mvp/features/nutrition/data/sources/claude_diet_plan_extractor.dart';
 import 'package:nutri_mvp/features/nutrition/data/sources/file_picker_pdf_source.dart';
+import 'package:nutri_mvp/features/nutrition/data/sources/gemini_diet_plan_extractor.dart';
 import 'package:nutri_mvp/features/nutrition/data/sources/printing_pdf_rasterizer.dart';
 import 'package:nutri_mvp/features/nutrition/data/sources/sql_diet_plan_source.dart';
 import 'package:nutri_mvp/features/nutrition/data/sources/sql_diet_plan_store.dart';
@@ -115,7 +116,17 @@ final pdfRasterizerProvider = Provider<PdfPageRasterizer>((ref) {
 });
 
 /// Turns rendered pages into a draft plan document.
+///
+/// Gemini wins when both keys are present: reading a plan is transcription
+/// rather than reasoning, so the free tier does the job, and both adapters are
+/// held to the same brief (`dietExtractionPrompt`). Build with
+/// `--dart-define=GEMINI_API_KEY=...` or `--dart-define=ANTHROPIC_API_KEY=...`.
 final dietPlanExtractorProvider = Provider<DietPlanExtractor>((ref) {
+  if (GeminiDietPlanExtractor.isConfigured) {
+    return GeminiDietPlanExtractor(
+      apiKey: GeminiDietPlanExtractor.apiKeyFromEnvironment,
+    );
+  }
   return ClaudeDietPlanExtractor(
     apiKey: ClaudeDietPlanExtractor.apiKeyFromEnvironment,
   );
@@ -124,10 +135,11 @@ final dietPlanExtractorProvider = Provider<DietPlanExtractor>((ref) {
 /// Whether this build can read a new PDF at all.
 ///
 /// Exposed so the UI can hide the entry point instead of offering an import
-/// that would fail on the first request: the key is supplied at build time and
-/// is absent from a plain `flutter run`.
+/// that would fail on the first request: the keys are supplied at build time
+/// and are absent from a plain `flutter run`.
 final canImportDietPdfProvider = Provider<bool>((ref) {
-  return ClaudeDietPlanExtractor.isConfigured;
+  return GeminiDietPlanExtractor.isConfigured ||
+      ClaudeDietPlanExtractor.isConfigured;
 });
 
 final dietDraftCodecProvider = Provider<DietPlanDraftCodec>((ref) {
