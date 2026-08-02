@@ -2,22 +2,30 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutri_mvp/core/health_failure_exception.dart';
 import 'package:nutri_mvp/core/result.dart';
+import 'package:nutri_mvp/features/nutrition/data/codecs/diet_draft_codec.dart';
 import 'package:nutri_mvp/features/nutrition/data/codecs/diet_plan_codec.dart';
 import 'package:nutri_mvp/features/nutrition/data/sources/asset_bundled_diet_document_source.dart';
 import 'package:nutri_mvp/features/nutrition/data/sources/asset_food_table_source.dart';
+import 'package:nutri_mvp/features/nutrition/data/sources/claude_diet_plan_extractor.dart';
+import 'package:nutri_mvp/features/nutrition/data/sources/file_picker_pdf_source.dart';
+import 'package:nutri_mvp/features/nutrition/data/sources/printing_pdf_rasterizer.dart';
 import 'package:nutri_mvp/features/nutrition/data/sources/sql_diet_plan_source.dart';
 import 'package:nutri_mvp/features/nutrition/data/sources/sql_diet_plan_store.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/stored_diet_plan.dart';
+import 'package:nutri_mvp/features/nutrition/domain/ports/diet_pdf_importer.dart';
 import 'package:nutri_mvp/features/nutrition/domain/ports/diet_plan_decoder.dart';
 import 'package:nutri_mvp/features/nutrition/domain/ports/diet_plan_source.dart';
 import 'package:nutri_mvp/features/nutrition/domain/ports/diet_plan_store.dart';
 import 'package:nutri_mvp/features/nutrition/domain/ports/food_table_source.dart';
+import 'package:nutri_mvp/features/nutrition/domain/ports/pdf_file_picker.dart';
+import 'package:nutri_mvp/features/nutrition/domain/services/extracted_food_resolver.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/food_catalog.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/food_matcher.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/apply_template_to_days.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/bootstrap_diet_library.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/get_diet_day.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/import_diet_document.dart';
+import 'package:nutri_mvp/features/nutrition/domain/usecases/import_diet_pdf.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/controllers/diet_day_controller.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/controllers/diet_plan_controller.dart';
@@ -97,6 +105,68 @@ final importDietDocumentProvider = Provider<ImportDietDocument>((ref) {
     foodTable: ref.watch(foodTableSourceProvider),
     decoder: ref.watch(dietPlanDecoderProvider),
   );
+});
+
+// --- Reading a new diet PDF ------------------------------------------------
+
+/// Renders a PDF's pages, so a plan with no text layer can still be read.
+final pdfRasterizerProvider = Provider<PdfPageRasterizer>((ref) {
+  return PrintingPdfRasterizer();
+});
+
+/// Turns rendered pages into a draft plan document.
+final dietPlanExtractorProvider = Provider<DietPlanExtractor>((ref) {
+  return ClaudeDietPlanExtractor(
+    apiKey: ClaudeDietPlanExtractor.apiKeyFromEnvironment,
+  );
+});
+
+/// Whether this build can read a new PDF at all.
+///
+/// Exposed so the UI can hide the entry point instead of offering an import
+/// that would fail on the first request: the key is supplied at build time and
+/// is absent from a plain `flutter run`.
+final canImportDietPdfProvider = Provider<bool>((ref) {
+  return ClaudeDietPlanExtractor.isConfigured;
+});
+
+final dietDraftCodecProvider = Provider<DietPlanDraftCodec>((ref) {
+  return const DietDraftCodec();
+});
+
+final pdfFilePickerProvider = Provider<PdfFilePicker>((ref) {
+  return const FilePickerPdfSource();
+});
+
+/// Matches the foods a plan describes against the shipped table.
+final extractedFoodResolverProvider =
+    FutureProvider<ExtractedFoodResolver>((ref) async {
+  return ExtractedFoodResolver(await ref.watch(foodMatcherProvider.future));
+});
+
+/// Reads a diet PDF in two phases, with the user's review in between.
+///
+/// Async because resolution needs the indexed food table, which is loaded from
+/// an asset — the same cached index the review screen's search uses.
+final importDietPdfProvider = FutureProvider<DietPdfImporter>((ref) async {
+  return ImportDietPdf(
+    rasterizer: ref.watch(pdfRasterizerProvider),
+    extractor: ref.watch(dietPlanExtractorProvider),
+    draftCodec: ref.watch(dietDraftCodecProvider),
+    resolver: await ref.watch(extractedFoodResolverProvider.future),
+    importDocument: ref.watch(importDietDocumentProvider),
+    now: ref.watch(clockProvider),
+    newPlanId: ref.watch(planIdFactoryProvider),
+  );
+});
+
+/// Ids for newly imported plans.
+///
+/// A seam rather than a call to the clock inside the use case, so a test can
+/// pin the id of the plan it just imported.
+final planIdFactoryProvider = Provider<String Function()>((ref) {
+  final now = ref.watch(clockProvider);
+  return () => 'imported-${now().microsecondsSinceEpoch}';
 });
 
 /// One day of the active diet, with the swaps recorded for that day applied.
