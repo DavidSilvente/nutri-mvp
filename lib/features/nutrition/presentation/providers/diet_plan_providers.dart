@@ -12,6 +12,8 @@ import 'package:nutri_mvp/features/nutrition/domain/ports/diet_plan_decoder.dart
 import 'package:nutri_mvp/features/nutrition/domain/ports/diet_plan_source.dart';
 import 'package:nutri_mvp/features/nutrition/domain/ports/diet_plan_store.dart';
 import 'package:nutri_mvp/features/nutrition/domain/ports/food_table_source.dart';
+import 'package:nutri_mvp/features/nutrition/domain/services/food_catalog.dart';
+import 'package:nutri_mvp/features/nutrition/domain/services/food_matcher.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/apply_template_to_days.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/bootstrap_diet_library.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/get_diet_day.dart';
@@ -64,6 +66,19 @@ final foodTableSourceProvider = Provider<FoodTableSource>((ref) {
 
 final dietPlanDecoderProvider = Provider<DietPlanDecoder>((ref) {
   return const DietPlanCodec();
+});
+
+/// Free-text search over the shipped food table.
+///
+/// Built once and cached, because indexing the table is the expensive part and
+/// the review screen searches on every keystroke. Kept out of the widget so a
+/// test can serve a three-food table instead of the shipped one.
+final foodMatcherProvider = FutureProvider<FoodMatcher>((ref) async {
+  final result = await ref.watch(foodTableSourceProvider).loadFoods();
+  return switch (result) {
+    Ok(value: final foods) => FoodMatcher(FoodCatalog(foods)),
+    Err(failure: final failure) => throw HealthFailureException(failure),
+  };
 });
 
 /// Reads what the active diet prescribes for a given day.
