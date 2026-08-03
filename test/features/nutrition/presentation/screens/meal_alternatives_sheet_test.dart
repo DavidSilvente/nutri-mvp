@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/meal_substitute.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/planned_meal.dart';
+import 'package:nutri_mvp/features/nutrition/domain/entities/saved_meal.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
@@ -11,6 +12,7 @@ import 'package:nutri_mvp/features/nutrition/presentation/providers/adherence_pr
 import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/hydration_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/providers/saved_meal_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/day_plan_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/record_intake_screen.dart';
 
@@ -18,6 +20,7 @@ import '../../../../_helpers/pump_app.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 import '../../_fakes/fake_hydration_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
+import '../../_fakes/fake_saved_meal_source.dart';
 
 NutritionTarget target({
   num kcal = 600,
@@ -37,10 +40,12 @@ void main() {
 
   late FakeDietPlanSource dietSource;
   late FakeNutritionSource nutritionSource;
+  late FakeSavedMealSource savedMealSource;
 
   setUp(() async {
     dietSource = FakeDietPlanSource();
     nutritionSource = FakeNutritionSource();
+    savedMealSource = FakeSavedMealSource();
 
     final slots = [
       DietMealSlot(id: 'slot-1', label: 'Lunch', position: 0, target: target()),
@@ -78,6 +83,21 @@ void main() {
     );
   }
 
+  Future<void> addSavedMeal({
+    required String id,
+    required String name,
+    required NutritionTarget mealTarget,
+  }) {
+    return savedMealSource.saveMeal(
+      SavedMeal(
+        id: id,
+        name: name,
+        target: mealTarget,
+        createdAt: DateTime.utc(2026, 8, 1),
+      ),
+    );
+  }
+
   Future<void> openSheet(WidgetTester tester) async {
     await tester.binding.setSurfaceSize(const Size(1000, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -89,6 +109,7 @@ void main() {
         nutritionSourceProvider.overrideWithValue(nutritionSource),
         dietPlanSourceProvider.overrideWithValue(dietSource),
         hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
+        savedMealSourceProvider.overrideWithValue(savedMealSource),
         todayProvider.overrideWithValue(today),
       ],
     );
@@ -207,5 +228,109 @@ void main() {
       final saved = await dietSource.listSubstitutes('pm-1');
       expect(saved.toString(), contains('Tuna salad'));
     });
+
+    testWidgets(
+      'groups plan substitutes and saved meals separately, plan group first',
+      (tester) async {
+        await addSubstitute(
+          id: 'sub-1',
+          label: 'Chicken and rice',
+          substituteTarget: target(kcal: 610, protein: 42, carbs: 58, fat: 21),
+        );
+        await addSavedMeal(
+          id: 'm1',
+          name: 'Tuna bowl',
+          mealTarget: target(kcal: 580, protein: 41, carbs: 59, fat: 20),
+        );
+
+        await openSheet(tester);
+
+        expect(find.text('From your plan'), findsOneWidget);
+        expect(find.text('From your meals'), findsOneWidget);
+        expect(find.text('Chicken and rice'), findsOneWidget);
+        expect(find.text('Tuna bowl'), findsOneWidget);
+
+        final planHeaderY = tester.getTopLeft(find.text('From your plan')).dy;
+        final savedHeaderY = tester
+            .getTopLeft(find.text('From your meals'))
+            .dy;
+        expect(planHeaderY, lessThan(savedHeaderY));
+      },
+    );
+
+    testWidgets(
+      'an empty saved-meal catalogue hides the saved group and shows a '
+      'call-to-action instead, leaving plan substitutes working',
+      (tester) async {
+        await addSubstitute(
+          id: 'sub-1',
+          label: 'Chicken and rice',
+          substituteTarget: target(kcal: 610, protein: 42, carbs: 58, fat: 21),
+        );
+
+        await openSheet(tester);
+
+        expect(find.text('From your plan'), findsOneWidget);
+        expect(find.text('From your meals'), findsNothing);
+        expect(find.byKey(const Key('noSavedMealsCta')), findsOneWidget);
+        expect(
+          find.byKey(const Key('pickAlternativeButton-sub-1')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'an off-target saved meal is still shown, labelled with its gram '
+      'deltas, and stays pickable',
+      (tester) async {
+        // Target protein is 40 g; 10% of that is 4 g, so an 11 g delta
+        // breaches the tighter protein tolerance even though carbs and fat
+        // stay exactly on target.
+        await addSavedMeal(
+          id: 'm1',
+          name: 'Protein shake',
+          mealTarget: target(kcal: 600, protein: 51, carbs: 60, fat: 20),
+        );
+
+        await openSheet(tester);
+
+        expect(find.text('Protein shake'), findsOneWidget);
+        expect(find.textContaining('Off target'), findsOneWidget);
+        expect(find.textContaining('+11'), findsOneWidget);
+
+        await tester.tap(
+          find.byKey(const Key('pickAlternativeButton-saved:m1')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(RecordIntakeScreen), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'picking a saved meal pre-fills the log with its macros and still '
+      'counts towards the planned meal',
+      (tester) async {
+        await addSavedMeal(
+          id: 'm1',
+          name: 'Tuna bowl',
+          mealTarget: target(kcal: 580, protein: 41, carbs: 59, fat: 20),
+        );
+
+        await openSheet(tester);
+        await tester.tap(
+          find.byKey(const Key('pickAlternativeButton-saved:m1')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(RecordIntakeScreen), findsOneWidget);
+        final energyField = tester.widget<TextFormField>(
+          find.byKey(const Key('energyField')),
+        );
+        expect(energyField.controller?.text, '580');
+        expect(find.text('Counts towards Lunch'), findsOneWidget);
+      },
+    );
   });
 }

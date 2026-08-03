@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutri_mvp/core/format/nutrition_format.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/meal_substitute.dart';
-import 'package:nutri_mvp/features/nutrition/domain/services/substitution_engine.dart';
+import 'package:nutri_mvp/features/nutrition/domain/services/alternative_ranker.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/get_day_plan.dart';
+import 'package:nutri_mvp/features/nutrition/domain/value_objects/swap_tolerance.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
@@ -64,20 +65,41 @@ class MealAlternativesSheet extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
             rankedAsync.when(
-              data: (options) => options.isEmpty
-                  ? const _NoAlternatives()
-                  : Column(
-                      children: [
-                        for (var i = 0; i < options.length; i++) ...[
-                          _AlternativeCard(
-                            option: options[i],
-                            isClosest: i == 0,
-                            onPick: () => _pick(context, options[i]),
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                      ],
-                    ),
+              data: (groups) {
+                if (groups.isEmpty) return const _NoAlternatives();
+
+                AlternativeGroup? planGroup;
+                AlternativeGroup? savedGroup;
+                for (final group in groups) {
+                  switch (group.origin) {
+                    case AlternativeOrigin.plan:
+                      planGroup = group;
+                    case AlternativeOrigin.savedMeal:
+                      savedGroup = group;
+                  }
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (planGroup != null)
+                      _AlternativeGroupSection(
+                        title: 'From your plan',
+                        group: planGroup,
+                        onPick: (option) => _pick(context, option),
+                      ),
+                    const SizedBox(height: 20),
+                    if (savedGroup != null)
+                      _AlternativeGroupSection(
+                        title: 'From your meals',
+                        group: savedGroup,
+                        onPick: (option) => _pick(context, option),
+                      )
+                    else
+                      const _NoSavedMealsCta(),
+                  ],
+                );
+              },
               loading: () => const Padding(
                 padding: EdgeInsets.symmetric(vertical: 32),
                 child: Center(child: CircularProgressIndicator()),
@@ -100,9 +122,13 @@ class MealAlternativesSheet extends ConsumerWidget {
     );
   }
 
-  /// Logging a substitute records ITS macros against the planned meal, so the
-  /// day stays honest: you get credit for swapping, judged on what you ate.
-  void _pick(BuildContext context, RankedOption option) {
+  /// Logging an alternative records ITS macros against the planned meal, so
+  /// the day stays honest: you get credit for swapping, judged on what you
+  /// ate. This is unchanged whether the pick came from the plan's own
+  /// substitutes or the user's saved-meal catalogue — there is no separate
+  /// confirmation dialog; this prefilled, editable screen is the
+  /// confirmation.
+  void _pick(BuildContext context, AlternativeOption option) {
     // Resolve the navigator BEFORE popping: once the sheet is dismissed this
     // element is on its way out, and looking anything up from its context
     // afterwards is undefined.
@@ -113,8 +139,8 @@ class MealAlternativesSheet extends ConsumerWidget {
         builder: (_) => RecordIntakeScreen(
           day: day,
           plannedMeal: detail,
-          prefill: option.target,
-          prefillLabel: option.label,
+          prefill: option.ranked.target,
+          prefillLabel: option.ranked.label,
         ),
       ),
     );
@@ -133,6 +159,56 @@ class MealAlternativesSheet extends ConsumerWidget {
   }
 }
 
+/// One origin's ranked options, under a badged section title.
+///
+/// "From your plan" and "From your meals" are rendered by two of these,
+/// never interleaved — the badge is what tells the user which is which.
+class _AlternativeGroupSection extends StatelessWidget {
+  const _AlternativeGroupSection({
+    required this.title,
+    required this.group,
+    required this.onPick,
+  });
+
+  final String title;
+  final AlternativeGroup group;
+  final ValueChanged<AlternativeOption> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.secondaryContainer,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            title,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onSecondaryContainer,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        for (var i = 0; i < group.options.length; i++) ...[
+          _AlternativeCard(
+            option: group.options[i],
+            isClosest: i == 0,
+            onPick: () => onPick(group.options[i]),
+          ),
+          const SizedBox(height: 12),
+        ],
+      ],
+    );
+  }
+}
+
 class _AlternativeCard extends StatelessWidget {
   const _AlternativeCard({
     required this.option,
@@ -140,16 +216,18 @@ class _AlternativeCard extends StatelessWidget {
     required this.onPick,
   });
 
-  final RankedOption option;
+  final AlternativeOption option;
   final bool isClosest;
   final VoidCallback onPick;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final ranked = option.ranked;
+    final deviation = option.deviation;
 
     return Card(
-      key: Key('alternativeCard-${option.id}'),
+      key: Key('alternativeCard-${ranked.id}'),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -159,7 +237,7 @@ class _AlternativeCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    option.label,
+                    ranked.label,
                     style: theme.textTheme.titleMedium,
                   ),
                 ),
@@ -185,14 +263,46 @@ class _AlternativeCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              NutritionFormat.kcal(option.target.energy.kcal),
+              NutritionFormat.kcal(ranked.target.energy.kcal),
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 2),
-            MacroSummaryLine(target: option.target),
+            MacroSummaryLine(target: ranked.target),
+            const SizedBox(height: 4),
+            // Shown BEFORE the user picks, so the tradeoff is visible up
+            // front rather than discovered after logging it.
+            Text(
+              _deltaLine(deviation),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (deviation.isOffTarget) ...[
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'Off target',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onErrorContainer,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             FilledButton(
-              key: Key('pickAlternativeButton-${option.id}'),
+              key: Key('pickAlternativeButton-${ranked.id}'),
               onPressed: onPick,
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(44),
@@ -201,6 +311,58 @@ class _AlternativeCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  static String _deltaLine(MacroDeviation deviation) {
+    return 'P ${_signed(deviation.proteinG)} · '
+        'C ${_signed(deviation.carbsG)} · '
+        'F ${_signed(deviation.fatG)}';
+  }
+
+  static String _signed(double grams) {
+    final magnitude = NutritionFormat.grams(grams.abs());
+    if (grams > 0) return '+$magnitude';
+    if (grams < 0) return '-$magnitude';
+    return magnitude;
+  }
+}
+
+/// Invites the user to build their saved-meal catalogue when it is empty,
+/// in place of the "From your meals" section — an empty catalogue is not an
+/// error, and plan substitutes keep working either way.
+class _NoSavedMealsCta extends StatelessWidget {
+  const _NoSavedMealsCta();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      key: const Key('noSavedMealsCta'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.bookmark_add_outlined,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Save the meals you eat often to see them here as '
+              'alternatives too.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
