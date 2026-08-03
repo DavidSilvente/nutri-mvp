@@ -146,8 +146,8 @@ void main() {
     );
 
     testWidgets(
-      'creating a duplicate (trimmed/case-insensitive) name shows a '
-      'SnackBar and leaves the catalogue unchanged',
+      'creating a duplicate (trimmed/case-insensitive) name keeps the dialog '
+      'open, shows the error inline, and preserves what was typed',
       (tester) async {
         final fake = FakeSavedMealSource();
         await fake.saveMeal(_meal(id: 'm1', name: 'Chicken salad'));
@@ -163,9 +163,54 @@ void main() {
         await tester.pumpAndSettle();
         await _fillAndSubmit(tester, name: ' chicken SALAD ');
 
+        // The dialog is still open — the failure never lost the form.
+        expect(find.byKey(const Key('savedMealNameField')), findsOneWidget);
         expect(find.textContaining('already exists'), findsOneWidget);
-        // The catalogue kept its original, unchanged entry — no duplicate
-        // was created, and the list still shows the original.
+
+        // Nothing the user typed was lost: they can just fix the name.
+        final nameField = tester.widget<TextFormField>(
+          find.byKey(const Key('savedMealNameField')),
+        );
+        expect(nameField.controller?.text, ' chicken SALAD ');
+        final energyField = tester.widget<TextFormField>(
+          find.byKey(const Key('savedMealEnergyField')),
+        );
+        expect(energyField.controller?.text, '450');
+
+        // The underlying catalogue kept its original, unchanged entry — no
+        // duplicate was created, and the screen never blanked out.
+        expect(find.text('Chicken salad'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'fixing the name after a duplicate-name failure and resubmitting '
+      'saves the meal and closes the dialog',
+      (tester) async {
+        final fake = FakeSavedMealSource();
+        await fake.saveMeal(_meal(id: 'm1', name: 'Chicken salad'));
+
+        await pumpApp(
+          tester,
+          const SavedMealsScreen(),
+          overrides: [savedMealSourceProvider.overrideWithValue(fake)],
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('addSavedMealButton')));
+        await tester.pumpAndSettle();
+        await _fillAndSubmit(tester, name: ' chicken SALAD ');
+        expect(find.textContaining('already exists'), findsOneWidget);
+
+        await tester.enterText(
+          find.byKey(const Key('savedMealNameField')),
+          'Tuna bowl',
+        );
+        await tester.tap(find.byKey(const Key('saveSavedMealButton')));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('savedMealNameField')), findsNothing);
+        expect(find.text('Tuna bowl'), findsOneWidget);
         expect(find.text('Chicken salad'), findsOneWidget);
       },
     );

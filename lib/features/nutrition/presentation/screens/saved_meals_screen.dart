@@ -28,6 +28,14 @@ class SavedMealsScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('My meals')),
       body: SafeArea(
         child: stateAsync.when(
+          // A failed create/delete never touches the catalogue (the source
+          // rejects it before writing), and Riverpod's `AsyncNotifier`
+          // preserves the previous list on the resulting `AsyncError`
+          // (`copyWithPrevious`, applied automatically by `state = ...`).
+          // Rendering that preserved data instead of the error keeps this
+          // screen showing the unchanged list while `_SavedMealDialog`
+          // surfaces the failure inline — no separate resync is needed.
+          skipError: true,
           data: (meals) {
             if (meals.isEmpty) return const _EmptySavedMeals();
 
@@ -67,37 +75,14 @@ class SavedMealsScreen extends ConsumerWidget {
 
   Future<void> _createMeal(BuildContext context, WidgetRef ref) async {
     final newId = ref.read(savedMealIdFactoryProvider)();
-    final created = await showDialog<SavedMeal>(
+    // The dialog performs (and awaits) the save itself, closing only on
+    // success. That way a failure — a duplicate name is the likely one —
+    // never loses what the user typed: the dialog just stays open with the
+    // error shown inline so they can fix the name and retry.
+    await showDialog<void>(
       context: context,
       builder: (_) => _SavedMealDialog(id: newId),
     );
-    if (created == null) return;
-
-    await ref.read(savedMealControllerProvider.notifier).saveMeal(created);
-
-    final state = ref.read(savedMealControllerProvider);
-    if (!state.hasError) return;
-    if (!context.mounted) return;
-
-    final message = _formatError(state.error);
-    // A failed write (e.g. a duplicate name) never touches the catalogue, so
-    // resync the controller instead of leaving it on the AsyncError branch —
-    // the list keeps showing the unchanged catalogue and the failure is
-    // surfaced as a transient SnackBar instead of a full-screen error.
-    ref.invalidate(savedMealControllerProvider);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-
-  static String _formatError(Object? error) {
-    if (error is HealthFailureException) {
-      return switch (error.failure) {
-        ConflictFailure(reason: final reason) => reason,
-        _ => 'Could not save this meal',
-      };
-    }
-    return 'Could not save this meal';
   }
 }
 
@@ -219,16 +204,21 @@ class _EmptySavedMeals extends StatelessWidget {
 }
 
 /// Captures a new saved meal: a name, its macros, and an optional note.
-class _SavedMealDialog extends StatefulWidget {
+///
+/// Saves itself and only closes on success. On failure (a duplicate name is
+/// the likely one) it stays open with the error shown inline next to the
+/// name field — the typed values are never lost, so the user can just fix
+/// the name and retry.
+class _SavedMealDialog extends ConsumerStatefulWidget {
   const _SavedMealDialog({required this.id});
 
   final String id;
 
   @override
-  State<_SavedMealDialog> createState() => _SavedMealDialogState();
+  ConsumerState<_SavedMealDialog> createState() => _SavedMealDialogState();
 }
 
-class _SavedMealDialogState extends State<_SavedMealDialog> {
+class _SavedMealDialogState extends ConsumerState<_SavedMealDialog> {
   final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _energy = TextEditingController();
@@ -236,6 +226,8 @@ class _SavedMealDialogState extends State<_SavedMealDialog> {
   final _carbs = TextEditingController();
   final _fat = TextEditingController();
   final _note = TextEditingController();
+  String? _error;
+  bool _saving = false;
 
   @override
   void dispose() {
@@ -267,6 +259,16 @@ class _SavedMealDialogState extends State<_SavedMealDialog> {
                         ? 'Required'
                         : null,
               ),
+              if (_error != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _error!,
+                  key: const Key('savedMealDialogError'),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               _NumberField(
                 fieldKey: const Key('savedMealEnergyField'),
@@ -305,39 +307,73 @@ class _SavedMealDialogState extends State<_SavedMealDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
         FilledButton(
           key: const Key('saveSavedMealButton'),
-          onPressed: _submit,
+          onPressed: _saving ? null : _submit,
           style: FilledButton.styleFrom(minimumSize: const Size(88, 40)),
-          child: const Text('Save'),
+          child: _saving
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Save'),
         ),
       ],
     );
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     final note = _note.text.trim();
-    Navigator.of(context).pop(
-      SavedMeal(
-        id: widget.id,
-        name: _name.text.trim(),
-        target: NutritionTarget(
-          energy: Energy(kcal: num.parse(_energy.text)),
-          macros: Macros(
-            proteinG: num.parse(_protein.text),
-            carbsG: num.parse(_carbs.text),
-            fatG: num.parse(_fat.text),
-          ),
+    final meal = SavedMeal(
+      id: widget.id,
+      name: _name.text.trim(),
+      target: NutritionTarget(
+        energy: Energy(kcal: num.parse(_energy.text)),
+        macros: Macros(
+          proteinG: num.parse(_protein.text),
+          carbsG: num.parse(_carbs.text),
+          fatG: num.parse(_fat.text),
         ),
-        portionNote: note.isEmpty ? null : note,
-        createdAt: DateTime.now(),
       ),
+      portionNote: note.isEmpty ? null : note,
+      createdAt: DateTime.now(),
     );
+
+    setState(() {
+      _error = null;
+      _saving = true;
+    });
+
+    await ref.read(savedMealControllerProvider.notifier).saveMeal(meal);
+
+    final state = ref.read(savedMealControllerProvider);
+    if (!state.hasError) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _saving = false;
+      _error = _formatError(state.error);
+    });
+  }
+
+  static String _formatError(Object? error) {
+    if (error is HealthFailureException) {
+      return switch (error.failure) {
+        ConflictFailure(reason: final reason) => reason,
+        _ => 'Could not save this meal',
+      };
+    }
+    return 'Could not save this meal';
   }
 }
 

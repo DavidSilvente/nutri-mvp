@@ -104,6 +104,32 @@ void main() {
       },
     );
 
+    test(
+      'a failed saveMeal preserves the previously loaded list instead of '
+      'losing it, so the UI can keep rendering the unchanged catalogue',
+      () async {
+        final container = ProviderContainer(
+          overrides: [
+            savedMealSourceProvider.overrideWithValue(FakeSavedMealSource()),
+          ],
+        );
+        addTearDown(container.dispose);
+        await container.read(savedMealControllerProvider.future);
+
+        final original = _meal(id: 'm1', name: 'Chicken salad');
+        await container
+            .read(savedMealControllerProvider.notifier)
+            .saveMeal(original);
+        await container
+            .read(savedMealControllerProvider.notifier)
+            .saveMeal(_meal(id: 'm2', name: ' chicken SALAD '));
+
+        final state = container.read(savedMealControllerProvider);
+        expect(state.hasError, isTrue);
+        expect(state.valueOrNull, [original]);
+      },
+    );
+
     test('deleteSavedMeal removes the meal from the async state', () async {
       final container = ProviderContainer(
         overrides: [
