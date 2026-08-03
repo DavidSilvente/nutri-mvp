@@ -231,6 +231,30 @@ class DietPlanRecords extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Local storage table for the user's saved-meal catalogue.
+///
+/// Independent of [MenuItems] and [MealSubstitutes] — a saved meal is not
+/// scoped to any plan or planned meal. Uniqueness on the trimmed,
+/// case-folded name is enforced in the application layer (see
+/// `SqlSavedMealSource`), not through a schema constraint: SQLite `UNIQUE`
+/// collations do not express trimming, and `NOCASE` folds ASCII only.
+@DataClassName('SavedMealRow')
+class SavedMeals extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get portionNote => text().nullable()();
+
+  RealColumn get energyKcal => real()();
+  RealColumn get proteinG => real()();
+  RealColumn get carbsG => real()();
+  RealColumn get fatG => real()();
+
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Which alternative the user picked for a meal component on a given day.
 ///
 /// Absence is meaningful: a component with no row falls back to the plan's
@@ -259,8 +283,9 @@ class ComponentSelections extends Table {
 /// Production usage opens a file on disk (via `driftDatabase(name: ...)`);
 /// tests open `NativeDatabase.memory()` — both share this same schema.
 ///
-/// One physical database file, eight tables (legacy [NutritionEntries] and
-/// [HydrationEntries] plus the diet/menu tables introduced in v3).
+/// One physical database file (legacy [NutritionEntries] and
+/// [HydrationEntries], the diet/menu tables introduced in v3, and the
+/// saved-meal catalogue introduced in v6).
 @DriftDatabase(tables: [
   NutritionEntries,
   HydrationEntries,
@@ -272,12 +297,13 @@ class ComponentSelections extends Table {
   MenuItems,
   DietPlanRecords,
   ComponentSelections,
+  SavedMeals,
 ])
 class NutritionDatabase extends _$NutritionDatabase {
   NutritionDatabase(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -345,6 +371,11 @@ class NutritionDatabase extends _$NutritionDatabase {
           // reaches v5 by creating these two.
           await m.createTable(dietPlanRecords);
           await m.createTable(componentSelections);
+        }
+        if (from < 6) {
+          // v5 -> v6: the user's own meal catalogue. Purely additive; starts
+          // empty.
+          await m.createTable(savedMeals);
         }
       });
     },

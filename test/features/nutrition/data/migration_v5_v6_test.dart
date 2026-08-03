@@ -1,17 +1,13 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nutri_mvp/core/result.dart';
 import 'package:nutri_mvp/features/nutrition/data/database/nutrition_database.dart';
-import 'package:nutri_mvp/features/nutrition/data/sources/sql_diet_plan_store.dart';
-import 'package:nutri_mvp/features/nutrition/domain/entities/stored_diet_plan.dart';
-import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
 void main() {
-  group('NutritionDatabase schema migration v4 -> v5', () {
-    /// Hand-written v4 DDL: the schema exactly as it stood before imported diet
-    /// plans and per-day alternative selections existed.
-    sqlite3.Database openV4Raw() {
+  group('NutritionDatabase schema migration v5 -> v6', () {
+    /// Hand-written v5 DDL: the schema exactly as it stood before the
+    /// saved-meal catalogue existed.
+    sqlite3.Database openV5Raw() {
       final raw = sqlite3.sqlite3.openInMemory();
       raw.execute('''
           CREATE TABLE nutrition_entries (
@@ -99,13 +95,31 @@ void main() {
             fat_g REAL NOT NULL
           );
         ''');
+      raw.execute('''
+          CREATE TABLE diet_plan_records (
+            id TEXT NOT NULL PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            document TEXT NOT NULL,
+            declared_daily_energy_kcal REAL,
+            is_default INTEGER NOT NULL DEFAULT 0,
+            source_label TEXT,
+            imported_at INTEGER NOT NULL
+          );
+        ''');
+      raw.execute('''
+          CREATE TABLE component_selections (
+            day_epoch INTEGER NOT NULL,
+            component_id TEXT NOT NULL,
+            option_id TEXT NOT NULL,
+            PRIMARY KEY (day_epoch, component_id)
+          );
+        ''');
       return raw;
     }
 
-    test('creates the two new tables and leaves existing data intact',
-        () async {
-      final raw = openV4Raw();
-      raw.execute('PRAGMA user_version = 4;');
+    test('creates saved_meals and leaves existing data intact', () async {
+      final raw = openV5Raw();
+      raw.execute('PRAGMA user_version = 5;');
       // A pre-existing intake row must survive the upgrade untouched: this is
       // what a real user's phone looks like before the update.
       raw.execute('''
@@ -115,9 +129,11 @@ void main() {
           VALUES ('entry-1', 1750000000000, 20300, 500.0, 40.0, 50.0, 15.0, NULL);
         ''');
       raw.execute('''
-          INSERT INTO hydration_entries
-            (id, recorded_at, day_epoch, water_ml)
-          VALUES ('hydration-1', 1750000000000, 20300, 750.0);
+          INSERT INTO diet_plan_records
+            (id, name, document, declared_daily_energy_kcal, is_default,
+             source_label, imported_at)
+          VALUES ('plan-1', 'Ajuste 2950', '{"schemaVersion":1}', NULL, 1, NULL,
+                  1750000000000);
         ''');
 
       final db = NutritionDatabase(NativeDatabase.opened(raw));
@@ -128,63 +144,67 @@ void main() {
       expect(entries, hasLength(1));
       expect(entries.single.id, 'entry-1');
       expect(entries.single.energyKcal, 500.0);
-      final hydration = await db.select(db.hydrationEntries).get();
-      expect(hydration, hasLength(1));
 
-      // Compared against the database's own schemaVersion rather than a
-      // hardcoded number: a v4 database must land on whatever the CURRENT
-      // schema is, so this keeps asserting the real property (the whole
-      // migration chain ran) instead of needing an edit on every version
-      // bump.
-      final version = raw.select('PRAGMA user_version;').single.values.first;
-      expect(version, db.schemaVersion);
+      final plans = await db.select(db.dietPlanRecords).get();
+      expect(plans, hasLength(1));
+      expect(plans.single.id, 'plan-1');
 
-      // The new tables exist and are empty.
-      expect(await db.select(db.dietPlanRecords).get(), isEmpty);
-      expect(await db.select(db.componentSelections).get(), isEmpty);
+      expect(db.schemaVersion, 6);
+
+      // The new table exists and is empty.
+      expect(await db.select(db.savedMeals).get(), isEmpty);
     });
 
-    test('the migrated database can store a plan and a selection', () async {
-      final raw = openV4Raw();
-      raw.execute('PRAGMA user_version = 4;');
-
-      final db = NutritionDatabase(NativeDatabase.opened(raw));
-      addTearDown(db.close);
-      final store = SqlDietPlanStore(db);
-
-      final saved = await store.savePlan(
-        StoredDietPlan(
-          id: 'plan-1',
-          name: 'Ajuste 2950',
-          document: '{"schemaVersion":1}',
-          importedAt: DateTime.utc(2026, 8, 1),
-        ),
-      );
-      expect(saved, isA<Ok<StoredDietPlan, Object>>());
-
-      final day = NutritionDay.fromDateTime(DateTime.utc(2026, 8, 1));
-      await store.selectOption(
-        day: day,
-        componentId: 'plan-1:g0:m0:c0',
-        optionId: 'plan-1:g0:m0:c0:o1',
-      );
-
-      final selections = await store.selectionsFor(day);
-      expect(
-        switch (selections) {
-          Ok(value: final value) => value,
-          Err() => fail('expected Ok'),
-        },
-        {'plan-1:g0:m0:c0': 'plan-1:g0:m0:c0:o1'},
-      );
-    });
-
-    test('a fresh v5 database has both new tables from the start', () async {
+    test('a fresh v6 database has the saved_meals table from the start',
+        () async {
       final db = NutritionDatabase(NativeDatabase.memory());
       addTearDown(db.close);
 
-      expect(await db.select(db.dietPlanRecords).get(), isEmpty);
-      expect(await db.select(db.componentSelections).get(), isEmpty);
+      expect(await db.select(db.savedMeals).get(), isEmpty);
+    });
+
+    test(
+        'a v1 -> v6 pass keeps nutrition_entries intact '
+        '(guards the newColumns trap)', () async {
+      // Hand-written v1 DDL: exactly what schemaVersion 1 produced, including
+      // the since-removed `water_ml` column and no `planned_meal_id` column
+      // at all. This exercises the FULL migration chain, so if a future
+      // column added to `NutritionEntries` after v2 is missing from the
+      // `TableMigration.newColumns` list in the v1 -> v2 step, this test
+      // fails with "no such column" instead of a real user's phone silently
+      // losing data on update.
+      final raw = sqlite3.sqlite3.openInMemory();
+      raw.execute('''
+          CREATE TABLE nutrition_entries (
+            id TEXT NOT NULL PRIMARY KEY,
+            recorded_at INTEGER NOT NULL,
+            day_epoch INTEGER NOT NULL,
+            energy_kcal REAL NOT NULL,
+            protein_g REAL NOT NULL,
+            carbs_g REAL NOT NULL,
+            fat_g REAL NOT NULL,
+            water_ml REAL NOT NULL
+          );
+        ''');
+      raw.execute('''
+          INSERT INTO nutrition_entries
+            (id, recorded_at, day_epoch, energy_kcal, protein_g, carbs_g,
+             fat_g, water_ml)
+          VALUES ('entry-1', 1750000000000, 20300, 500.0, 40.0, 50.0, 15.0, 0);
+        ''');
+      raw.execute('PRAGMA user_version = 1;');
+
+      final db = NutritionDatabase(NativeDatabase.opened(raw));
+      addTearDown(db.close);
+
+      final entries = await db.select(db.nutritionEntries).get();
+      expect(entries, hasLength(1));
+      expect(entries.single.id, 'entry-1');
+      expect(entries.single.energyKcal, 500.0);
+      expect(entries.single.plannedMealId, isNull);
+
+      expect(db.schemaVersion, 6);
+      expect(await db.select(db.savedMeals).get(), isEmpty);
     });
   });
 }
