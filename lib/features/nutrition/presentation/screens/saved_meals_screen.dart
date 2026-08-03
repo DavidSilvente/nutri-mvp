@@ -16,48 +16,96 @@ import 'package:nutri_mvp/features/nutrition/presentation/widgets/macro_breakdow
 /// Picking a saved meal as an alternative to a planned meal, editing an
 /// existing one, and promoting a logged entry into the catalogue are handled
 /// elsewhere (the alternatives sheet and the day-plan screen).
-class SavedMealsScreen extends ConsumerWidget {
+class SavedMealsScreen extends ConsumerStatefulWidget {
   const SavedMealsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SavedMealsScreen> createState() => _SavedMealsScreenState();
+}
+
+class _SavedMealsScreenState extends ConsumerState<SavedMealsScreen> {
+  final _filterController = TextEditingController();
+  String _filter = '';
+
+  @override
+  void dispose() {
+    _filterController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final stateAsync = ref.watch(savedMealControllerProvider);
 
     return Scaffold(
       key: const Key('savedMealsScreen'),
       appBar: AppBar(title: const Text('My meals')),
       body: SafeArea(
-        child: stateAsync.when(
-          // A failed create/delete never touches the catalogue (the source
-          // rejects it before writing), and Riverpod's `AsyncNotifier`
-          // preserves the previous list on the resulting `AsyncError`
-          // (`copyWithPrevious`, applied automatically by `state = ...`).
-          // Rendering that preserved data instead of the error keeps this
-          // screen showing the unchanged list while `_SavedMealDialog`
-          // surfaces the failure inline — no separate resync is needed.
-          skipError: true,
-          data: (meals) {
-            if (meals.isEmpty) return const _EmptySavedMeals();
-
-            return ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-              itemCount: meals.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (context, index) =>
-                  _SavedMealCard(meal: meals[index]),
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stackTrace) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                'Error: $error',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: TextField(
+                key: const Key('savedMealNameFilter'),
+                controller: _filterController,
+                decoration: const InputDecoration(
+                  labelText: 'Filter by name',
+                  prefixIcon: Icon(Icons.search),
+                  isDense: true,
+                ),
+                onChanged: (value) => setState(() => _filter = value),
               ),
             ),
-          ),
+            Expanded(
+              child: stateAsync.when(
+                // A failed create/delete never touches the catalogue (the
+                // source rejects it before writing), and Riverpod's
+                // `AsyncNotifier` preserves the previous list on the
+                // resulting `AsyncError` (`copyWithPrevious`, applied
+                // automatically by `state = ...`). Rendering that preserved
+                // data instead of the error keeps this screen showing the
+                // unchanged list while `_SavedMealDialog` surfaces the
+                // failure inline — no separate resync is needed.
+                skipError: true,
+                data: (meals) {
+                  final query = _filter.trim().toLowerCase();
+                  final visible = query.isEmpty
+                      ? meals
+                      : meals
+                          .where((m) => m.name.toLowerCase().contains(query))
+                          .toList(growable: false);
+
+                  if (visible.isEmpty) {
+                    return meals.isEmpty
+                        ? const _EmptySavedMeals()
+                        : const _NoFilterMatches();
+                  }
+
+                  return ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                    itemCount: visible.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) =>
+                        _SavedMealCard(meal: visible[index]),
+                  );
+                },
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (error, stackTrace) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      'Error: $error',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -66,14 +114,14 @@ class SavedMealsScreen extends ConsumerWidget {
         // inside the home IndexedStack, and two default-tagged heroes in
         // one subtree is a runtime error.
         heroTag: 'addSavedMealFab',
-        onPressed: () => _createMeal(context, ref),
+        onPressed: () => _createMeal(context),
         icon: const Icon(Icons.add),
         label: const Text('New meal'),
       ),
     );
   }
 
-  Future<void> _createMeal(BuildContext context, WidgetRef ref) async {
+  Future<void> _createMeal(BuildContext context) async {
     final newId = ref.read(savedMealIdFactoryProvider)();
     // The dialog performs (and awaits) the save itself, closing only on
     // success. That way a failure — a duplicate name is the likely one —
@@ -108,6 +156,11 @@ class _SavedMealCard extends ConsumerWidget {
                   child: Text(meal.name, style: theme.textTheme.titleMedium),
                 ),
                 IconButton(
+                  key: Key('editSavedMeal-${meal.id}'),
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () => _editMeal(context),
+                ),
+                IconButton(
                   key: Key('deleteSavedMeal-${meal.id}'),
                   icon: const Icon(Icons.delete_outline),
                   onPressed: () => _confirmDelete(context, ref),
@@ -133,6 +186,13 @@ class _SavedMealCard extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _editMeal(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => _SavedMealDialog(id: meal.id, existing: meal),
     );
   }
 
@@ -203,16 +263,47 @@ class _EmptySavedMeals extends StatelessWidget {
   }
 }
 
-/// Captures a new saved meal: a name, its macros, and an optional note.
+/// Invites the user to try a different filter when their query matches
+/// nothing, without implying the catalogue itself is empty.
+class _NoFilterMatches extends StatelessWidget {
+  const _NoFilterMatches();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Center(
+      key: const Key('noSavedMealFilterMatches'),
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Text(
+          'No saved meals match that name',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Captures a new saved meal, or edits an existing one: a name, its macros,
+/// and an optional note.
+///
+/// [existing] is null for a create, and the meal being edited otherwise —
+/// the form is pre-filled with its values, and [id] is its own id, so the
+/// save is treated as an update rather than a conflicting create (see
+/// `SavedMealSource.saveMeal`).
 ///
 /// Saves itself and only closes on success. On failure (a duplicate name is
-/// the likely one) it stays open with the error shown inline next to the
-/// name field — the typed values are never lost, so the user can just fix
-/// the name and retry.
+/// the likely one — e.g. a rename that collides with another entry) it
+/// stays open with the error shown inline next to the name field — the
+/// typed values are never lost, so the user can just fix the name and retry.
 class _SavedMealDialog extends ConsumerStatefulWidget {
-  const _SavedMealDialog({required this.id});
+  const _SavedMealDialog({required this.id, this.existing});
 
   final String id;
+  final SavedMeal? existing;
 
   @override
   ConsumerState<_SavedMealDialog> createState() => _SavedMealDialogState();
@@ -230,6 +321,20 @@ class _SavedMealDialogState extends ConsumerState<_SavedMealDialog> {
   bool _saving = false;
 
   @override
+  void initState() {
+    super.initState();
+    final existing = widget.existing;
+    if (existing != null) {
+      _name.text = existing.name;
+      _energy.text = existing.target.energy.kcal.toStringAsFixed(0);
+      _protein.text = existing.target.macros.proteinG.toStringAsFixed(0);
+      _carbs.text = existing.target.macros.carbsG.toStringAsFixed(0);
+      _fat.text = existing.target.macros.fatG.toStringAsFixed(0);
+      _note.text = existing.portionNote ?? '';
+    }
+  }
+
+  @override
   void dispose() {
     _name.dispose();
     _energy.dispose();
@@ -243,7 +348,7 @@ class _SavedMealDialogState extends ConsumerState<_SavedMealDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('New meal'),
+      title: Text(widget.existing == null ? 'New meal' : 'Edit meal'),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(

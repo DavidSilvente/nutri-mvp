@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/core/health_failure_exception.dart';
+import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/saved_meal.dart';
 import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
@@ -150,5 +151,106 @@ void main() {
       final state = container.read(savedMealControllerProvider);
       expect(state.value, isEmpty);
     });
+  });
+
+  group('SavedMealController.promoteEntry', () {
+    NutritionEntry entry({
+      String id = 'e1',
+      num kcal = 270,
+      num protein = 30,
+      num carbs = 20,
+      num fat = 10,
+      String? plannedMealId,
+    }) {
+      return NutritionEntry(
+        id: id,
+        recordedAt: DateTime.utc(2026, 8, 1, 13),
+        energy: Energy(kcal: kcal),
+        macros: Macros(proteinG: protein, carbsG: carbs, fatG: fat),
+        plannedMealId: plannedMealId,
+      );
+    }
+
+    test(
+      'copies the entry macros verbatim into a new saved meal, leaving the '
+      'entry unchanged',
+      () async {
+        final container = ProviderContainer(
+          overrides: [
+            savedMealSourceProvider.overrideWithValue(FakeSavedMealSource()),
+          ],
+        );
+        addTearDown(container.dispose);
+        await container.read(savedMealControllerProvider.future);
+
+        final source = entry(plannedMealId: 'pm-1');
+        final untouched = entry(plannedMealId: 'pm-1');
+
+        await container
+            .read(savedMealControllerProvider.notifier)
+            .promoteEntry(source, name: 'Post-workout shake');
+
+        final state = container.read(savedMealControllerProvider);
+        final meals = state.value!;
+        expect(meals, hasLength(1));
+        expect(meals.single.name, 'Post-workout shake');
+        expect(meals.single.target.energy, source.energy);
+        expect(meals.single.target.macros, source.macros);
+        expect(meals.single.portionNote, isNull);
+        // The source entry object was never mutated by promotion.
+        expect(source, untouched);
+      },
+    );
+
+    test('an optional portionNote is copied onto the saved meal', () async {
+      final container = ProviderContainer(
+        overrides: [
+          savedMealSourceProvider.overrideWithValue(FakeSavedMealSource()),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(savedMealControllerProvider.future);
+
+      await container
+          .read(savedMealControllerProvider.notifier)
+          .promoteEntry(
+            entry(),
+            name: 'Post-workout shake',
+            portionNote: 'One scoop, whole milk',
+          );
+
+      final state = container.read(savedMealControllerProvider);
+      expect(state.value!.single.portionNote, 'One scoop, whole milk');
+    });
+
+    test(
+      'promoting a second entry under a name that already exists surfaces a '
+      'ConflictFailure and leaves the catalogue at one meal',
+      () async {
+        final container = ProviderContainer(
+          overrides: [
+            savedMealSourceProvider.overrideWithValue(FakeSavedMealSource()),
+          ],
+        );
+        addTearDown(container.dispose);
+        await container.read(savedMealControllerProvider.future);
+
+        await container
+            .read(savedMealControllerProvider.notifier)
+            .promoteEntry(entry(id: 'e1'), name: 'Post-workout shake');
+        await container
+            .read(savedMealControllerProvider.notifier)
+            .promoteEntry(
+              entry(id: 'e2', kcal: 300),
+              name: ' post-workout SHAKE ',
+            );
+
+        final state = container.read(savedMealControllerProvider);
+        expect(state.hasError, isTrue);
+        final error = state.error! as HealthFailureException;
+        expect(error.failure, isA<ConflictFailure>());
+        expect(state.valueOrNull, hasLength(1));
+      },
+    );
   });
 }

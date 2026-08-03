@@ -15,6 +15,7 @@ import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_templates
 import 'package:nutri_mvp/features/nutrition/presentation/screens/hydration_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/meal_alternatives_sheet.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/record_intake_screen.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/screens/save_entry_as_meal_dialog.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/widgets/adherence_chip.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/widgets/macro_breakdown.dart';
 
@@ -355,6 +356,11 @@ class _PlannedMealCard extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             MacroBreakdown(logged: detail.logged, target: detail.target),
+            if (detail.entries.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              for (final entry in detail.entries) _LoggedEntryRow(entry: entry),
+            ],
             const SizedBox(height: 16),
             Row(
               children: [
@@ -418,32 +424,59 @@ class _UnplannedEntries extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Card(
       child: Column(
         children: [
           for (var i = 0; i < entries.length; i++) ...[
             if (i > 0) const Divider(height: 1, indent: 16, endIndent: 16),
-            ListTile(
-              leading: Icon(
-                Icons.local_dining_outlined,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              title: Text(
-                NutritionFormat.kcal(entries[i].energy.kcal),
-                style: theme.textTheme.titleSmall,
-              ),
-              subtitle: MacroSummaryLine(
-                target: NutritionTarget(
-                  energy: entries[i].energy,
-                  macros: entries[i].macros,
-                ),
-              ),
-            ),
+            _LoggedEntryRow(entry: entries[i]),
           ],
         ],
       ),
+    );
+  }
+}
+
+/// One logged [NutritionEntry], with a way to promote it into the saved-meal
+/// catalogue.
+///
+/// Shared between the "Extras" list (unplanned entries) and each planned
+/// meal's own logged entries — a `NutritionEntry` carries no label, so
+/// naming it here is how it becomes reusable as a saved meal.
+class _LoggedEntryRow extends StatelessWidget {
+  const _LoggedEntryRow({required this.entry});
+
+  final NutritionEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return ListTile(
+      leading: Icon(
+        Icons.local_dining_outlined,
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+      title: Text(
+        NutritionFormat.kcal(entry.energy.kcal),
+        style: theme.textTheme.titleSmall,
+      ),
+      subtitle: MacroSummaryLine(
+        target: NutritionTarget(energy: entry.energy, macros: entry.macros),
+      ),
+      trailing: IconButton(
+        key: Key('saveEntryAsMealButton-${entry.id}'),
+        icon: const Icon(Icons.bookmark_add_outlined),
+        tooltip: 'Save as a meal',
+        onPressed: () => _promoteEntry(context),
+      ),
+    );
+  }
+
+  void _promoteEntry(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => SaveEntryAsMealDialog(entry: entry),
     );
   }
 }

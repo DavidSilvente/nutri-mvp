@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutri_mvp/core/health_failure_exception.dart';
 import 'package:nutri_mvp/core/result.dart';
+import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/saved_meal.dart';
 import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
+import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_target.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/data_revision_provider.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/saved_meal_providers.dart';
 
@@ -32,6 +34,27 @@ class SavedMealController extends AsyncNotifier<List<SavedMeal>> {
   Future<void> deleteSavedMeal(String id) async {
     final result =
         await ref.read(savedMealSourceProvider).deleteSavedMeal(id);
+    await _commit(result);
+  }
+
+  /// Copies [entry]'s energy and macros into a NEW [SavedMeal] named [name].
+  ///
+  /// [entry] is never mutated — a `NutritionEntry` is a historical fact, and
+  /// the saved meal is an independent copy of it. Naming is mandatory
+  /// because `NutritionEntry` carries no label of its own.
+  Future<void> promoteEntry(
+    NutritionEntry entry, {
+    required String name,
+    String? portionNote,
+  }) async {
+    final meal = SavedMeal(
+      id: ref.read(savedMealIdFactoryProvider)(),
+      name: name,
+      target: NutritionTarget(energy: entry.energy, macros: entry.macros),
+      portionNote: portionNote,
+      createdAt: DateTime.now(),
+    );
+    final result = await ref.read(savedMealSourceProvider).saveMeal(meal);
     await _commit(result);
   }
 
