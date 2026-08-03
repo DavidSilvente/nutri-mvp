@@ -13,6 +13,7 @@ import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_pr
 import 'package:nutri_mvp/features/nutrition/presentation/providers/substitute_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/record_intake_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/widgets/macro_breakdown.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/widgets/number_field.dart';
 
 /// "I don't fancy that today" — the alternatives defined for a planned meal,
 /// closest match first.
@@ -447,25 +448,25 @@ class _AddAlternativeDialogState extends State<_AddAlternativeDialog> {
                     (value == null || value.trim().isEmpty) ? 'Required' : null,
               ),
               const SizedBox(height: 12),
-              _NumberField(
+              NumberField(
                 fieldKey: const Key('alternativeEnergyField'),
                 controller: _energy,
                 label: 'Energy (kcal)',
               ),
               const SizedBox(height: 12),
-              _NumberField(
+              NumberField(
                 fieldKey: const Key('alternativeProteinField'),
                 controller: _protein,
                 label: 'Protein (g)',
               ),
               const SizedBox(height: 12),
-              _NumberField(
+              NumberField(
                 fieldKey: const Key('alternativeCarbsField'),
                 controller: _carbs,
                 label: 'Carbs (g)',
               ),
               const SizedBox(height: 12),
-              _NumberField(
+              NumberField(
                 fieldKey: const Key('alternativeFatField'),
                 controller: _fat,
                 label: 'Fat (g)',
@@ -506,34 +507,6 @@ class _AddAlternativeDialogState extends State<_AddAlternativeDialog> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _NumberField extends StatelessWidget {
-  const _NumberField({
-    required this.fieldKey,
-    required this.controller,
-    required this.label,
-  });
-
-  final Key fieldKey;
-  final TextEditingController controller;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      key: fieldKey,
-      controller: controller,
-      decoration: InputDecoration(labelText: label),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      validator: (value) {
-        if (value == null || value.isEmpty) return 'Required';
-        final parsed = num.tryParse(value);
-        if (parsed == null || parsed < 0) return 'Must be a number >= 0';
-        return null;
-      },
     );
   }
 }

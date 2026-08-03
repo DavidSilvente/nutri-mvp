@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutri_mvp/core/format/nutrition_format.dart';
-import 'package:nutri_mvp/core/health_failure_exception.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dart';
-import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_target.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/saved_meal_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/widgets/macro_breakdown.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/widgets/saved_meal_write_mixin.dart';
 
 /// Promotes a logged [NutritionEntry] into the saved-meal catalogue.
 ///
@@ -16,10 +15,11 @@ import 'package:nutri_mvp/features/nutrition/presentation/widgets/macro_breakdow
 /// thing I actually ate", so letting them be edited here would let the
 /// catalogue drift from the logged fact.
 ///
-/// Saves itself and only closes on success, exactly like `_SavedMealDialog`
-/// on the "My meals" screen: on failure (a duplicate name is the likely one)
-/// it stays open with the error shown inline so the user can fix the name
-/// and retry instead of losing what they typed.
+/// Saves itself and only closes on success, via the shared
+/// [SavedMealWriteMixin] also used by `_SavedMealDialog` on the "My meals"
+/// screen: on failure (a duplicate name is the likely one) it stays open
+/// with the error shown inline so the user can fix the name and retry
+/// instead of losing what they typed.
 class SaveEntryAsMealDialog extends ConsumerStatefulWidget {
   const SaveEntryAsMealDialog({super.key, required this.entry});
 
@@ -30,13 +30,11 @@ class SaveEntryAsMealDialog extends ConsumerStatefulWidget {
       _SaveEntryAsMealDialogState();
 }
 
-class _SaveEntryAsMealDialogState
-    extends ConsumerState<SaveEntryAsMealDialog> {
+class _SaveEntryAsMealDialogState extends ConsumerState<SaveEntryAsMealDialog>
+    with SavedMealWriteMixin<SaveEntryAsMealDialog> {
   final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _note = TextEditingController();
-  String? _error;
-  bool _saving = false;
 
   @override
   void dispose() {
@@ -70,10 +68,10 @@ class _SaveEntryAsMealDialogState
                         ? 'Required'
                         : null,
               ),
-              if (_error != null) ...[
+              if (error != null) ...[
                 const SizedBox(height: 8),
                 Text(
-                  _error!,
+                  error!,
                   key: const Key('saveEntryAsMealError'),
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.error,
@@ -101,14 +99,14 @@ class _SaveEntryAsMealDialogState
       ),
       actions: [
         TextButton(
-          onPressed: _saving ? null : () => Navigator.of(context).pop(),
+          onPressed: saving ? null : () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
         FilledButton(
           key: const Key('confirmSaveEntryAsMealButton'),
-          onPressed: _saving ? null : _submit,
+          onPressed: saving ? null : _submit,
           style: FilledButton.styleFrom(minimumSize: const Size(88, 40)),
-          child: _saving
+          child: saving
               ? const SizedBox(
                   height: 18,
                   width: 18,
@@ -125,38 +123,12 @@ class _SaveEntryAsMealDialogState
 
     final note = _note.text.trim();
 
-    setState(() {
-      _error = null;
-      _saving = true;
-    });
-
-    await ref.read(savedMealControllerProvider.notifier).promoteEntry(
-          widget.entry,
-          name: _name.text.trim(),
-          portionNote: note.isEmpty ? null : note,
-        );
-
-    final state = ref.read(savedMealControllerProvider);
-    if (!state.hasError) {
-      if (!mounted) return;
-      Navigator.of(context).pop();
-      return;
-    }
-
-    if (!mounted) return;
-    setState(() {
-      _saving = false;
-      _error = _formatError(state.error);
-    });
-  }
-
-  static String _formatError(Object? error) {
-    if (error is HealthFailureException) {
-      return switch (error.failure) {
-        ConflictFailure(reason: final reason) => reason,
-        _ => 'Could not save this meal',
-      };
-    }
-    return 'Could not save this meal';
+    await submitSavedMealWrite(
+      () => ref.read(savedMealControllerProvider.notifier).promoteEntry(
+            widget.entry,
+            name: _name.text.trim(),
+            portionNote: note.isEmpty ? null : note,
+          ),
+    );
   }
 }

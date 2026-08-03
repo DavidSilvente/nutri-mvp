@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutri_mvp/core/format/nutrition_format.dart';
-import 'package:nutri_mvp/core/health_failure_exception.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/saved_meal.dart';
-import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_target.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/saved_meal_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/widgets/macro_breakdown.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/widgets/number_field.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/widgets/saved_meal_write_mixin.dart';
 
 /// Lists the user's saved-meal catalogue and lets them create or delete
 /// entries.
@@ -309,7 +309,8 @@ class _SavedMealDialog extends ConsumerStatefulWidget {
   ConsumerState<_SavedMealDialog> createState() => _SavedMealDialogState();
 }
 
-class _SavedMealDialogState extends ConsumerState<_SavedMealDialog> {
+class _SavedMealDialogState extends ConsumerState<_SavedMealDialog>
+    with SavedMealWriteMixin<_SavedMealDialog> {
   final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _energy = TextEditingController();
@@ -317,8 +318,6 @@ class _SavedMealDialogState extends ConsumerState<_SavedMealDialog> {
   final _carbs = TextEditingController();
   final _fat = TextEditingController();
   final _note = TextEditingController();
-  String? _error;
-  bool _saving = false;
 
   @override
   void initState() {
@@ -364,10 +363,10 @@ class _SavedMealDialogState extends ConsumerState<_SavedMealDialog> {
                         ? 'Required'
                         : null,
               ),
-              if (_error != null) ...[
+              if (error != null) ...[
                 const SizedBox(height: 8),
                 Text(
-                  _error!,
+                  error!,
                   key: const Key('savedMealDialogError'),
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.error,
@@ -375,25 +374,25 @@ class _SavedMealDialogState extends ConsumerState<_SavedMealDialog> {
                 ),
               ],
               const SizedBox(height: 12),
-              _NumberField(
+              NumberField(
                 fieldKey: const Key('savedMealEnergyField'),
                 controller: _energy,
                 label: 'Energy (kcal)',
               ),
               const SizedBox(height: 12),
-              _NumberField(
+              NumberField(
                 fieldKey: const Key('savedMealProteinField'),
                 controller: _protein,
                 label: 'Protein (g)',
               ),
               const SizedBox(height: 12),
-              _NumberField(
+              NumberField(
                 fieldKey: const Key('savedMealCarbsField'),
                 controller: _carbs,
                 label: 'Carbs (g)',
               ),
               const SizedBox(height: 12),
-              _NumberField(
+              NumberField(
                 fieldKey: const Key('savedMealFatField'),
                 controller: _fat,
                 label: 'Fat (g)',
@@ -412,14 +411,14 @@ class _SavedMealDialogState extends ConsumerState<_SavedMealDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _saving ? null : () => Navigator.of(context).pop(),
+          onPressed: saving ? null : () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
         FilledButton(
           key: const Key('saveSavedMealButton'),
-          onPressed: _saving ? null : _submit,
+          onPressed: saving ? null : _submit,
           style: FilledButton.styleFrom(minimumSize: const Size(88, 40)),
-          child: _saving
+          child: saving
               ? const SizedBox(
                   height: 18,
                   width: 18,
@@ -450,62 +449,8 @@ class _SavedMealDialogState extends ConsumerState<_SavedMealDialog> {
       createdAt: DateTime.now(),
     );
 
-    setState(() {
-      _error = null;
-      _saving = true;
-    });
-
-    await ref.read(savedMealControllerProvider.notifier).saveMeal(meal);
-
-    final state = ref.read(savedMealControllerProvider);
-    if (!state.hasError) {
-      if (!mounted) return;
-      Navigator.of(context).pop();
-      return;
-    }
-
-    if (!mounted) return;
-    setState(() {
-      _saving = false;
-      _error = _formatError(state.error);
-    });
-  }
-
-  static String _formatError(Object? error) {
-    if (error is HealthFailureException) {
-      return switch (error.failure) {
-        ConflictFailure(reason: final reason) => reason,
-        _ => 'Could not save this meal',
-      };
-    }
-    return 'Could not save this meal';
-  }
-}
-
-class _NumberField extends StatelessWidget {
-  const _NumberField({
-    required this.fieldKey,
-    required this.controller,
-    required this.label,
-  });
-
-  final Key fieldKey;
-  final TextEditingController controller;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      key: fieldKey,
-      controller: controller,
-      decoration: InputDecoration(labelText: label),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      validator: (value) {
-        if (value == null || value.isEmpty) return 'Required';
-        final parsed = num.tryParse(value);
-        if (parsed == null || parsed < 0) return 'Must be a number >= 0';
-        return null;
-      },
+    await submitSavedMealWrite(
+      () => ref.read(savedMealControllerProvider.notifier).saveMeal(meal),
     );
   }
 }
