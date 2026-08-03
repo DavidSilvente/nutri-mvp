@@ -332,5 +332,28 @@ void main() {
         expect(find.text('Counts towards Lunch'), findsOneWidget);
       },
     );
+
+    testWidgets('a logged saved meal still meets the planned meal', (
+      tester,
+    ) async {
+      await addSavedMeal(
+        id: 'm1',
+        name: 'Tuna bowl',
+        mealTarget: target(kcal: 580, protein: 41, carbs: 59, fat: 20),
+      );
+
+      await openSheet(tester);
+      await tester.tap(
+        find.byKey(const Key('pickAlternativeButton-saved:m1')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('submitButton')));
+      await tester.pumpAndSettle();
+
+      // Swapping to a saved meal is not a miss either: the same
+      // plannedMealId is recorded against, so it counts towards the
+      // planned meal exactly like a plan-substitute pick would.
+      expect(find.text('On target'), findsOneWidget);
+    });
   });
 }
