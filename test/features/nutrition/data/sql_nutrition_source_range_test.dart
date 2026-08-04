@@ -107,17 +107,9 @@ void main() {
     });
 
     test('round-trips the planned meal link', () async {
-      // The FK requires a real planned meal, so build the chain it hangs off.
-      await database.customStatement('''
-        INSERT INTO diet_templates
-          (id, name, energy_kcal, protein_g, carbs_g, fat_g, created_at, updated_at)
-        VALUES ('t1', 'Plan', 500.0, 30.0, 40.0, 15.0, 0, 0);
-      ''');
-      await database.customStatement('''
-        INSERT INTO diet_meal_slots
-          (id, template_id, label, position, energy_kcal, protein_g, carbs_g, fat_g)
-        VALUES ('s1', 't1', 'Lunch', 0, 500.0, 30.0, 40.0, 15.0);
-      ''');
+      // `nutrition_entries.planned_meal_id` is a real FK, so the meal has to
+      // exist. It no longer hangs off a slot table, though: a planned meal names
+      // its slot without being keyed to one, so this is the whole chain.
       await database.customStatement('''
         INSERT INTO planned_meals
           (id, slot_id, day_epoch, energy_kcal, protein_g, carbs_g, fat_g)

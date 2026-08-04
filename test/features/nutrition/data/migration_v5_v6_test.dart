@@ -149,7 +149,9 @@ void main() {
       expect(plans, hasLength(1));
       expect(plans.single.id, 'plan-1');
 
-      expect(db.schemaVersion, 6);
+      // The chain does not stop at v6: opening runs every step, and v7 is
+      // where the parallel template store is folded into the plan documents.
+      expect(db.schemaVersion, 7);
 
       // The new table exists and is empty.
       expect(await db.select(db.savedMeals).get(), isEmpty);
@@ -203,7 +205,9 @@ void main() {
       expect(entries.single.energyKcal, 500.0);
       expect(entries.single.plannedMealId, isNull);
 
-      expect(db.schemaVersion, 6);
+      // The chain does not stop at v6: opening runs every step, and v7 is
+      // where the parallel template store is folded into the plan documents.
+      expect(db.schemaVersion, 7);
       expect(await db.select(db.savedMeals).get(), isEmpty);
     });
   });

@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/core/result.dart';
-import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/planned_meal.dart';
 import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/diet_plan_policy.dart';
@@ -16,65 +15,7 @@ void main() {
       macros: Macros(proteinG: 40, carbsG: 60, fatG: 20),
     );
 
-    final slot = DietMealSlot(
-      id: 'slot-1',
-      label: 'Breakfast',
-      position: 0,
-      target: target,
-    );
-
-    final template = DietTemplate(
-      id: 'template-1',
-      name: 'Cut-A',
-      dailyTarget: target,
-      slots: [slot],
-    );
-
     final day = NutritionDay.fromDateTime(DateTime(2026, 8, 1));
-
-    test('allows a unique template name', () {
-      final result = DietPlanPolicy.ensureUniqueTemplateName(
-        template,
-        [],
-      );
-
-      expect(result, isA<Ok<DietTemplate, NutritionFailure>>());
-      final ok = result as Ok<DietTemplate, NutritionFailure>;
-      expect(ok.value, template);
-    });
-
-    test('rejects a duplicate template name', () {
-      final existing = [
-        DietTemplate(
-          id: 'template-2',
-          name: 'Cut-A',
-          dailyTarget: target,
-          slots: [slot],
-        ),
-      ];
-
-      final result = DietPlanPolicy.ensureUniqueTemplateName(
-        template,
-        existing,
-      );
-
-      expect(result, isA<Err<DietTemplate, NutritionFailure>>());
-      final err = result as Err<DietTemplate, NutritionFailure>;
-      expect(err.failure, isA<ConflictFailure>());
-      expect(
-        (err.failure as ConflictFailure).reason,
-        'A template named "Cut-A" already exists',
-      );
-    });
-
-    test('allows updating a template while keeping its own name', () {
-      final result = DietPlanPolicy.ensureUniqueTemplateName(
-        template,
-        [template],
-      );
-
-      expect(result, isA<Ok<DietTemplate, NutritionFailure>>());
-    });
 
     test('allows a unique planned meal for a day', () {
       final meal = PlannedMeal(

@@ -1,33 +1,24 @@
 import 'package:nutri_mvp/core/result.dart';
 
-import '../entities/diet_template.dart';
 import '../entities/meal_substitute.dart';
 import '../entities/planned_meal.dart';
 import '../failures/nutrition_failure.dart';
 import '../value_objects/nutrition_day.dart';
+import 'diet_plan_store.dart';
 
-/// Domain port for reading and writing diet templates, planned meals, and
-/// per-meal substitutes.
+/// Domain port for reading and writing planned meals and their substitutes —
+/// the CALENDAR side of the diet.
 ///
-/// Implementations are responsible for enforcing unique template names and
-/// unique (slot, day) planned-meal assignments. Violations MUST be reported as
-/// [ConflictFailure].
+/// What a diet prescribes is not here: that lives in one place, the plan
+/// documents behind [DietPlanStore], and is read through `ResolveActiveDiet`.
+/// This port owns only the commitments made against a calendar day, each one
+/// carrying the slot it fulfils and the target it was frozen at.
+///
+/// Implementations are responsible for enforcing unique (slot, day)
+/// planned-meal assignments. Violations MUST be reported as [ConflictFailure].
 abstract interface class DietPlanSource {
-  /// Returns all diet templates, ordered by name.
-  Future<Result<List<DietTemplate>, NutritionFailure>> listTemplates();
-
-  /// Persists [template]. Returns [ConflictFailure] if a template with the
-  /// same name already exists for a different [id].
-  Future<Result<DietTemplate, NutritionFailure>> saveTemplate(
-    DietTemplate template,
-  );
-
-  /// Deletes the template identified by [id] and its dependent slots.
-  Future<Result<void, NutritionFailure>> deleteTemplate(String id);
-
-  /// Returns planned meals, optionally filtered by [templateId] and/or [day].
+  /// Returns planned meals, optionally filtered by [day].
   Future<Result<List<PlannedMeal>, NutritionFailure>> listPlannedMeals({
-    String? templateId,
     NutritionDay? day,
   });
 

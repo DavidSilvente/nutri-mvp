@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/core/result.dart';
 import 'package:nutri_mvp/features/nutrition/data/database/nutrition_database.dart';
 import 'package:nutri_mvp/features/nutrition/data/sources/sql_diet_plan_source.dart';
-import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/planned_meal.dart';
 import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
@@ -31,19 +30,9 @@ void main() {
       database = NutritionDatabase(NativeDatabase.memory());
       source = SqlDietPlanSource(database);
 
-      // Planned meals hang off a slot, which hangs off a template.
-      final slots = [
-        DietMealSlot(id: 's1', label: 'Lunch', position: 0, target: target()),
-        DietMealSlot(id: 's2', label: 'Dinner', position: 1, target: target()),
-      ];
-      await source.saveTemplate(
-        DietTemplate(
-          id: 't1',
-          name: 'Plan',
-          dailyTarget: NutritionTarget.sum(slots.map((s) => s.target)),
-          slots: slots,
-        ),
-      );
+      // A planned meal names its slot but is not foreign-keyed to one: the
+      // diet it came from lives in a plan document, and this table is the
+      // ledger of what a day was committed to.
     });
 
     tearDown(() async {

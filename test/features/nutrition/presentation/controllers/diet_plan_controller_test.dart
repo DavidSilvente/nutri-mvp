@@ -21,24 +21,8 @@ import '../../_fakes/fake_diet_plan_source.dart';
 /// A source that fails every call, so the controller's error surfacing is
 /// exercised rather than assumed. [FakeDietPlanSource] always succeeds.
 class _AlwaysFailingSource implements DietPlanSource {
-  // Templates are still part of the port at this commit, even though nothing
-  // here writes one any more.
-  @override
-  Future<Result<List<DietTemplate>, NutritionFailure>> listTemplates() async =>
-      const Err(StorageFailure('disk full'));
-
-  @override
-  Future<Result<DietTemplate, NutritionFailure>> saveTemplate(
-    DietTemplate template,
-  ) async => const Err(StorageFailure('disk full'));
-
-  @override
-  Future<Result<void, NutritionFailure>> deleteTemplate(String id) async =>
-      const Err(StorageFailure('disk full'));
-
   @override
   Future<Result<List<PlannedMeal>, NutritionFailure>> listPlannedMeals({
-    String? templateId,
     NutritionDay? day,
   }) async => const Err(StorageFailure('disk full'));
 
