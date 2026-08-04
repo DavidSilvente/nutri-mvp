@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/adherence_providers.dart';
-import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
-import 'package:nutri_mvp/features/nutrition/presentation/providers/hydration_providers.dart';
-import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_calendar_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_templates_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/home_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/hydration_screen.dart';
 
+import '../../../../_helpers/fake_overrides.dart';
+import '../../../../_helpers/pump_app.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 import '../../_fakes/fake_hydration_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
@@ -20,25 +18,23 @@ void main() {
   /// machine clock.
   final today = NutritionDay.fromDateTime(DateTime.now());
 
-  Widget app({
+  Future<void> pumpHome(
+    WidgetTester tester, {
     FakeNutritionSource? nutrition,
     FakeHydrationSource? hydration,
     FakeDietPlanSource? dietPlan,
   }) {
-    return ProviderScope(
+    return pumpApp(
+      tester,
+      const HomeScreen(),
       overrides: [
-        nutritionSourceProvider.overrideWithValue(
-          nutrition ?? FakeNutritionSource(),
-        ),
-        hydrationSourceProvider.overrideWithValue(
-          hydration ?? FakeHydrationSource(),
-        ),
-        dietPlanSourceProvider.overrideWithValue(
-          dietPlan ?? FakeDietPlanSource(),
+        ...fakeAppOverrides(
+          nutritionSource: nutrition,
+          hydrationSource: hydration,
+          dietPlanSource: dietPlan,
         ),
         todayProvider.overrideWithValue(today),
       ],
-      child: const MaterialApp(home: HomeScreen()),
     );
   }
 
@@ -46,7 +42,7 @@ void main() {
     'an intake logged from the FAB shows up on today\'s plan as off-plan, '
     'sharing the same source',
     (tester) async {
-      await tester.pumpWidget(app());
+      await pumpHome(tester);
       await tester.pumpAndSettle();
 
       expect(find.text('Extras'), findsNothing);
@@ -82,7 +78,7 @@ void main() {
     'water logged from the hydration screen updates today\'s water total, '
     'independently from meals',
     (tester) async {
-      await tester.pumpWidget(app());
+      await pumpHome(tester);
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('goToHydrationButton')));
@@ -104,7 +100,7 @@ void main() {
   );
 
   testWidgets('the diet tab opens the template list', (tester) async {
-    await tester.pumpWidget(app());
+    await pumpHome(tester);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('dietTab')));
@@ -114,7 +110,7 @@ void main() {
   });
 
   testWidgets('the calendar tab opens the month grid', (tester) async {
-    await tester.pumpWidget(app());
+    await pumpHome(tester);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('calendarTab')));

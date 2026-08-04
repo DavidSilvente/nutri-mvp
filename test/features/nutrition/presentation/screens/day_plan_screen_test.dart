@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dart';
@@ -15,6 +14,7 @@ import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_pr
 import 'package:nutri_mvp/features/nutrition/presentation/screens/day_plan_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/record_intake_screen.dart';
 
+import '../../../../_helpers/pump_app.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 import '../../_fakes/fake_hydration_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
@@ -100,18 +100,6 @@ void main() {
     );
   }
 
-  Widget screen() {
-    return ProviderScope(
-      overrides: [
-        nutritionSourceProvider.overrideWithValue(nutritionSource),
-        dietPlanSourceProvider.overrideWithValue(dietSource),
-        hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
-        todayProvider.overrideWithValue(today),
-      ],
-      child: MaterialApp(home: DayPlanScreen(day: day)),
-    );
-  }
-
   /// The day view stacks several tall cards, so the default 800x600 test
   /// surface would push most of them out of the viewport and out of the
   /// widget tree. A tall surface keeps the assertions about content, not
@@ -119,7 +107,16 @@ void main() {
   Future<void> pumpScreen(WidgetTester tester) async {
     await tester.binding.setSurfaceSize(const Size(1000, 3000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(screen());
+    await pumpApp(
+      tester,
+      DayPlanScreen(day: day),
+      overrides: [
+        nutritionSourceProvider.overrideWithValue(nutritionSource),
+        dietPlanSourceProvider.overrideWithValue(dietSource),
+        hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
+        todayProvider.overrideWithValue(today),
+      ],
+    );
     await tester.pumpAndSettle();
   }
 

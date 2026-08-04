@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/adherence_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/day_plan_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_calendar_screen.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_day_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_templates_screen.dart';
 
 /// The app shell: today, the calendar, and the diet itself.
@@ -29,6 +30,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         index: _index,
         children: [
           DayPlanScreen(day: today),
+          DietDayScreen(day: today),
           const DietCalendarScreen(),
           const DietTemplatesScreen(),
         ],
@@ -44,6 +46,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             label: 'Today',
           ),
           NavigationDestination(
+            key: Key('myDietTab'),
+            icon: Icon(Icons.local_dining_outlined),
+            selectedIcon: Icon(Icons.local_dining),
+            label: 'My diet',
+          ),
+          NavigationDestination(
             key: Key('calendarTab'),
             icon: Icon(Icons.calendar_month_outlined),
             selectedIcon: Icon(Icons.calendar_month),
@@ -53,7 +61,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             key: Key('dietTab'),
             icon: Icon(Icons.restaurant_menu_outlined),
             selectedIcon: Icon(Icons.restaurant_menu),
-            label: 'Diet',
+            label: 'Templates',
           ),
         ],
       ),

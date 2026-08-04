@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/core/result.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
@@ -12,6 +11,7 @@ import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_pr
 import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_template_editor_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/planned_meal_screen.dart';
 
+import '../../../../_helpers/pump_app.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 
 NutritionTarget _target({
@@ -63,16 +63,10 @@ void main() {
       final template = _template(id: 't1', name: 'Cut-A');
       await fake.saveTemplate(template);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [dietPlanSourceProvider.overrideWithValue(fake)],
-          child: MaterialApp(
-            home: PlannedMealScreen.assign(
-              templateId: 't1',
-              slotId: 't1_slot_0',
-            ),
-          ),
-        ),
+      await pumpApp(
+        tester,
+        PlannedMealScreen.assign(templateId: 't1', slotId: 't1_slot_0'),
+        overrides: [dietPlanSourceProvider.overrideWithValue(fake)],
       );
       await tester.pumpAndSettle();
 
@@ -113,13 +107,10 @@ void main() {
       );
       await fake.savePlannedMeal(originalMeal);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [dietPlanSourceProvider.overrideWithValue(fake)],
-          child: MaterialApp(
-            home: PlannedMealScreen.edit(plannedMealId: 'm1'),
-          ),
-        ),
+      await pumpApp(
+        tester,
+        PlannedMealScreen.edit(plannedMealId: 'm1'),
+        overrides: [dietPlanSourceProvider.overrideWithValue(fake)],
       );
       await tester.pumpAndSettle();
 
@@ -176,16 +167,10 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [dietPlanSourceProvider.overrideWithValue(fake)],
-          child: MaterialApp(
-            home: PlannedMealScreen.assign(
-              templateId: 't1',
-              slotId: 't1_slot_0',
-            ),
-          ),
-        ),
+      await pumpApp(
+        tester,
+        PlannedMealScreen.assign(templateId: 't1', slotId: 't1_slot_0'),
+        overrides: [dietPlanSourceProvider.overrideWithValue(fake)],
       );
       await tester.pumpAndSettle();
 
@@ -213,16 +198,10 @@ void main() {
       );
       await fake.saveTemplate(template);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [dietPlanSourceProvider.overrideWithValue(fake)],
-          child: MaterialApp(
-            home: PlannedMealScreen.assign(
-              templateId: 't1',
-              slotId: 't1_slot_0',
-            ),
-          ),
-        ),
+      await pumpApp(
+        tester,
+        PlannedMealScreen.assign(templateId: 't1', slotId: 't1_slot_0'),
+        overrides: [dietPlanSourceProvider.overrideWithValue(fake)],
       );
       await tester.pumpAndSettle();
 
@@ -257,16 +236,10 @@ void main() {
       );
       await fake.saveTemplate(template);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [dietPlanSourceProvider.overrideWithValue(fake)],
-          child: MaterialApp(
-            home: PlannedMealScreen.assign(
-              templateId: 't1',
-              slotId: 't1_slot_0',
-            ),
-          ),
-        ),
+      await pumpApp(
+        tester,
+        PlannedMealScreen.assign(templateId: 't1', slotId: 't1_slot_0'),
+        overrides: [dietPlanSourceProvider.overrideWithValue(fake)],
       );
       await tester.pumpAndSettle();
 
@@ -316,13 +289,10 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [dietPlanSourceProvider.overrideWithValue(fake)],
-          child: MaterialApp(
-            home: PlannedMealScreen.edit(plannedMealId: 'm1'),
-          ),
-        ),
+      await pumpApp(
+        tester,
+        PlannedMealScreen.edit(plannedMealId: 'm1'),
+        overrides: [dietPlanSourceProvider.overrideWithValue(fake)],
       );
       await tester.pumpAndSettle();
 
@@ -353,13 +323,10 @@ void main() {
       );
       await fake.saveTemplate(template);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [dietPlanSourceProvider.overrideWithValue(fake)],
-          child: const MaterialApp(
-            home: DietTemplateEditorScreen(templateId: 't1'),
-          ),
-        ),
+      await pumpApp(
+        tester,
+        const DietTemplateEditorScreen(templateId: 't1'),
+        overrides: [dietPlanSourceProvider.overrideWithValue(fake)],
       );
       await tester.pumpAndSettle();
 

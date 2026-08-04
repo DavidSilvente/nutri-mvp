@@ -126,7 +126,7 @@ void main() {
       },
     );
 
-    test('reports schema version 4 after migrating', () async {
+    test('records the current schema version after migrating', () async {
       final raw = openV3Raw();
       raw.execute('PRAGMA user_version = 3;');
 
@@ -134,8 +134,12 @@ void main() {
       addTearDown(database.close);
       await database.select(database.nutritionEntries).get();
 
+      // Compared against the database's own schemaVersion rather than a
+      // hardcoded number: a v3 database must land on whatever the CURRENT
+      // schema is, so this keeps asserting the real property (the whole
+      // migration chain ran) instead of needing an edit on every version bump.
       final version = raw.select('PRAGMA user_version;').single.values.first;
-      expect(version, 4);
+      expect(version, database.schemaVersion);
     });
 
     test('accepts a new entry that carries a planned meal link', () async {
