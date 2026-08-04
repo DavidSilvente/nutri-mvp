@@ -23,7 +23,9 @@ class ActiveDietSlotDirectory implements MealSlotDirectory {
       // Every day group is indexed, not just today's: a month of planned meals
       // spans all of them.
       Ok(value: final diet) => Ok(
-        diet == null ? MealSlotIndex.empty() : MealSlotIndex.fromPlan(diet.plan),
+        diet == null
+            ? MealSlotIndex.empty()
+            : MealSlotIndex.fromPlan(diet.plan, diet.catalog),
       ),
     };
   }
