@@ -46,10 +46,7 @@ class MealAlternativesSheet extends ConsumerWidget {
           controller: scrollController,
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
           children: [
-            Text(
-              'Alternatives for ${detail.label}',
-              style: theme.textTheme.titleLarge,
-            ),
+            Text('Swap ${detail.label} for', style: theme.textTheme.titleLarge),
             const SizedBox(height: 4),
             Text(
               'Ranked by how close they are to '
