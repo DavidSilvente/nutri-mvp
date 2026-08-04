@@ -88,6 +88,10 @@ class _ComponentOptionsSheetState
   /// preference in sync with whatever I pick", including a pick made after it
   /// was already checked.
   Future<void> _onPick(String optionId) async {
+    // Guarded here rather than only in the tree: AbsorbPointer stops taps, but
+    // a radio is also reachable by focus traversal and by assistive tech, and
+    // neither of those is a pointer event.
+    if (_saving) return;
     if (optionId == _selectedOptionId) return;
     final previousSelection = _selectedOptionId;
     setState(() {
