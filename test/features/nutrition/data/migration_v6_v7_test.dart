@@ -182,7 +182,9 @@ void main() {
       // Opening runs the migration.
       final plans = await db.select(db.dietPlanRecords).get();
 
-      expect(db.schemaVersion, 7);
+      // The chain does not stop at v7: opening runs every step, and v8 adds
+      // the (empty, for this test) component_defaults table.
+      expect(db.schemaVersion, 8);
       expect(plans, hasLength(1));
       final plan = plans.single;
       expect(plan.id, 't1');
@@ -370,7 +372,9 @@ void main() {
       addTearDown(db.close);
 
       expect(await db.select(db.plannedMeals).get(), isEmpty);
-      expect(db.schemaVersion, 7);
+      // The chain does not stop at v7: opening runs every step, and v8 adds
+      // the (empty, for this test) component_defaults table.
+      expect(db.schemaVersion, 8);
     });
   });
 }
