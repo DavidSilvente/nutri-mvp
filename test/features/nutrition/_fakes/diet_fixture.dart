@@ -1,13 +1,17 @@
 import 'package:nutri_mvp/core/result.dart';
+import 'package:nutri_mvp/features/nutrition/data/codecs/diet_plan_codec.dart';
+import 'package:nutri_mvp/features/nutrition/domain/entities/diet_plan.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
+import 'package:nutri_mvp/features/nutrition/domain/entities/stored_diet_plan.dart';
 import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
 import 'package:nutri_mvp/features/nutrition/domain/ports/meal_slot_directory.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/meal_slot_index.dart';
+import 'package:nutri_mvp/features/nutrition/domain/usecases/save_manual_diet.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_target.dart';
 
-/// One meal of a diet.
+/// One meal of a hand-written diet.
 ///
 /// Defaults add up to something plausible so a test that only cares about
 /// labels and ordering does not have to invent macros.
@@ -32,6 +36,60 @@ DietMealSlot mealSlot({
       energy: Energy(kcal: kcal),
       macros: Macros(proteinG: proteinG, carbsG: carbsG, fatG: fatG),
     ),
+  );
+}
+
+/// A diet as `SaveManualDiet` would have stored it: a plan document of
+/// hand-entered meals, covering every weekday.
+///
+/// Tests seed this into a `FakeDietPlanStore` instead of building a document by
+/// hand, so they exercise the same encode the app writes and cannot drift from
+/// the shape the decoder expects.
+StoredDietPlan manualDiet({
+  String id = 'diet-1',
+  String name = 'Test diet',
+  required List<DietMealSlot> slots,
+  bool isDefault = true,
+  Set<int>? weekdays,
+  DateTime? importedAt,
+}) {
+  final plan = DietPlan(
+    id: id,
+    name: name,
+    dayGroups: [
+      DietPlanDayGroup(
+        label: SaveManualDiet.everyDayLabel,
+        weekdays:
+            weekdays ??
+            {
+              for (var weekday = DateTime.monday;
+                  weekday <= DateTime.sunday;
+                  weekday++)
+                weekday,
+            },
+        template: DietTemplate.derived(
+          id: '$id:g0',
+          name: '$name — ${SaveManualDiet.everyDayLabel}',
+          slots: slots,
+        ),
+      ),
+    ],
+  );
+
+  final encoded = const DietPlanCodec().encode(plan);
+  final document = switch (encoded) {
+    Ok(value: final value) => value,
+    Err(failure: final failure) =>
+      throw StateError('fixture diet failed to encode: $failure'),
+  };
+
+  return StoredDietPlan(
+    id: id,
+    name: name,
+    document: document,
+    importedAt: importedAt ?? DateTime.utc(2026, 8, 1),
+    isDefault: isDefault,
+    sourceLabel: SaveManualDiet.manualSourceLabel,
   );
 }
 

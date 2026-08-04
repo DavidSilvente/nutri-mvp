@@ -11,7 +11,6 @@ import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_targ
 import 'package:nutri_mvp/features/nutrition/presentation/providers/adherence_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/hydration_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/apply_diet_sheet.dart';
-import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_templates_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/hydration_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/meal_alternatives_sheet.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/record_intake_screen.dart';
@@ -544,12 +543,8 @@ class _NoPlanCard extends StatelessWidget {
             _ApplyDietButton(day: day),
             const SizedBox(height: 8),
             TextButton(
-              key: const Key('goToTemplatesFromDayButton'),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const DietTemplatesScreen(),
-                ),
-              ),
+              key: const Key('goToDietsFromDayButton'),
+              onPressed: () => Navigator.of(context).pushNamed('/diets'),
               child: const Text('Manage diets'),
             ),
           ],

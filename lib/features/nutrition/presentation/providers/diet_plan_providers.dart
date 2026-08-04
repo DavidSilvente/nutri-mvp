@@ -24,12 +24,13 @@ import 'package:nutri_mvp/features/nutrition/domain/services/active_diet_slot_di
 import 'package:nutri_mvp/features/nutrition/domain/services/extracted_food_resolver.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/food_catalog.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/food_matcher.dart';
-import 'package:nutri_mvp/features/nutrition/domain/usecases/apply_template_to_days.dart';
+import 'package:nutri_mvp/features/nutrition/domain/usecases/apply_diet_to_days.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/bootstrap_diet_library.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/get_diet_day.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/import_diet_document.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/import_diet_pdf.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/resolve_active_diet.dart';
+import 'package:nutri_mvp/features/nutrition/domain/usecases/save_manual_diet.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/controllers/diet_day_controller.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/controllers/diet_plan_controller.dart';
@@ -44,16 +45,14 @@ final dietPlanSourceProvider = Provider<DietPlanSource>((ref) {
   return SqlDietPlanSource(ref.watch(nutritionDatabaseProvider));
 });
 
-/// Turns a template into actual planned meals on given days.
-final applyTemplateProvider = Provider<ApplyTemplateToDays>((ref) {
-  return ApplyTemplateToDays(ref.watch(dietPlanSourceProvider));
+/// Turns the meals a diet prescribes into actual planned meals on given days.
+final applyDietProvider = Provider<ApplyDietToDays>((ref) {
+  return ApplyDietToDays(ref.watch(dietPlanSourceProvider));
 });
 
-/// Orchestrates diet templates and planned meals for the planning UI.
+/// Writes planned meals and substitutes for the planning UI.
 final dietPlanControllerProvider =
-    AsyncNotifierProvider<DietPlanController, DietPlanState>(
-      DietPlanController.new,
-    );
+    AsyncNotifierProvider<DietPlanController, void>(DietPlanController.new);
 
 // --- Imported diet plans (food-first) ------------------------------------
 //
@@ -78,6 +77,20 @@ final foodTableSourceProvider = Provider<FoodTableSource>((ref) {
 
 final dietPlanDecoderProvider = Provider<DietPlanDecoder>((ref) {
   return const DietPlanCodec();
+});
+
+/// Writes a hand-authored diet back out as a plan document.
+final dietPlanEncoderProvider = Provider<DietPlanEncoder>((ref) {
+  return const DietPlanCodec();
+});
+
+/// Stores a diet typed into the app, in the same place imported ones live.
+final saveManualDietProvider = Provider<SaveManualDiet>((ref) {
+  return SaveManualDiet(
+    store: ref.watch(dietPlanStoreProvider),
+    encoder: ref.watch(dietPlanEncoderProvider),
+    now: ref.watch(clockProvider),
+  );
 });
 
 /// Free-text search over the shipped food table.
@@ -116,8 +129,8 @@ final mealSlotDirectoryProvider = Provider<MealSlotDirectory>((ref) {
 
 /// One stored diet, decoded, addressed by its id.
 ///
-/// Returns null when the id names nothing, which happens if the diet was
-/// deleted from another screen while it was being read.
+/// What the editor loads. Returns null when the id names nothing, which happens
+/// if the diet was deleted from another screen while the editor was open.
 final storedDietProvider =
     FutureProvider.family<DecodedDietPlan?, String>((ref, id) async {
   ref.watch(dietLibraryRevisionProvider);

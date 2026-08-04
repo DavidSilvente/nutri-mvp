@@ -6,14 +6,20 @@ import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.d
 import 'package:nutri_mvp/features/nutrition/domain/ports/diet_pdf_importer.dart';
 import 'package:nutri_mvp/features/nutrition/domain/ports/pdf_file_picker.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/import_review.dart';
+import 'package:nutri_mvp/features/nutrition/domain/usecases/save_manual_diet.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/import_review_screen.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/screens/manual_diet_editor_screen.dart';
 
-/// The user's diet library: every imported plan, with exactly one marked as the
-/// current diet.
+/// The user's diets: every one they have, with exactly one marked as current.
 ///
-/// Picking a diet here is what the day and calendar views read from, so the
-/// choice is a single tap and its effect is immediate.
+/// The ONLY place a diet is managed — chosen, imported, written by hand, edited
+/// or deleted. There used to be a second screen listing hand-built templates
+/// that the day and calendar views read from instead, which is how a user could
+/// import a diet and still be told they had none.
+///
+/// Picking a diet here is what every other screen reads from, so the choice is a
+/// single tap and its effect is immediate.
 class DietLibraryScreen extends ConsumerStatefulWidget {
   const DietLibraryScreen({super.key});
 
@@ -35,6 +41,7 @@ class _DietLibraryScreenState extends ConsumerState<DietLibraryScreen> {
     final canImport = ref.watch(canImportDietPdfProvider);
 
     return Scaffold(
+      key: const Key('dietLibraryScreen'),
       appBar: AppBar(
         title: const Text('My diets'),
         actions: [
@@ -61,11 +68,33 @@ class _DietLibraryScreenState extends ConsumerState<DietLibraryScreen> {
                 ),
               ),
               data: (stored) => stored.isEmpty
-                  ? _NoDiets(onImport: canImport ? _import : null)
+                  ? _NoDiets(
+                      onImport: canImport ? _import : null,
+                      onCreate: () => _openEditor(),
+                    )
                   : _DietList(plans: stored),
             ),
           if (_importStatus case final status?) _ImportBarrier(status: status),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        key: const Key('createDietButton'),
+        // Explicit tag: this screen shares a subtree with the day view's FAB
+        // inside the home IndexedStack, and two default-tagged heroes in one
+        // subtree is a runtime error.
+        heroTag: 'createDietFab',
+        onPressed: () => _openEditor(),
+        icon: const Icon(Icons.add),
+        label: const Text('Write a diet'),
+      ),
+    );
+  }
+
+  /// Opens the hand-written diet editor, for a new diet or an existing one.
+  void _openEditor([String? planId]) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ManualDietEditorScreen(planId: planId),
       ),
     );
   }
@@ -207,6 +236,7 @@ class _DietList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 96),
       itemCount: plans.length,
       itemBuilder: (context, index) {
         final plan = plans[index];
@@ -221,6 +251,13 @@ class _DietTile extends ConsumerWidget {
 
   final StoredDietPlan plan;
   final bool canDelete;
+
+  /// Whether this diet was typed in the app, and so can be edited here.
+  ///
+  /// An imported plan prescribes foods; this app can only edit typed macros, so
+  /// offering an edit would mean replacing the dietitian's foods with totals.
+  bool get _isHandWritten =>
+      plan.sourceLabel == SaveManualDiet.manualSourceLabel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -242,13 +279,31 @@ class _DietTile extends ConsumerWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: canDelete
-          ? IconButton(
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_isHandWritten)
+            IconButton(
+              key: Key('editDietPlan-${plan.id}'),
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Edit this diet',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => ManualDietEditorScreen(planId: plan.id),
+                ),
+              ),
+            ),
+          // The last diet stays: deleting it would leave the day view with
+          // nothing to read and no obvious way back.
+          if (canDelete)
+            IconButton(
               key: Key('deleteDietPlan-${plan.id}'),
               icon: const Icon(Icons.delete_outline),
+              tooltip: 'Delete this diet',
               onPressed: () => _confirmDelete(context, ref),
-            )
-          : null,
+            ),
+        ],
+      ),
       selected: plan.isDefault,
       onTap: plan.isDefault ? null : () => _activate(ref),
     );
@@ -293,13 +348,19 @@ class _DietTile extends ConsumerWidget {
 }
 
 class _NoDiets extends StatelessWidget {
-  const _NoDiets({this.onImport});
+  const _NoDiets({required this.onCreate, this.onImport});
 
+  final VoidCallback onCreate;
+
+  /// Null on a build with no extraction key, where importing would fail on the
+  /// first request. Writing a diet by hand always works, so it is the offer that
+  /// is always present.
   final VoidCallback? onImport;
 
   @override
   Widget build(BuildContext context) {
     return Center(
+      key: const Key('noDietsMessage'),
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
@@ -313,7 +374,7 @@ class _NoDiets extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Import a diet plan to get started.',
+              'Import the plan your dietitian gave you, or write one yourself.',
               textAlign: TextAlign.center,
             ),
             if (onImport case final onImport?) ...[
@@ -325,6 +386,13 @@ class _NoDiets extends StatelessWidget {
                 label: const Text('Import a diet PDF'),
               ),
             ],
+            const SizedBox(height: 8),
+            TextButton.icon(
+              key: const Key('createFirstDietButton'),
+              onPressed: onCreate,
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              label: const Text('Write a diet by hand'),
+            ),
           ],
         ),
       ),

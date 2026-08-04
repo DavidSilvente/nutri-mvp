@@ -4,14 +4,19 @@ import 'package:nutri_mvp/features/nutrition/presentation/providers/adherence_pr
 import 'package:nutri_mvp/features/nutrition/presentation/screens/day_plan_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_calendar_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_day_screen.dart';
-import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_templates_screen.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_library_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/saved_meals_screen.dart';
 
-/// The app shell: today, the calendar, and the diet itself.
+/// The app shell: today, the diet, the calendar, and the diets behind them.
 ///
 /// Each destination is a full screen with its own app bar and FAB, kept alive
 /// in an [IndexedStack] so switching tabs does not throw away scroll position
 /// or reload the month you were browsing.
+///
+/// "My diet" is today's prescription; "My diets" is where they are managed. The
+/// second tab used to list a separate set of hand-built templates that nothing
+/// else read, which is why an imported diet could show up in one place and be
+/// missing from every other.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -33,7 +38,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           DayPlanScreen(day: today),
           DietDayScreen(day: today),
           const DietCalendarScreen(),
-          const DietTemplatesScreen(),
+          const DietLibraryScreen(),
           const SavedMealsScreen(),
         ],
       ),
@@ -63,7 +68,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             key: Key('dietTab'),
             icon: Icon(Icons.restaurant_menu_outlined),
             selectedIcon: Icon(Icons.restaurant_menu),
-            label: 'Templates',
+            label: 'My diets',
           ),
           NavigationDestination(
             key: Key('myMealsTab'),
