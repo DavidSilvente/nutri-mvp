@@ -35,6 +35,12 @@ class _AlwaysFailingStore extends FakeDietPlanStore {
   }) async => const Err(StorageFailure('disk full'));
 
   @override
+  Future<Result<void, NutritionFailure>> clearSelection({
+    required NutritionDay day,
+    required String componentId,
+  }) async => const Err(StorageFailure('disk full'));
+
+  @override
   Future<Result<void, NutritionFailure>> setPreferredOption({
     required String componentId,
     required String optionId,
@@ -155,6 +161,55 @@ void main() {
       await c
           .read(componentChoiceControllerProvider(monday).notifier)
           .setPreference(componentId: 'protein', optionId: 'beef_loin');
+
+      final state = c.read(componentChoiceControllerProvider(monday));
+      expect(state.hasError, isTrue);
+      expect(state.error, isA<HealthFailureException>());
+    });
+  });
+
+  group('ComponentChoiceController.clearSelection', () {
+    test('drops a day-scoped selection via DietPlanStore', () async {
+      final c = container();
+      await store.selectOption(
+        day: monday,
+        componentId: 'protein',
+        optionId: 'beef_loin',
+      );
+
+      await c
+          .read(componentChoiceControllerProvider(monday).notifier)
+          .clearSelection('protein');
+
+      final selections =
+          (await store.selectionsFor(monday)
+                  as Ok<Map<String, String>, NutritionFailure>)
+              .value;
+      expect(selections.containsKey('protein'), isFalse);
+    });
+
+    test(
+      'bumps the data revision and invalidates the day controller',
+      () async {
+        final counting = _CountingStore();
+        final c = container(override: counting);
+        await c.read(dietDayControllerProvider(monday).future);
+
+        await c
+            .read(componentChoiceControllerProvider(monday).notifier)
+            .clearSelection('protein');
+        await c.read(dietDayControllerProvider(monday).future);
+
+        expect(counting.activePlanCalls, 2);
+      },
+    );
+
+    test('surfaces a write failure instead of swallowing it', () async {
+      final c = container(override: _AlwaysFailingStore());
+
+      await c
+          .read(componentChoiceControllerProvider(monday).notifier)
+          .clearSelection('protein');
 
       final state = c.read(componentChoiceControllerProvider(monday));
       expect(state.hasError, isTrue);

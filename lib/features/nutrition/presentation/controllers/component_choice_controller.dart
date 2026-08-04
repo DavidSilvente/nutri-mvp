@@ -38,6 +38,17 @@ class ComponentChoiceController
     await _commit(result);
   }
 
+  /// Drops the recorded day-scoped choice for [componentId], reverting
+  /// resolution to whatever the next precedence level says (a standing
+  /// preference, or the plan's default option). A no-op when nothing was
+  /// recorded for this day.
+  Future<void> clearSelection(String componentId) async {
+    final result = await ref
+        .read(dietPlanStoreProvider)
+        .clearSelection(day: arg, componentId: componentId);
+    await _commit(result);
+  }
+
   /// Makes [optionId] the standing preference for [componentId], applied on
   /// every day that carries no day-scoped selection of its own.
   Future<void> setPreference({
