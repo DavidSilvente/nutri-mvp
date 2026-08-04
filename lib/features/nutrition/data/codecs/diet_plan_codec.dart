@@ -15,16 +15,29 @@ import '../../domain/value_objects/macros.dart';
 import '../../domain/value_objects/nutrition_target.dart';
 import 'json_reader.dart';
 
-/// Reads a structured diet plan document into a [DietPlan] with derived macros.
+/// Reads a structured diet plan document into a [DietPlan], and writes a
+/// hand-authored plan back out.
 ///
 /// The document is the normalized output of an import (see `DietPdfImporter`):
 /// day groups, meals, and per-item alternatives, with each alternative naming a
-/// food and a quantity. No macro figures appear in it — they are all derived
-/// here from the food catalog.
-class DietPlanCodec implements DietPlanDecoder {
+/// food and a quantity. For those meals no macro figures appear in the document
+/// — they are all derived here from the food catalog.
+///
+/// A meal may instead state a `target` outright, which is how a diet typed into
+/// the app is stored. Both kinds live in the same document so everything
+/// downstream reads one shape regardless of where the diet came from.
+class DietPlanCodec implements DietPlanDecoder, DietPlanEncoder {
   const DietPlanCodec();
 
-  static const int supportedSchemaVersion = 1;
+  /// Versions this codec can read.
+  ///
+  /// v1 documents predate hand-entered meals and explicit slot ids. They keep
+  /// decoding unchanged: the rules below are a superset, so a v1 document takes
+  /// exactly the same path it always did.
+  static const Set<int> readableSchemaVersions = {1, 2};
+
+  /// The version [encode] writes.
+  static const int supportedSchemaVersion = 2;
 
   /// Decodes [source], resolving foods against [baseCatalog] plus any recipes
   /// the document defines.
@@ -55,10 +68,10 @@ class DietPlanCodec implements DietPlanDecoder {
     try {
       root = JsonReader.object(raw, 'plan');
       final version = root.integer('schemaVersion');
-      if (version != supportedSchemaVersion) {
+      if (!readableSchemaVersions.contains(version)) {
         return Err(MalformedPlanFailure(
           'unsupported plan schemaVersion $version, '
-          'expected $supportedSchemaVersion',
+          'expected one of ${readableSchemaVersions.join(', ')}',
         ));
       }
       diet = root.child('diet');
@@ -149,12 +162,38 @@ class DietPlanCodec implements DietPlanDecoder {
 
       for (var m = 0; m < mealReaders.length; m++) {
         final mealReader = mealReaders[m];
-        final components = _components(mealReader, '$planId:g$g:m$m');
+        // An explicit id wins over the positional one so that editing a diet —
+        // inserting a meal, reordering — cannot renumber the slots underneath
+        // the planned meals and selections already keyed to them. v1 documents
+        // state none and keep their positional ids.
+        final slotId = mealReader.stringOrNull('slotId') ?? '$planId:g$g:m$m';
+
+        final statesTarget = mealReader.has('target');
+        final statesFoods = mealReader.has('sections');
+        if (statesTarget == statesFoods) {
+          return Err(MalformedPlanFailure(
+            'meal "$slotId" must state either "sections" or "target", '
+            'and states ${statesTarget ? 'both' : 'neither'}',
+          ));
+        }
+
+        if (statesTarget) {
+          slots.add(DietMealSlot(
+            id: slotId,
+            label: mealReader.string('label'),
+            position: m,
+            target: _target(mealReader.child('target')),
+            timeOfDay: mealReader.stringOrNull('time'),
+            notes: mealReader.stringList('notes'),
+          ));
+          continue;
+        }
+
         final slot = DietMealSlot.derived(
-          id: '$planId:g$g:m$m',
+          id: slotId,
           label: mealReader.string('label'),
           position: m,
-          components: components,
+          components: _components(mealReader, slotId),
           catalog: catalog,
           timeOfDay: mealReader.stringOrNull('time'),
           notes: mealReader.stringList('notes'),
@@ -218,5 +257,64 @@ class DietPlanCodec implements DietPlanDecoder {
       ),
       rawText: option.string('rawText'),
     );
+  }
+
+  static NutritionTarget _target(JsonReader target) {
+    return NutritionTarget(
+      energy: Energy(kcal: target.number('energyKcal')),
+      macros: Macros(
+        proteinG: target.number('proteinG'),
+        carbsG: target.number('carbsG'),
+        fatG: target.number('fatG'),
+      ),
+    );
+  }
+
+  @override
+  Result<String, NutritionFailure> encode(DietPlan plan) {
+    final groups = <Map<String, Object?>>[];
+
+    for (final group in plan.dayGroups) {
+      final meals = <Map<String, Object?>>[];
+      for (final slot in group.template.slots) {
+        // Refused rather than approximated: a food-first slot's macros come from
+        // the plan's own recipes, which live in the catalog the decode built and
+        // not on the slot. Writing the numbers alone would turn a plan that
+        // knows what it prescribes into one that only remembers the totals.
+        if (slot.isDerived) {
+          return Err(MalformedPlanFailure(
+            'meal "${slot.id}" is built from foods and cannot be encoded '
+            'without losing the recipes behind them',
+          ));
+        }
+        meals.add({
+          'slotId': slot.id,
+          'label': slot.label,
+          if (slot.timeOfDay != null) 'time': slot.timeOfDay,
+          if (slot.notes.isNotEmpty) 'notes': slot.notes,
+          'target': {
+            'energyKcal': slot.target.energy.kcal,
+            'proteinG': slot.target.macros.proteinG,
+            'carbsG': slot.target.macros.carbsG,
+            'fatG': slot.target.macros.fatG,
+          },
+        });
+      }
+      groups.add({
+        'label': group.label,
+        'weekdays': group.weekdays.toList(),
+        'meals': meals,
+      });
+    }
+
+    return Ok(jsonEncode({
+      'schemaVersion': supportedSchemaVersion,
+      'diet': {
+        'name': plan.name,
+        if (plan.declaredDailyEnergyKcal != null)
+          'declaredDailyEnergyKcal': plan.declaredDailyEnergyKcal,
+        'dayGroups': groups,
+      },
+    }));
   }
 }

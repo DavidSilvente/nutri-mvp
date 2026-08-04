@@ -36,3 +36,20 @@ abstract interface class DietPlanDecoder {
     String? sourceLabel,
   });
 }
+
+/// Domain port for writing a hand-authored [DietPlan] back out as a document.
+///
+/// Exists so a diet typed into the app is stored the SAME way an imported one
+/// is — one store, one shape — instead of getting a parallel table of its own.
+///
+/// Deliberately limited to hand-entered slots: a food-first plan also carries
+/// the recipes its options resolve against, and those live in the catalog the
+/// decode produced, not in the [DietPlan]. Encoding one would silently drop
+/// them, so implementations MUST reject it instead.
+abstract interface class DietPlanEncoder {
+  /// Encodes [plan] as a document [DietPlanDecoder.decode] can read back.
+  ///
+  /// Returns a failure when any slot carries components, since those cannot be
+  /// round-tripped without losing the plan's own recipes.
+  Result<String, NutritionFailure> encode(DietPlan plan);
+}

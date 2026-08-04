@@ -23,6 +23,15 @@ import 'json_reader.dart';
 class DietDraftCodec implements DietPlanDraftCodec {
   const DietDraftCodec();
 
+  /// The draft schema this build asks an extractor for, and the only one it
+  /// accepts back.
+  ///
+  /// Pinned here rather than borrowed from [DietPlanCodec]: the draft contract is
+  /// whatever `dietExtractionPrompt` instructs the model to emit, and the plan
+  /// document can grow a version — as it did for hand-entered meals — without
+  /// that changing anything about what an extractor is asked to produce.
+  static const int supportedSchemaVersion = 1;
+
   /// Section listing the foods still to be placed.
   static const String pendingFoodsKey = 'extractedFoods';
 
@@ -212,10 +221,10 @@ class DietDraftCodec implements DietPlanDraftCodec {
   /// document it would then misread field by field.
   static NutritionFailure? _checkVersion(JsonReader root) {
     final version = root.integer('schemaVersion');
-    if (version == DietPlanCodec.supportedSchemaVersion) return null;
+    if (version == supportedSchemaVersion) return null;
     return MalformedPlanFailure(
       'unsupported draft schemaVersion $version, '
-      'expected ${DietPlanCodec.supportedSchemaVersion}',
+      'expected $supportedSchemaVersion',
     );
   }
 
