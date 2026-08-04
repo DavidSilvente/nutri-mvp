@@ -118,8 +118,8 @@ class GetDietDay {
   GetDietDay({
     required DietPlanStore store,
     required ResolveActiveDiet activeDiet,
-  })  : _store = store,
-        _activeDiet = activeDiet;
+  }) : _store = store,
+       _activeDiet = activeDiet;
 
   final DietPlanStore _store;
   final ResolveActiveDiet _activeDiet;
@@ -169,46 +169,55 @@ class GetDietDay {
     for (final slot in group.template.slots) {
       final components = <DietDayComponent>[];
       for (final component in slot.components) {
-        final chosen = DerivedTargets.optionFor(component, selections);
+        final chosen = DerivedTargets.optionFor(
+          component,
+          OptionChoices.day(selections),
+        );
         final food = catalog.byId(chosen.foodId);
         if (food == null) {
           unresolved.add(chosen.foodId);
           continue;
         }
-        components.add(DietDayComponent(
-          componentId: component.id,
-          sectionLabel: component.sectionLabel,
-          options: component.options,
-          chosen: chosen,
-          food: food,
-          target: food.targetFor(chosen.quantity),
-          isDeviation: chosen.id != component.defaultOption.id,
-        ));
+        components.add(
+          DietDayComponent(
+            componentId: component.id,
+            sectionLabel: component.sectionLabel,
+            options: component.options,
+            chosen: chosen,
+            food: food,
+            target: food.targetFor(chosen.quantity),
+            isDeviation: chosen.id != component.defaultOption.id,
+          ),
+        );
       }
-      meals.add(DietDayMeal(
-        slotId: slot.id,
-        label: slot.label,
-        timeOfDay: slot.timeOfDay,
-        components: components,
-        target: NutritionTarget.sum(components.map((c) => c.target)),
-        notes: slot.notes,
-      ));
+      meals.add(
+        DietDayMeal(
+          slotId: slot.id,
+          label: slot.label,
+          timeOfDay: slot.timeOfDay,
+          components: components,
+          target: NutritionTarget.sum(components.map((c) => c.target)),
+          notes: slot.notes,
+        ),
+      );
     }
 
     if (unresolved.isNotEmpty) {
       return Err(UnknownFoodFailure(unresolved));
     }
 
-    return Ok(DietDay(
-      day: day,
-      planId: plan.id,
-      planName: plan.name,
-      dayGroupLabel: group.label,
-      meals: meals,
-      // Summed from the day's meals rather than read off the template, so a
-      // swapped alternative is reflected in the day total immediately.
-      target: NutritionTarget.sum(meals.map((meal) => meal.target)),
-      declaredDailyEnergyKcal: plan.declaredDailyEnergyKcal,
-    ));
+    return Ok(
+      DietDay(
+        day: day,
+        planId: plan.id,
+        planName: plan.name,
+        dayGroupLabel: group.label,
+        meals: meals,
+        // Summed from the day's meals rather than read off the template, so a
+        // swapped alternative is reflected in the day total immediately.
+        target: NutritionTarget.sum(meals.map((meal) => meal.target)),
+        declaredDailyEnergyKcal: plan.declaredDailyEnergyKcal,
+      ),
+    );
   }
 }
