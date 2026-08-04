@@ -1,19 +1,20 @@
-import '../entities/diet_template.dart';
+import '../entities/diet_plan.dart';
 
-/// A slot's identity within its template: what to call it and where it sits
-/// in the day.
+/// A slot's identity within its diet: what to call it and where it sits in the
+/// day.
 class MealSlotInfo {
   const MealSlotInfo({
     required this.label,
     required this.position,
-    required this.templateId,
-    required this.templateName,
+    required this.dayGroupLabel,
   });
 
   final String label;
   final int position;
-  final String templateId;
-  final String templateName;
+
+  /// The diet's own wording for the group of weekdays this slot belongs to,
+  /// e.g. `LU Y VI`.
+  final String dayGroupLabel;
 
   @override
   bool operator ==(Object other) =>
@@ -21,45 +22,50 @@ class MealSlotInfo {
       (other is MealSlotInfo &&
           other.label == label &&
           other.position == position &&
-          other.templateId == templateId &&
-          other.templateName == templateName);
+          other.dayGroupLabel == dayGroupLabel);
 
   @override
-  int get hashCode => Object.hash(label, position, templateId, templateName);
+  int get hashCode => Object.hash(label, position, dayGroupLabel);
 
   @override
   String toString() =>
       'MealSlotInfo(label: $label, position: $position, '
-      'template: $templateName)';
+      'dayGroup: $dayGroupLabel)';
 }
 
-/// Flattens a list of templates into a slot-id lookup.
+/// Flattens a diet into a slot-id lookup.
 ///
 /// Planned meals only carry a `slotId`; the human label ("Breakfast") and the
-/// ordering position live on the template slot. Resolving that once per load
+/// ordering position live on the diet's meal slot. Resolving that once per load
 /// keeps the cross-referencing out of both the UI and the use cases.
 class MealSlotIndex {
   MealSlotIndex(Map<String, MealSlotInfo> bySlotId) : _bySlotId = bySlotId;
 
-  factory MealSlotIndex.fromTemplates(List<DietTemplate> templates) {
+  /// Indexes EVERY day group of [plan], not just the one for a given weekday.
+  ///
+  /// A month of planned meals spans every group, so an index built from one
+  /// weekday would leave most of the calendar unable to name its own meals.
+  factory MealSlotIndex.fromPlan(DietPlan plan) {
     final map = <String, MealSlotInfo>{};
-    for (final template in templates) {
-      for (final slot in template.slots) {
+    for (final group in plan.dayGroups) {
+      for (final slot in group.template.slots) {
         map[slot.id] = MealSlotInfo(
           label: slot.label,
           position: slot.position,
-          templateId: template.id,
-          templateName: template.name,
+          dayGroupLabel: group.label,
         );
       }
     }
     return MealSlotIndex(map);
   }
 
+  /// An index that knows no slots, for when no diet is active.
+  MealSlotIndex.empty() : _bySlotId = const {};
+
   final Map<String, MealSlotInfo> _bySlotId;
 
-  /// The slot's info, or `null` when the slot is unknown — which can only
-  /// happen if a template was edited between the two reads of a load.
+  /// The slot's info, or `null` when the slot is unknown — which happens for a
+  /// day planned from a diet that has since been edited or deleted.
   MealSlotInfo? operator [](String slotId) => _bySlotId[slotId];
 
   /// The slot's position, or a large sentinel so unknown slots sort last

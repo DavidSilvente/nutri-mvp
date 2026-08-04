@@ -3,15 +3,14 @@ import 'package:nutri_mvp/core/result.dart';
 import '../entities/diet_plan.dart';
 import '../entities/food_item.dart';
 import '../entities/meal_component.dart';
-import '../entities/stored_diet_plan.dart';
 import '../failures/nutrition_failure.dart';
 import '../ports/diet_plan_decoder.dart';
 import '../ports/diet_plan_store.dart';
-import '../ports/food_table_source.dart';
 import '../services/derived_targets.dart';
 import '../services/food_catalog.dart';
 import '../value_objects/nutrition_day.dart';
 import '../value_objects/nutrition_target.dart';
+import 'resolve_active_diet.dart';
 
 /// One element of a meal on a specific day, with its chosen option resolved.
 class DietDayComponent {
@@ -118,48 +117,21 @@ class DietDay {
 class GetDietDay {
   GetDietDay({
     required DietPlanStore store,
-    required FoodTableSource foodTable,
-    required DietPlanDecoder decoder,
+    required ResolveActiveDiet activeDiet,
   })  : _store = store,
-        _foodTable = foodTable,
-        _decoder = decoder;
+        _activeDiet = activeDiet;
 
   final DietPlanStore _store;
-  final FoodTableSource _foodTable;
-  final DietPlanDecoder _decoder;
+  final ResolveActiveDiet _activeDiet;
 
   Future<Result<DietDay?, NutritionFailure>> call(NutritionDay day) async {
-    final activePlan = await _store.activePlan();
-    final StoredDietPlan active;
-    switch (activePlan) {
-      case Err(failure: final failure):
-        return Err(failure);
-      case Ok(value: final plan):
-        if (plan == null) return const Ok(null);
-        active = plan;
-    }
-
-    final foods = await _foodTable.loadFoods();
-    final FoodCatalog baseCatalog;
-    switch (foods) {
-      case Err(failure: final failure):
-        return Err(failure);
-      case Ok(value: final items):
-        baseCatalog = FoodCatalog(items);
-    }
-
-    final decoded = _decoder.decode(
-      active.document,
-      baseCatalog: baseCatalog,
-      planId: active.id,
-      isDefault: true,
-      sourceLabel: active.sourceLabel,
-    );
+    final resolved = await _activeDiet();
     final DecodedDietPlan plan;
-    switch (decoded) {
+    switch (resolved) {
       case Err(failure: final failure):
         return Err(failure);
       case Ok(value: final value):
+        if (value == null) return const Ok(null);
         plan = value;
     }
 

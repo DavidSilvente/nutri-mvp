@@ -27,6 +27,7 @@ final getDayPlanProvider = Provider<GetDayPlan>((ref) {
   return GetDayPlan(
     dietPlanSource: ref.watch(dietPlanSourceProvider),
     nutritionSource: ref.watch(nutritionSourceProvider),
+    slotDirectory: ref.watch(mealSlotDirectoryProvider),
     tolerance: ref.watch(adherenceToleranceProvider),
   );
 });
@@ -35,6 +36,7 @@ final getMonthAdherenceProvider = Provider<GetMonthAdherence>((ref) {
   return GetMonthAdherence(
     dietPlanSource: ref.watch(dietPlanSourceProvider),
     nutritionSource: ref.watch(nutritionSourceProvider),
+    slotDirectory: ref.watch(mealSlotDirectoryProvider),
     tolerance: ref.watch(adherenceToleranceProvider),
   );
 });

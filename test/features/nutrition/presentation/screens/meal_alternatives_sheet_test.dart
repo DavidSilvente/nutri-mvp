@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/meal_substitute.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/planned_meal.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/saved_meal.dart';
@@ -17,6 +16,7 @@ import 'package:nutri_mvp/features/nutrition/presentation/screens/day_plan_scree
 import 'package:nutri_mvp/features/nutrition/presentation/screens/record_intake_screen.dart';
 
 import '../../../../_helpers/pump_app.dart';
+import '../../_fakes/diet_fixture.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 import '../../_fakes/fake_hydration_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
@@ -39,6 +39,7 @@ void main() {
   final today = day;
 
   late FakeDietPlanSource dietSource;
+  late FakeMealSlotDirectory slotDirectory;
   late FakeNutritionSource nutritionSource;
   late FakeSavedMealSource savedMealSource;
 
@@ -47,16 +48,10 @@ void main() {
     nutritionSource = FakeNutritionSource();
     savedMealSource = FakeSavedMealSource();
 
-    final slots = [
-      DietMealSlot(id: 'slot-1', label: 'Lunch', position: 0, target: target()),
-    ];
-    await dietSource.saveTemplate(
-      DietTemplate(
-        id: 't1',
-        name: 'Plan',
-        dailyTarget: NutritionTarget.sum(slots.map((s) => s.target)),
-        slots: slots,
-      ),
+    slotDirectory = FakeMealSlotDirectory(
+      slots: [
+        mealSlot(id: 'slot-1', label: 'Lunch', position: 0),
+      ],
     );
     await dietSource.savePlannedMeal(
       PlannedMeal(
@@ -108,6 +103,7 @@ void main() {
       overrides: [
         nutritionSourceProvider.overrideWithValue(nutritionSource),
         dietPlanSourceProvider.overrideWithValue(dietSource),
+        mealSlotDirectoryProvider.overrideWithValue(slotDirectory),
         hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
         savedMealSourceProvider.overrideWithValue(savedMealSource),
         todayProvider.overrideWithValue(today),

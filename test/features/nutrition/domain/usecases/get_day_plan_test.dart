@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/core/result.dart';
-import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/planned_meal.dart';
 import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
@@ -11,6 +10,7 @@ import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_target.dart';
 
+import '../../_fakes/diet_fixture.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
 
@@ -32,42 +32,27 @@ void main() {
 
   late FakeDietPlanSource dietSource;
   late FakeNutritionSource nutritionSource;
+  late FakeMealSlotDirectory slotDirectory;
   late GetDayPlan useCase;
 
   setUp(() {
     dietSource = FakeDietPlanSource();
     nutritionSource = FakeNutritionSource();
+    slotDirectory = FakeMealSlotDirectory();
     useCase = GetDayPlan(
       dietPlanSource: dietSource,
       nutritionSource: nutritionSource,
+      slotDirectory: slotDirectory,
     );
   });
 
-  /// Saves a two-slot template whose slots are deliberately stored in reverse
-  /// position order, so ordering by position is actually exercised.
+  /// Gives the active diet two meals, deliberately declared in reverse position
+  /// order so that ordering by position is actually exercised.
   Future<void> saveTemplate() async {
-    final slots = [
-      DietMealSlot(
-        id: 'slot-dinner',
-        label: 'Dinner',
-        position: 1,
-        target: target(),
-      ),
-      DietMealSlot(
-        id: 'slot-breakfast',
-        label: 'Breakfast',
-        position: 0,
-        target: target(),
-      ),
-    ];
-    await dietSource.saveTemplate(
-      DietTemplate(
-        id: 't1',
-        name: 'Plan',
-        dailyTarget: NutritionTarget.sum(slots.map((s) => s.target)),
-        slots: slots,
-      ),
-    );
+    slotDirectory.slots.addAll([
+      mealSlot(id: 'slot-dinner', label: 'Dinner', position: 1),
+      mealSlot(id: 'slot-breakfast', label: 'Breakfast', position: 0),
+    ]);
   }
 
   Future<void> plan(String id, String slotId) {
@@ -209,10 +194,12 @@ void main() {
       expect(result.adherence.completionRatio, 0.5);
     });
 
-    test('propagates a diet source failure unchanged', () async {
+    test('propagates a slot directory failure unchanged', () async {
       final failing = GetDayPlan(
-        dietPlanSource: _FailingDietPlanSource(),
+        dietPlanSource: dietSource,
         nutritionSource: nutritionSource,
+        slotDirectory: FakeMealSlotDirectory()
+          ..failWith = const StorageFailure('disk full'),
       );
 
       final result = await failing(day, today: today);
@@ -227,6 +214,7 @@ void main() {
       final failing = GetDayPlan(
         dietPlanSource: dietSource,
         nutritionSource: _FailingNutritionSource(),
+        slotDirectory: slotDirectory,
       );
 
       final result = await failing(day, today: today);
@@ -237,13 +225,6 @@ void main() {
       );
     });
   });
-}
-
-class _FailingDietPlanSource extends FakeDietPlanSource {
-  @override
-  Future<Result<List<DietTemplate>, NutritionFailure>> listTemplates() async {
-    return const Err(StorageFailure('disk full'));
-  }
 }
 
 class _FailingNutritionSource extends FakeNutritionSource {

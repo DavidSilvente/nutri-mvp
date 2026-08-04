@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/core/result.dart';
-import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/planned_meal.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/saved_meal.dart';
@@ -19,6 +18,7 @@ import 'package:nutri_mvp/features/nutrition/presentation/screens/day_plan_scree
 import 'package:nutri_mvp/features/nutrition/presentation/screens/record_intake_screen.dart';
 
 import '../../../../_helpers/pump_app.dart';
+import '../../_fakes/diet_fixture.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 import '../../_fakes/fake_hydration_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
@@ -43,36 +43,22 @@ void main() {
   final today = NutritionDay.fromDateTime(DateTime(2026, 7, 25));
 
   late FakeDietPlanSource dietSource;
+  late FakeMealSlotDirectory slotDirectory;
   late FakeNutritionSource nutritionSource;
 
   setUp(() {
     dietSource = FakeDietPlanSource();
     nutritionSource = FakeNutritionSource();
+    slotDirectory = FakeMealSlotDirectory();
   });
 
-  Future<void> saveTemplate() async {
-    final slots = [
-      DietMealSlot(
-        id: 'slot-breakfast',
-        label: 'Breakfast',
-        position: 0,
-        target: target(),
-      ),
-      DietMealSlot(
-        id: 'slot-dinner',
-        label: 'Dinner',
-        position: 1,
-        target: target(),
-      ),
-    ];
-    await dietSource.saveTemplate(
-      DietTemplate(
-        id: 't1',
-        name: 'Plan',
-        dailyTarget: NutritionTarget.sum(slots.map((s) => s.target)),
-        slots: slots,
-      ),
-    );
+  /// Gives the active diet its meals, which is what turns a planned meal's
+  /// slot id back into a label and a position.
+  void saveTemplate() {
+    slotDirectory.slots.addAll([
+      mealSlot(id: 'slot-breakfast', label: 'Breakfast', position: 0),
+      mealSlot(id: 'slot-dinner', label: 'Dinner', position: 1),
+    ]);
   }
 
   Future<void> plan(String id, String slotId) {
@@ -121,6 +107,7 @@ void main() {
       overrides: [
         nutritionSourceProvider.overrideWithValue(nutritionSource),
         dietPlanSourceProvider.overrideWithValue(dietSource),
+        mealSlotDirectoryProvider.overrideWithValue(slotDirectory),
         hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
         todayProvider.overrideWithValue(today),
         savedMealSourceProvider.overrideWithValue(
@@ -144,7 +131,7 @@ void main() {
     testWidgets('lists planned meals in slot order with their labels', (
       tester,
     ) async {
-      await saveTemplate();
+      saveTemplate();
       await plan('pm-dinner', 'slot-dinner');
       await plan('pm-breakfast', 'slot-breakfast');
 
@@ -161,7 +148,7 @@ void main() {
     testWidgets('shows a met meal as on target and an empty one as pending', (
       tester,
     ) async {
-      await saveTemplate();
+      saveTemplate();
       await plan('pm-breakfast', 'slot-breakfast');
       await plan('pm-dinner', 'slot-dinner');
       await log(id: 'e1', plannedMealId: 'pm-breakfast');
@@ -176,7 +163,7 @@ void main() {
     testWidgets('marks the day as partly met when some meals were met', (
       tester,
     ) async {
-      await saveTemplate();
+      saveTemplate();
       await plan('pm-breakfast', 'slot-breakfast');
       await plan('pm-dinner', 'slot-dinner');
       await log(id: 'e1', plannedMealId: 'pm-breakfast');
@@ -189,7 +176,7 @@ void main() {
     testWidgets('logging a planned meal pre-fills the form with its target', (
       tester,
     ) async {
-      await saveTemplate();
+      saveTemplate();
       await plan('pm-breakfast', 'slot-breakfast');
 
       await pumpScreen(tester);
@@ -209,7 +196,7 @@ void main() {
     testWidgets('an intake logged against a meal counts towards it', (
       tester,
     ) async {
-      await saveTemplate();
+      saveTemplate();
       await plan('pm-breakfast', 'slot-breakfast');
 
       await pumpScreen(tester);
@@ -227,7 +214,7 @@ void main() {
     });
 
     testWidgets('separates off-plan intake from the plan', (tester) async {
-      await saveTemplate();
+      saveTemplate();
       await plan('pm-breakfast', 'slot-breakfast');
       await log(id: 'snack', kcal: 210, protein: 5, carbs: 25, fat: 8);
 
@@ -284,7 +271,7 @@ void main() {
       'own row and keeps the entry linked to the plan',
       (tester) async {
         final savedMealSource = FakeSavedMealSource();
-        await saveTemplate();
+        saveTemplate();
         await plan('pm-breakfast', 'slot-breakfast');
         await log(id: 'e1', plannedMealId: 'pm-breakfast');
 

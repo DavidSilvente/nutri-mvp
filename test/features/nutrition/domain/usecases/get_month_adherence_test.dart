@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/core/result.dart';
-import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/planned_meal.dart';
 import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
@@ -12,6 +11,7 @@ import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_target.dart';
 
+import '../../_fakes/diet_fixture.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
 
@@ -35,32 +35,22 @@ void main() {
 
   late FakeDietPlanSource dietSource;
   late FakeNutritionSource nutritionSource;
+  late FakeMealSlotDirectory slotDirectory;
   late GetMonthAdherence useCase;
 
   setUp(() async {
     dietSource = FakeDietPlanSource();
     nutritionSource = FakeNutritionSource();
+    slotDirectory = FakeMealSlotDirectory(
+      slots: [
+        mealSlot(id: 'slot-1', label: 'Lunch', position: 0),
+        mealSlot(id: 'slot-2', label: 'Dinner', position: 1),
+      ],
+    );
     useCase = GetMonthAdherence(
       dietPlanSource: dietSource,
       nutritionSource: nutritionSource,
-    );
-
-    final slots = [
-      DietMealSlot(id: 'slot-1', label: 'Lunch', position: 0, target: target()),
-      DietMealSlot(
-        id: 'slot-2',
-        label: 'Dinner',
-        position: 1,
-        target: target(),
-      ),
-    ];
-    await dietSource.saveTemplate(
-      DietTemplate(
-        id: 't1',
-        name: 'Plan',
-        dailyTarget: NutritionTarget.sum(slots.map((s) => s.target)),
-        slots: slots,
-      ),
+      slotDirectory: slotDirectory,
     );
   });
 
@@ -192,6 +182,7 @@ void main() {
       final failing = GetMonthAdherence(
         dietPlanSource: dietSource,
         nutritionSource: _FailingNutritionSource(),
+        slotDirectory: slotDirectory,
       );
 
       final result = await failing(july, today: today);

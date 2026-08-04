@@ -4,6 +4,7 @@ import '../entities/nutrition_entry.dart';
 import '../entities/planned_meal.dart';
 import '../failures/nutrition_failure.dart';
 import '../ports/diet_plan_source.dart';
+import '../ports/meal_slot_directory.dart';
 import '../ports/nutrition_health_source.dart';
 import '../services/adherence_evaluator.dart';
 import '../services/meal_slot_index.dart';
@@ -68,12 +69,15 @@ class GetMonthAdherence {
   GetMonthAdherence({
     required DietPlanSource dietPlanSource,
     required NutritionHealthSource nutritionSource,
+    required MealSlotDirectory slotDirectory,
     this.tolerance = AdherenceTolerance.standard,
   }) : _dietPlanSource = dietPlanSource,
-       _nutritionSource = nutritionSource;
+       _nutritionSource = nutritionSource,
+       _slotDirectory = slotDirectory;
 
   final DietPlanSource _dietPlanSource;
   final NutritionHealthSource _nutritionSource;
+  final MealSlotDirectory _slotDirectory;
   final AdherenceTolerance tolerance;
 
   Future<Result<MonthAdherence, NutritionFailure>> call(
@@ -83,8 +87,8 @@ class GetMonthAdherence {
     final from = month.firstDay;
     final to = month.lastDay;
 
-    final templatesResult = await _dietPlanSource.listTemplates();
-    if (templatesResult case Err(failure: final failure)) return Err(failure);
+    final slotsResult = await _slotDirectory.activeSlots();
+    if (slotsResult case Err(failure: final failure)) return Err(failure);
 
     final plannedResult = await _dietPlanSource.plannedMealsBetween(from, to);
     if (plannedResult case Err(failure: final failure)) return Err(failure);
@@ -92,7 +96,9 @@ class GetMonthAdherence {
     final entriesResult = await _nutritionSource.entriesBetween(from, to);
     if (entriesResult case Err(failure: final failure)) return Err(failure);
 
-    final index = MealSlotIndex.fromTemplates((templatesResult as Ok).value);
+    // Used for ordering only, so a month whose diet has since been deleted still
+    // evaluates; it just cannot sort its meals by a position it no longer knows.
+    final index = (slotsResult as Ok).value as MealSlotIndex;
     final plannedMeals = (plannedResult as Ok).value as List<PlannedMeal>;
     final entries = (entriesResult as Ok).value as List<NutritionEntry>;
 

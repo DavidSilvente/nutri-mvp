@@ -15,6 +15,7 @@ import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_pr
 import 'package:nutri_mvp/features/nutrition/presentation/screens/day_plan_screen.dart';
 
 import '../../../../_helpers/pump_app.dart';
+import '../../_fakes/diet_fixture.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 import '../../_fakes/fake_hydration_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
@@ -29,9 +30,16 @@ void main() {
   final monday = NutritionDay.fromDateTime(DateTime(2026, 7, 20));
 
   late FakeDietPlanSource dietSource;
+  late FakeMealSlotDirectory slotDirectory;
 
   setUp(() {
     dietSource = FakeDietPlanSource();
+    slotDirectory = FakeMealSlotDirectory(
+      slots: [
+        mealSlot(id: 'slot-breakfast', label: 'Breakfast', position: 0),
+        mealSlot(id: 'slot-dinner', label: 'Dinner', position: 1),
+      ],
+    );
   });
 
   Future<void> saveTemplate() async {
@@ -74,6 +82,7 @@ void main() {
       overrides: [
         nutritionSourceProvider.overrideWithValue(FakeNutritionSource()),
         dietPlanSourceProvider.overrideWithValue(dietSource),
+        mealSlotDirectoryProvider.overrideWithValue(slotDirectory),
         hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
         todayProvider.overrideWithValue(monday),
       ],

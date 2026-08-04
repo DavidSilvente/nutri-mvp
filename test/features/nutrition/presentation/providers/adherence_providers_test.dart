@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/core/health_failure_exception.dart';
 import 'package:nutri_mvp/core/result.dart';
-import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/planned_meal.dart';
 import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
@@ -17,6 +16,7 @@ import 'package:nutri_mvp/features/nutrition/presentation/providers/adherence_pr
 import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart';
 
+import '../../_fakes/diet_fixture.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
 
@@ -30,22 +30,17 @@ void main() {
   final today = NutritionDay.fromDateTime(DateTime(2026, 7, 25));
 
   late FakeDietPlanSource dietSource;
+  late FakeMealSlotDirectory slotDirectory;
   late FakeNutritionSource nutritionSource;
 
   setUp(() async {
     dietSource = FakeDietPlanSource();
     nutritionSource = FakeNutritionSource();
 
-    final slots = [
-      DietMealSlot(id: 'slot-1', label: 'Lunch', position: 0, target: target()),
-    ];
-    await dietSource.saveTemplate(
-      DietTemplate(
-        id: 't1',
-        name: 'Plan',
-        dailyTarget: NutritionTarget.sum(slots.map((s) => s.target)),
-        slots: slots,
-      ),
+    slotDirectory = FakeMealSlotDirectory(
+      slots: [
+        mealSlot(id: 'slot-1', label: 'Lunch', position: 0),
+      ],
     );
     await dietSource.savePlannedMeal(
       PlannedMeal(
@@ -62,6 +57,7 @@ void main() {
       overrides: [
         nutritionSourceProvider.overrideWithValue(nutritionSource),
         dietPlanSourceProvider.overrideWithValue(dietSource),
+        mealSlotDirectoryProvider.overrideWithValue(slotDirectory),
         todayProvider.overrideWithValue(today),
         ...overrides,
       ],

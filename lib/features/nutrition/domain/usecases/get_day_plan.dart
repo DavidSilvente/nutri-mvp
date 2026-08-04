@@ -4,6 +4,7 @@ import '../entities/nutrition_entry.dart';
 import '../entities/planned_meal.dart';
 import '../failures/nutrition_failure.dart';
 import '../ports/diet_plan_source.dart';
+import '../ports/meal_slot_directory.dart';
 import '../ports/nutrition_health_source.dart';
 import '../services/adherence_evaluator.dart';
 import '../services/meal_slot_index.dart';
@@ -86,24 +87,32 @@ class DayPlan {
 /// (diet source) and reality (nutrition source). The [today] argument is
 /// supplied by the caller rather than read from the clock, so the result is
 /// deterministic and past days can be evaluated without drift.
+///
+/// Meal names and ordering come from the active diet, through
+/// [MealSlotDirectory]. A planned meal only stores a slot id and the target it
+/// was committed to, so the diet is what turns it back into "Breakfast, first
+/// meal of the day".
 class GetDayPlan {
   GetDayPlan({
     required DietPlanSource dietPlanSource,
     required NutritionHealthSource nutritionSource,
+    required MealSlotDirectory slotDirectory,
     this.tolerance = AdherenceTolerance.standard,
   }) : _dietPlanSource = dietPlanSource,
-       _nutritionSource = nutritionSource;
+       _nutritionSource = nutritionSource,
+       _slotDirectory = slotDirectory;
 
   final DietPlanSource _dietPlanSource;
   final NutritionHealthSource _nutritionSource;
+  final MealSlotDirectory _slotDirectory;
   final AdherenceTolerance tolerance;
 
   Future<Result<DayPlan, NutritionFailure>> call(
     NutritionDay day, {
     required NutritionDay today,
   }) async {
-    final templatesResult = await _dietPlanSource.listTemplates();
-    if (templatesResult case Err(failure: final failure)) return Err(failure);
+    final slotsResult = await _slotDirectory.activeSlots();
+    if (slotsResult case Err(failure: final failure)) return Err(failure);
 
     final plannedResult = await _dietPlanSource.listPlannedMeals(day: day);
     if (plannedResult case Err(failure: final failure)) return Err(failure);
@@ -111,9 +120,7 @@ class GetDayPlan {
     final entriesResult = await _nutritionSource.entriesOn(day);
     if (entriesResult case Err(failure: final failure)) return Err(failure);
 
-    final index = MealSlotIndex.fromTemplates(
-      (templatesResult as Ok).value,
-    );
+    final index = (slotsResult as Ok).value as MealSlotIndex;
     final plannedMeals = (plannedResult as Ok).value as List<PlannedMeal>;
     final entries = (entriesResult as Ok).value as List<NutritionEntry>;
 
