@@ -22,22 +22,26 @@ class FoodTableCodec {
     try {
       raw = jsonDecode(source);
     } on FormatException catch (error) {
-      return Err(MalformedPlanFailure('food table is not valid JSON: '
-          '${error.message}'));
+      return Err(
+        MalformedPlanFailure(
+          'food table is not valid JSON: '
+          '${error.message}',
+        ),
+      );
     }
 
     try {
       final root = JsonReader.object(raw, 'food table');
       final version = root.integer('schemaVersion');
       if (version != supportedSchemaVersion) {
-        return Err(MalformedPlanFailure(
-          'unsupported food table schemaVersion $version, '
-          'expected $supportedSchemaVersion',
-        ));
+        return Err(
+          MalformedPlanFailure(
+            'unsupported food table schemaVersion $version, '
+            'expected $supportedSchemaVersion',
+          ),
+        );
       }
-      return Ok([
-        for (final entry in root.objectList('foods')) _food(entry),
-      ]);
+      return Ok([for (final entry in root.objectList('foods')) _food(entry)]);
     } on JsonReadException catch (error) {
       return Err(MalformedPlanFailure(error.message));
     }

@@ -26,7 +26,8 @@ String draftFromDocument(String document) {
     for (final meal in (group as Map)['meals'] as List) {
       for (final section in (meal as Map)['sections'] as List) {
         for (final component in (section as Map)['components'] as List) {
-          for (final alternative in (component as Map)['alternatives'] as List) {
+          for (final alternative
+              in (component as Map)['alternatives'] as List) {
             final option = alternative as Map<String, dynamic>;
             final foodId = option['foodRef'] as String;
             if (recipeIds.contains(foodId)) continue;
@@ -75,7 +76,8 @@ List<String> originalFoodIds(String document) {
     for (final meal in (group as Map)['meals'] as List) {
       for (final section in (meal as Map)['sections'] as List) {
         for (final component in (section as Map)['components'] as List) {
-          for (final alternative in (component as Map)['alternatives'] as List) {
+          for (final alternative
+              in (component as Map)['alternatives'] as List) {
             final foodId = (alternative as Map)['foodRef'] as String;
             if (recipeIds.contains(foodId)) continue;
             if (!ordered.contains(foodId)) ordered.add(foodId);

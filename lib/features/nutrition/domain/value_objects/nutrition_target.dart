@@ -58,6 +58,5 @@ class NutritionTarget {
   int get hashCode => Object.hash(energy, macros);
 
   @override
-  String toString() =>
-      'NutritionTarget(energy: $energy, macros: $macros)';
+  String toString() => 'NutritionTarget(energy: $energy, macros: $macros)';
 }

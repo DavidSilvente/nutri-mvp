@@ -11,10 +11,8 @@ import '../../domain/ports/diet_pdf_importer.dart';
 /// A seam over `Printing.raster`, which is a static call into a native plugin.
 /// Injecting it is what lets the page mapping, the cap, and the failure paths be
 /// tested without a device.
-typedef PdfRasterStream = Stream<PdfRaster> Function(
-  Uint8List bytes,
-  double dpi,
-);
+typedef PdfRasterStream =
+    Stream<PdfRaster> Function(Uint8List bytes, double dpi);
 
 /// Rasterizes a PDF with the `printing` plugin.
 ///
@@ -26,7 +24,7 @@ typedef PdfRasterStream = Stream<PdfRaster> Function(
 /// widget tree involved, and it covers every platform the app targets.
 class PrintingPdfRasterizer implements PdfPageRasterizer {
   PrintingPdfRasterizer({PdfRasterStream? raster, this.dpi = defaultDpi})
-      : _raster = raster ?? _printingRaster;
+    : _raster = raster ?? _printingRaster;
 
   final PdfRasterStream _raster;
 
@@ -53,9 +51,7 @@ class PrintingPdfRasterizer implements PdfPageRasterizer {
     if (!_looksLikePdf(pdfBytes)) {
       // Worth telling apart from a render failure: "you picked the wrong file"
       // and "this PDF is broken" have different fixes.
-      return const Err(
-        MalformedPlanFailure('that file is not a PDF'),
-      );
+      return const Err(MalformedPlanFailure('that file is not a PDF'));
     }
 
     final pages = <PdfPageImage>[];
@@ -63,11 +59,13 @@ class PrintingPdfRasterizer implements PdfPageRasterizer {
       // `take` stops consuming once the cap is reached, so a mistakenly picked
       // 300-page file does not turn into a 300-image extraction request.
       await for (final raster in _raster(pdfBytes, dpi).take(maxPages)) {
-        pages.add(PdfPageImage(
-          pageNumber: pages.length + 1,
-          bytes: await raster.toPng(),
-          mimeType: 'image/png',
-        ));
+        pages.add(
+          PdfPageImage(
+            pageNumber: pages.length + 1,
+            bytes: await raster.toPng(),
+            mimeType: 'image/png',
+          ),
+        );
       }
     } on Object catch (error) {
       // Plugin failures arrive as platform exceptions, decoding errors, or

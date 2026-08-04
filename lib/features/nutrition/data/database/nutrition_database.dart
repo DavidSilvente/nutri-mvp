@@ -32,10 +32,10 @@ class NutritionEntries extends Table {
   /// the historical fact that food was eaten — the entry survives and simply
   /// stops counting towards adherence.
   TextColumn get plannedMealId => text().nullable().references(
-        PlannedMeals,
-        #id,
-        onDelete: KeyAction.setNull,
-      )();
+    PlannedMeals,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -99,11 +99,8 @@ class PlannedMeals extends Table {
 @DataClassName('MealSubstituteRow')
 class MealSubstitutes extends Table {
   TextColumn get id => text()();
-  TextColumn get plannedMealId => text().references(
-        PlannedMeals,
-        #id,
-        onDelete: KeyAction.cascade,
-      )();
+  TextColumn get plannedMealId =>
+      text().references(PlannedMeals, #id, onDelete: KeyAction.cascade)();
   TextColumn get label => text()();
 
   RealColumn get energyKcal => real()();
@@ -133,11 +130,8 @@ class MenuPhotos extends Table {
 @DataClassName('MenuItemRow')
 class MenuItems extends Table {
   TextColumn get id => text()();
-  TextColumn get photoId => text().references(
-        MenuPhotos,
-        #id,
-        onDelete: KeyAction.cascade,
-      )();
+  TextColumn get photoId =>
+      text().references(MenuPhotos, #id, onDelete: KeyAction.cascade)();
   TextColumn get label => text()();
 
   RealColumn get energyKcal => real()();
@@ -176,8 +170,7 @@ class DietPlanRecords extends Table {
   /// Headline daily energy the source plan advertised, for display only.
   RealColumn get declaredDailyEnergyKcal => real().nullable()();
 
-  BoolColumn get isDefault =>
-      boolean().withDefault(const Constant(false))();
+  BoolColumn get isDefault => boolean().withDefault(const Constant(false))();
 
   /// Where the plan came from, e.g. the imported file name.
   TextColumn get sourceLabel => text().nullable()();
@@ -243,17 +236,19 @@ class ComponentSelections extends Table {
 /// One physical database file (legacy [NutritionEntries] and
 /// [HydrationEntries], the diet/menu tables introduced in v3, and the
 /// saved-meal catalogue introduced in v6).
-@DriftDatabase(tables: [
-  NutritionEntries,
-  HydrationEntries,
-  PlannedMeals,
-  MealSubstitutes,
-  MenuPhotos,
-  MenuItems,
-  DietPlanRecords,
-  ComponentSelections,
-  SavedMeals,
-])
+@DriftDatabase(
+  tables: [
+    NutritionEntries,
+    HydrationEntries,
+    PlannedMeals,
+    MealSubstitutes,
+    MenuPhotos,
+    MenuItems,
+    DietPlanRecords,
+    ComponentSelections,
+    SavedMeals,
+  ],
+)
 class NutritionDatabase extends _$NutritionDatabase {
   NutritionDatabase(super.e);
 

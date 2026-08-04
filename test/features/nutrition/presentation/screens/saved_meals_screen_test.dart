@@ -53,8 +53,9 @@ Future<void> _fillAndSubmit(
 
 void main() {
   group('SavedMealsScreen', () {
-    testWidgets('shows an empty message with a CTA when there are no meals',
-        (tester) async {
+    testWidgets('shows an empty message with a CTA when there are no meals', (
+      tester,
+    ) async {
       await pumpApp(
         tester,
         const SavedMealsScreen(),
@@ -84,8 +85,9 @@ void main() {
       expect(find.text('P 20 · C 30 · F 10'), findsOneWidget);
     });
 
-    testWidgets('creating a meal through the dialog adds it to the list',
-        (tester) async {
+    testWidgets('creating a meal through the dialog adds it to the list', (
+      tester,
+    ) async {
       await pumpApp(
         tester,
         const SavedMealsScreen(),
@@ -123,27 +125,26 @@ void main() {
       expect(find.text('No saved meals yet'), findsOneWidget);
     });
 
-    testWidgets(
-      'cancelling the delete confirmation keeps the meal',
-      (tester) async {
-        final fake = FakeSavedMealSource();
-        await fake.saveMeal(_meal(id: 'm1', name: 'Chicken salad'));
+    testWidgets('cancelling the delete confirmation keeps the meal', (
+      tester,
+    ) async {
+      final fake = FakeSavedMealSource();
+      await fake.saveMeal(_meal(id: 'm1', name: 'Chicken salad'));
 
-        await pumpApp(
-          tester,
-          const SavedMealsScreen(),
-          overrides: [savedMealSourceProvider.overrideWithValue(fake)],
-        );
-        await tester.pumpAndSettle();
+      await pumpApp(
+        tester,
+        const SavedMealsScreen(),
+        overrides: [savedMealSourceProvider.overrideWithValue(fake)],
+      );
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.byKey(const Key('deleteSavedMeal-m1')));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Cancel'));
-        await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('deleteSavedMeal-m1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
 
-        expect(find.text('Chicken salad'), findsOneWidget);
-      },
-    );
+      expect(find.text('Chicken salad'), findsOneWidget);
+    });
 
     testWidgets(
       'creating a duplicate (trimmed/case-insensitive) name keeps the dialog '
@@ -215,41 +216,38 @@ void main() {
       },
     );
 
-    testWidgets(
-      'editing macros without renaming updates the meal without a '
-      'false-positive conflict',
-      (tester) async {
-        final fake = FakeSavedMealSource();
-        await fake.saveMeal(_meal(id: 'm1', name: 'Chicken salad'));
+    testWidgets('editing macros without renaming updates the meal without a '
+        'false-positive conflict', (tester) async {
+      final fake = FakeSavedMealSource();
+      await fake.saveMeal(_meal(id: 'm1', name: 'Chicken salad'));
 
-        await pumpApp(
-          tester,
-          const SavedMealsScreen(),
-          overrides: [savedMealSourceProvider.overrideWithValue(fake)],
-        );
-        await tester.pumpAndSettle();
+      await pumpApp(
+        tester,
+        const SavedMealsScreen(),
+        overrides: [savedMealSourceProvider.overrideWithValue(fake)],
+      );
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.byKey(const Key('editSavedMeal-m1')));
-        await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('editSavedMeal-m1')));
+      await tester.pumpAndSettle();
 
-        // Pre-filled with the existing values.
-        final nameField = tester.widget<TextFormField>(
-          find.byKey(const Key('savedMealNameField')),
-        );
-        expect(nameField.controller?.text, 'Chicken salad');
+      // Pre-filled with the existing values.
+      final nameField = tester.widget<TextFormField>(
+        find.byKey(const Key('savedMealNameField')),
+      );
+      expect(nameField.controller?.text, 'Chicken salad');
 
-        await tester.enterText(
-          find.byKey(const Key('savedMealEnergyField')),
-          '500',
-        );
-        await tester.tap(find.byKey(const Key('saveSavedMealButton')));
-        await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('savedMealEnergyField')),
+        '500',
+      );
+      await tester.tap(find.byKey(const Key('saveSavedMealButton')));
+      await tester.pumpAndSettle();
 
-        expect(find.byKey(const Key('savedMealNameField')), findsNothing);
-        expect(find.text('500 kcal'), findsOneWidget);
-        expect(find.text('Chicken salad'), findsOneWidget);
-      },
-    );
+      expect(find.byKey(const Key('savedMealNameField')), findsNothing);
+      expect(find.text('500 kcal'), findsOneWidget);
+      expect(find.text('Chicken salad'), findsOneWidget);
+    });
 
     testWidgets(
       'renaming a meal to another existing meal\'s (trimmed/case-insensitive) '
@@ -291,32 +289,31 @@ void main() {
       },
     );
 
-    testWidgets(
-      'a name filter narrows the list case-insensitively',
-      (tester) async {
-        final fake = FakeSavedMealSource();
-        await fake.saveMeal(_meal(id: 'm1', name: 'Chicken salad'));
-        await fake.saveMeal(_meal(id: 'm2', name: 'Tuna bowl'));
+    testWidgets('a name filter narrows the list case-insensitively', (
+      tester,
+    ) async {
+      final fake = FakeSavedMealSource();
+      await fake.saveMeal(_meal(id: 'm1', name: 'Chicken salad'));
+      await fake.saveMeal(_meal(id: 'm2', name: 'Tuna bowl'));
 
-        await pumpApp(
-          tester,
-          const SavedMealsScreen(),
-          overrides: [savedMealSourceProvider.overrideWithValue(fake)],
-        );
-        await tester.pumpAndSettle();
+      await pumpApp(
+        tester,
+        const SavedMealsScreen(),
+        overrides: [savedMealSourceProvider.overrideWithValue(fake)],
+      );
+      await tester.pumpAndSettle();
 
-        expect(find.text('Chicken salad'), findsOneWidget);
-        expect(find.text('Tuna bowl'), findsOneWidget);
+      expect(find.text('Chicken salad'), findsOneWidget);
+      expect(find.text('Tuna bowl'), findsOneWidget);
 
-        await tester.enterText(
-          find.byKey(const Key('savedMealNameFilter')),
-          'CHICK',
-        );
-        await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('savedMealNameFilter')),
+        'CHICK',
+      );
+      await tester.pumpAndSettle();
 
-        expect(find.text('Chicken salad'), findsOneWidget);
-        expect(find.text('Tuna bowl'), findsNothing);
-      },
-    );
+      expect(find.text('Chicken salad'), findsOneWidget);
+      expect(find.text('Tuna bowl'), findsNothing);
+    });
   });
 }

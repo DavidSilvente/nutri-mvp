@@ -32,11 +32,13 @@ class FakeDietPlanSource implements DietPlanSource {
     NutritionDay to,
   ) async {
     if (from.epochDay > to.epochDay) return const Ok([]);
-    final matches = _plannedMeals.values.where((meal) {
-      final day = meal.day;
-      if (day == null) return false;
-      return day.epochDay >= from.epochDay && day.epochDay <= to.epochDay;
-    }).toList(growable: false);
+    final matches = _plannedMeals.values
+        .where((meal) {
+          final day = meal.day;
+          if (day == null) return false;
+          return day.epochDay >= from.epochDay && day.epochDay <= to.epochDay;
+        })
+        .toList(growable: false);
     return Ok(matches);
   }
 
@@ -46,10 +48,7 @@ class FakeDietPlanSource implements DietPlanSource {
   ) async {
     if (meal.day != null) {
       final duplicate = _plannedMeals.values.any(
-        (m) =>
-            m.id != meal.id &&
-            m.slotId == meal.slotId &&
-            m.day == meal.day,
+        (m) => m.id != meal.id && m.slotId == meal.slotId && m.day == meal.day,
       );
       if (duplicate) {
         return Err(

@@ -211,11 +211,8 @@ class AdherenceEvaluator {
   }) {
     final meals = plannedMeals
         .map(
-          (meal) => evaluateMeal(
-            meal: meal,
-            entries: entries,
-            tolerance: tolerance,
-          ),
+          (meal) =>
+              evaluateMeal(meal: meal, entries: entries, tolerance: tolerance),
         )
         .toList(growable: false);
 

@@ -83,10 +83,10 @@ void main() {
       await extractorSaying(document).extract(pages(3));
 
       final body = jsonDecode(sent!.body) as Map<String, dynamic>;
-      final parts =
-          ((body['contents'] as List).single as Map)['parts'] as List;
-      final images =
-          parts.where((part) => part['inline_data'] != null).toList();
+      final parts = ((body['contents'] as List).single as Map)['parts'] as List;
+      final images = parts
+          .where((part) => part['inline_data'] != null)
+          .toList();
 
       expect(images, hasLength(3));
       expect(images.first['inline_data']['mime_type'], 'image/png');
@@ -104,17 +104,17 @@ void main() {
 
       expect(sent!.headers['x-goog-api-key'], 'test-key');
       expect(sent!.url.query, isEmpty);
-      expect(sent!.url.toString(), contains('gemini-3.6-flash:generateContent'));
+      expect(
+        sent!.url.toString(),
+        contains('gemini-3.6-flash:generateContent'),
+      );
     });
 
     test('constrains the reply to JSON', () async {
       await extractorSaying(document).extract(pages());
 
       final body = jsonDecode(sent!.body) as Map<String, dynamic>;
-      expect(
-        body['generationConfig']['responseMimeType'],
-        'application/json',
-      );
+      expect(body['generationConfig']['responseMimeType'], 'application/json');
     });
 
     test('reads the plan with the same brief as the other adapter', () async {
@@ -218,8 +218,9 @@ void main() {
 
     test('reports an HTTP error as a storage failure', () async {
       final failure = failureOf(
-        await extractorReturning((_) => http.Response('nope', 429))
-            .extract(pages()),
+        await extractorReturning(
+          (_) => http.Response('nope', 429),
+        ).extract(pages()),
       );
 
       expect(failure, isA<StorageFailure>());
@@ -241,8 +242,9 @@ void main() {
     test('reports a reply that is not a message', () async {
       expect(
         failureOf(
-          await extractorReturning((_) => http.Response('not json', 200))
-              .extract(pages()),
+          await extractorReturning(
+            (_) => http.Response('not json', 200),
+          ).extract(pages()),
         ),
         isA<StorageFailure>(),
       );

@@ -83,7 +83,10 @@ void main() {
 
     test('a new diet becomes the active one', () async {
       final stored = ok(
-        await useCase(name: 'First', slots: [mealSlot(id: 's1')]),
+        await useCase(
+          name: 'First',
+          slots: [mealSlot(id: 's1')],
+        ),
       );
 
       expect(stored.isDefault, isTrue);
@@ -119,8 +122,16 @@ void main() {
 
     test('editing does not switch the user off the diet they follow', () async {
       // Two diets, the second active. Editing the FIRST must not promote it.
-      final first = ok(await useCase(name: 'A', slots: [mealSlot(id: 's1')]));
-      await useCase(name: 'B', slots: [mealSlot(id: 's2')]);
+      final first = ok(
+        await useCase(
+          name: 'A',
+          slots: [mealSlot(id: 's1')],
+        ),
+      );
+      await useCase(
+        name: 'B',
+        slots: [mealSlot(id: 's2')],
+      );
 
       await useCase(
         planId: first.id,
@@ -148,7 +159,10 @@ void main() {
 
     test('refuses a blank name', () async {
       final failure = err(
-        await useCase(name: '   ', slots: [mealSlot(id: 's1')]),
+        await useCase(
+          name: '   ',
+          slots: [mealSlot(id: 's1')],
+        ),
       );
 
       expect(failure, isA<MalformedPlanFailure>());
@@ -172,10 +186,16 @@ void main() {
     });
 
     test('surfaces the name clash the store reports', () async {
-      await useCase(name: 'Cut', slots: [mealSlot(id: 's1')]);
+      await useCase(
+        name: 'Cut',
+        slots: [mealSlot(id: 's1')],
+      );
 
       final failure = err(
-        await useCase(name: 'Cut', slots: [mealSlot(id: 's2')]),
+        await useCase(
+          name: 'Cut',
+          slots: [mealSlot(id: 's2')],
+        ),
       );
 
       expect(failure, isA<ConflictFailure>());

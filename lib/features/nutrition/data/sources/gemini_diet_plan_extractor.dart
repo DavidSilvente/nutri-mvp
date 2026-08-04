@@ -25,8 +25,8 @@ class GeminiDietPlanExtractor implements DietPlanExtractor {
     this.model = defaultModel,
     this.maxOutputTokens = 32000,
     this.timeout = const Duration(minutes: 5),
-  })  : _apiKey = apiKey,
-        _client = client ?? http.Client();
+  }) : _apiKey = apiKey,
+       _client = client ?? http.Client();
 
   final String _apiKey;
   final http.Client _client;
@@ -46,24 +46,25 @@ class GeminiDietPlanExtractor implements DietPlanExtractor {
 
   /// Passed at build time (`--dart-define=GEMINI_API_KEY=...`) so it never
   /// reaches the repository.
-  static const String apiKeyFromEnvironment =
-      String.fromEnvironment('GEMINI_API_KEY');
+  static const String apiKeyFromEnvironment = String.fromEnvironment(
+    'GEMINI_API_KEY',
+  );
 
   static bool get isConfigured => apiKeyFromEnvironment.isNotEmpty;
 
   Uri get _endpoint => Uri.parse(
-        'https://generativelanguage.googleapis.com/v1beta/models/'
-        '$model:generateContent',
-      );
+    'https://generativelanguage.googleapis.com/v1beta/models/'
+    '$model:generateContent',
+  );
 
   @override
   Future<Result<String, NutritionFailure>> extract(
     List<PdfPageImage> pages,
   ) async {
     if (_apiKey.isEmpty) {
-      return const Err(StorageFailure(
-        'no API key configured for reading diet PDFs',
-      ));
+      return const Err(
+        StorageFailure('no API key configured for reading diet PDFs'),
+      );
     }
     if (pages.isEmpty) {
       return const Err(MalformedPlanFailure('there are no pages to read'));
@@ -84,15 +85,21 @@ class GeminiDietPlanExtractor implements DietPlanExtractor {
           )
           .timeout(timeout);
     } on Object catch (error) {
-      return Err(StorageFailure('could not reach the extraction service: '
-          '$error'));
+      return Err(
+        StorageFailure(
+          'could not reach the extraction service: '
+          '$error',
+        ),
+      );
     }
 
     if (response.statusCode != 200) {
-      return Err(StorageFailure(
-        'the extraction service refused the request '
-        '(HTTP ${response.statusCode})',
-      ));
+      return Err(
+        StorageFailure(
+          'the extraction service refused the request '
+          '(HTTP ${response.statusCode})',
+        ),
+      );
     }
 
     return _readDocument(response.body);
@@ -117,7 +124,8 @@ class GeminiDietPlanExtractor implements DietPlanExtractor {
                 },
               },
             {
-              'text': 'These are pages 1 to ${pages.length} of one diet plan. '
+              'text':
+                  'These are pages 1 to ${pages.length} of one diet plan. '
                   'Return the plan as a single JSON document.',
             },
           ],
@@ -142,58 +150,66 @@ class GeminiDietPlanExtractor implements DietPlanExtractor {
     try {
       decoded = jsonDecode(responseBody);
     } on FormatException catch (error) {
-      return Err(StorageFailure(
-        'the extraction service returned a malformed reply: ${error.message}',
-      ));
+      return Err(
+        StorageFailure(
+          'the extraction service returned a malformed reply: ${error.message}',
+        ),
+      );
     }
     if (decoded is! Map) {
-      return const Err(StorageFailure(
-        'the extraction service returned an unexpected reply',
-      ));
+      return const Err(
+        StorageFailure('the extraction service returned an unexpected reply'),
+      );
     }
 
     // Blocked before generating anything.
     final feedback = decoded['promptFeedback'];
     if (feedback is Map && feedback['blockReason'] != null) {
-      return Err(MalformedPlanFailure(
-        'the model declined to read this document '
-        '(${feedback['blockReason']})',
-      ));
+      return Err(
+        MalformedPlanFailure(
+          'the model declined to read this document '
+          '(${feedback['blockReason']})',
+        ),
+      );
     }
 
     final candidates = decoded['candidates'];
     if (candidates is! List || candidates.isEmpty) {
-      return const Err(StorageFailure(
-        'the extraction service returned no content',
-      ));
+      return const Err(
+        StorageFailure('the extraction service returned no content'),
+      );
     }
     final candidate = candidates.first;
     if (candidate is! Map) {
-      return const Err(StorageFailure(
-        'the extraction service returned an unexpected reply',
-      ));
+      return const Err(
+        StorageFailure('the extraction service returned an unexpected reply'),
+      );
     }
 
     switch (candidate['finishReason']) {
       case 'MAX_TOKENS':
-        return const Err(MalformedPlanFailure(
-          'the plan did not fit in one reply; try importing fewer pages',
-        ));
+        return const Err(
+          MalformedPlanFailure(
+            'the plan did not fit in one reply; try importing fewer pages',
+          ),
+        );
       case 'SAFETY':
       case 'RECITATION':
       case 'PROHIBITED_CONTENT':
-        return Err(MalformedPlanFailure(
-          'the model declined to read this document '
-          '(${candidate['finishReason']})',
-        ));
+        return Err(
+          MalformedPlanFailure(
+            'the model declined to read this document '
+            '(${candidate['finishReason']})',
+          ),
+        );
     }
 
     final content = candidate['content'];
     final parts = content is Map ? content['parts'] : null;
     if (parts is! List) {
-      return const Err(MalformedPlanFailure(
-        'the model answered without a plan document',
-      ));
+      return const Err(
+        MalformedPlanFailure('the model answered without a plan document'),
+      );
     }
 
     final text = StringBuffer();
@@ -201,9 +217,9 @@ class GeminiDietPlanExtractor implements DietPlanExtractor {
       if (part is Map && part['text'] is String) text.write(part['text']);
     }
     if (text.isEmpty) {
-      return const Err(MalformedPlanFailure(
-        'the model answered without a plan document',
-      ));
+      return const Err(
+        MalformedPlanFailure('the model answered without a plan document'),
+      );
     }
 
     return Ok(text.toString().trim());

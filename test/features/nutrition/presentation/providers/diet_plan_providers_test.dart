@@ -13,10 +13,7 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      expect(
-        container.read(dietPlanSourceProvider),
-        isA<SqlDietPlanSource>(),
-      );
+      expect(container.read(dietPlanSourceProvider), isA<SqlDietPlanSource>());
     });
   });
 }

@@ -34,10 +34,7 @@ class MealAlternativesSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final query = (
-      plannedMealId: detail.meal.id,
-      target: detail.target,
-    );
+    final query = (plannedMealId: detail.meal.id, target: detail.target);
     final rankedAsync = ref.watch(rankedSubstitutesProvider(query));
 
     return DraggableScrollableSheet(
@@ -154,9 +151,7 @@ class MealAlternativesSheet extends ConsumerWidget {
     );
     if (created == null) return;
 
-    await ref
-        .read(dietPlanControllerProvider.notifier)
-        .saveSubstitute(created);
+    await ref.read(dietPlanControllerProvider.notifier).saveSubstitute(created);
   }
 }
 
@@ -237,10 +232,7 @@ class _AlternativeCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    ranked.label,
-                    style: theme.textTheme.titleMedium,
-                  ),
+                  child: Text(ranked.label, style: theme.textTheme.titleMedium),
                 ),
                 if (isClosest)
                   Container(

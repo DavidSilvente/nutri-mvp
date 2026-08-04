@@ -86,9 +86,7 @@ class ApplyDietToDays {
       }
     }
 
-    return Ok(
-      ApplyDietOutcome(mealsWritten: written, skippedDays: skipped),
-    );
+    return Ok(ApplyDietOutcome(mealsWritten: written, skippedDays: skipped));
   }
 
   /// Removes every planned meal this use case would have created for [days].
@@ -117,8 +115,6 @@ class ApplyDietToDays {
       }
     }
 
-    return Ok(
-      ApplyDietOutcome(mealsWritten: removed, skippedDays: skipped),
-    );
+    return Ok(ApplyDietOutcome(mealsWritten: removed, skippedDays: skipped));
   }
 }

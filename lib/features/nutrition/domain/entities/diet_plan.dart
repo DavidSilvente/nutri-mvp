@@ -132,8 +132,7 @@ class DietPlan {
   }
 
   /// The group that applies on [day].
-  DietPlanDayGroup? groupForDate(DateTime day) =>
-      groupForWeekday(day.weekday);
+  DietPlanDayGroup? groupForDate(DateTime day) => groupForWeekday(day.weekday);
 
   /// Whether every weekday is covered by some group.
   bool get coversWholeWeek {

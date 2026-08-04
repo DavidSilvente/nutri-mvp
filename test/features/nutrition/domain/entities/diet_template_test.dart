@@ -103,34 +103,37 @@ void main() {
       );
     });
 
-    test('accepts slot targets within the 0.01 tolerance of the daily target', () {
-      final almostDaily = NutritionTarget(
-        energy: Energy(kcal: 1500.005),
-        macros: Macros(proteinG: 90.005, carbsG: 139.995, fatG: 50),
-      );
+    test(
+      'accepts slot targets within the 0.01 tolerance of the daily target',
+      () {
+        final almostDaily = NutritionTarget(
+          energy: Energy(kcal: 1500.005),
+          macros: Macros(proteinG: 90.005, carbsG: 139.995, fatG: 50),
+        );
 
-      final template = DietTemplate(
-        id: 'template-1',
-        name: 'Cut-A',
-        dailyTarget: almostDaily,
-        slots: [
-          DietMealSlot(
-            id: 'slot-1',
-            label: 'Breakfast',
-            position: 0,
-            target: breakfastTarget,
-          ),
-          DietMealSlot(
-            id: 'slot-2',
-            label: 'Lunch',
-            position: 1,
-            target: lunchTarget,
-          ),
-        ],
-      );
+        final template = DietTemplate(
+          id: 'template-1',
+          name: 'Cut-A',
+          dailyTarget: almostDaily,
+          slots: [
+            DietMealSlot(
+              id: 'slot-1',
+              label: 'Breakfast',
+              position: 0,
+              target: breakfastTarget,
+            ),
+            DietMealSlot(
+              id: 'slot-2',
+              label: 'Lunch',
+              position: 1,
+              target: lunchTarget,
+            ),
+          ],
+        );
 
-      expect(template.slots, hasLength(2));
-    });
+        expect(template.slots, hasLength(2));
+      },
+    );
 
     test('two templates with the same fields are equal', () {
       final a = DietTemplate(

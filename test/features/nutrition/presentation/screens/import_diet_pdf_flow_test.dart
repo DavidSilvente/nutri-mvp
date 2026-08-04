@@ -96,7 +96,10 @@ void main() {
     store = FakeDietPlanStore();
   });
 
-  Future<void> openLibrary(WidgetTester tester, {bool configured = true}) async {
+  Future<void> openLibrary(
+    WidgetTester tester, {
+    bool configured = true,
+  }) async {
     await tester.binding.setSurfaceSize(const Size(1000, 2000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -269,7 +272,9 @@ void main() {
     testWidgets('says the plan could not be read when extraction fails', (
       tester,
     ) async {
-      extractor.failWith = const MalformedPlanFailure('the model returned prose');
+      extractor.failWith = const MalformedPlanFailure(
+        'the model returned prose',
+      );
       await openLibrary(tester);
 
       await tester.tap(find.byKey(const Key('importDietPdfButton')));

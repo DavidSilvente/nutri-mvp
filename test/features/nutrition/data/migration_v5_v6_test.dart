@@ -157,16 +157,17 @@ void main() {
       expect(await db.select(db.savedMeals).get(), isEmpty);
     });
 
-    test('a fresh v6 database has the saved_meals table from the start',
-        () async {
-      final db = NutritionDatabase(NativeDatabase.memory());
-      addTearDown(db.close);
-
-      expect(await db.select(db.savedMeals).get(), isEmpty);
-    });
-
     test(
-        'a v1 -> v6 pass keeps nutrition_entries intact '
+      'a fresh v6 database has the saved_meals table from the start',
+      () async {
+        final db = NutritionDatabase(NativeDatabase.memory());
+        addTearDown(db.close);
+
+        expect(await db.select(db.savedMeals).get(), isEmpty);
+      },
+    );
+
+    test('a v1 -> v6 pass keeps nutrition_entries intact '
         '(guards the newColumns trap)', () async {
       // Hand-written v1 DDL: exactly what schemaVersion 1 produced, including
       // the since-removed `water_ml` column and no `planned_meal_id` column

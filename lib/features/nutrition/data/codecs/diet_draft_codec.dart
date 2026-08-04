@@ -54,22 +54,28 @@ class DietDraftCodec implements DietPlanDraftCodec {
           for (final entry in diet.objectList(pendingFoodsKey)) {
             final ref = entry.string('ref');
             if (!seen.add(ref)) {
-              return Err(MalformedPlanFailure(
-                'draft.diet.$pendingFoodsKey: duplicate ref "$ref"',
-              ));
+              return Err(
+                MalformedPlanFailure(
+                  'draft.diet.$pendingFoodsKey: duplicate ref "$ref"',
+                ),
+              );
             }
-            foods.add(PendingFood(
-              ref: ref,
-              extracted: ExtractedFood(
-                rawText: entry.string('rawText'),
-                canonicalName: entry.string('canonicalName'),
-                preparation: entry.string('preparation'),
-                grams: entry.number('grams'),
-                count: entry.numberOrNull('count'),
-                unit: entry.stringOrNull('unit'),
-                brandNormalizedFrom: entry.stringOrNull('brandNormalizedFrom'),
+            foods.add(
+              PendingFood(
+                ref: ref,
+                extracted: ExtractedFood(
+                  rawText: entry.string('rawText'),
+                  canonicalName: entry.string('canonicalName'),
+                  preparation: entry.string('preparation'),
+                  grams: entry.number('grams'),
+                  count: entry.numberOrNull('count'),
+                  unit: entry.stringOrNull('unit'),
+                  brandNormalizedFrom: entry.stringOrNull(
+                    'brandNormalizedFrom',
+                  ),
+                ),
               ),
-            ));
+            );
           }
           return Ok(foods);
         } on JsonReadException catch (error) {
@@ -94,9 +100,7 @@ class DietDraftCodec implements DietPlanDraftCodec {
         return Err(failure);
       case Ok(value: final value):
         if (value is! Map) {
-          return const Err(
-            MalformedPlanFailure('draft: expected an object'),
-          );
+          return const Err(MalformedPlanFailure('draft: expected an object'));
         }
         root = value;
     }
@@ -143,36 +147,47 @@ class DietDraftCodec implements DietPlanDraftCodec {
       for (final meal in meals) {
         final sections = meal is Map ? meal['sections'] : null;
         if (sections is! List) {
-          return const Err(MalformedPlanFailure(
-            'draft.diet.dayGroups[].meals[].sections: expected a list',
-          ));
+          return const Err(
+            MalformedPlanFailure(
+              'draft.diet.dayGroups[].meals[].sections: expected a list',
+            ),
+          );
         }
         for (final section in sections) {
           final components = section is Map ? section['components'] : null;
           if (components is! List) {
-            return const Err(MalformedPlanFailure(
-              'draft.diet...sections[].components: expected a list',
-            ));
+            return const Err(
+              MalformedPlanFailure(
+                'draft.diet...sections[].components: expected a list',
+              ),
+            );
           }
           for (final component in components) {
-            final alternatives =
-                component is Map ? component['alternatives'] : null;
+            final alternatives = component is Map
+                ? component['alternatives']
+                : null;
             if (alternatives is! List) {
-              return const Err(MalformedPlanFailure(
-                'draft.diet...components[].alternatives: expected a list',
-              ));
+              return const Err(
+                MalformedPlanFailure(
+                  'draft.diet...components[].alternatives: expected a list',
+                ),
+              );
             }
             for (final alternative in alternatives) {
               if (alternative is! Map) {
-                return const Err(MalformedPlanFailure(
-                  'draft.diet...alternatives[]: expected an object',
-                ));
+                return const Err(
+                  MalformedPlanFailure(
+                    'draft.diet...alternatives[]: expected an object',
+                  ),
+                );
               }
               final ref = alternative['foodRef'];
               if (ref is! String) {
-                return const Err(MalformedPlanFailure(
-                  'draft.diet...alternatives[].foodRef: expected a string',
-                ));
+                return const Err(
+                  MalformedPlanFailure(
+                    'draft.diet...alternatives[].foodRef: expected a string',
+                  ),
+                );
               }
               final chosen = settled[ref];
               if (chosen != null) {

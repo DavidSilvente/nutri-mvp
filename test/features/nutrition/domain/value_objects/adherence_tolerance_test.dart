@@ -32,16 +32,13 @@ void main() {
         expect(tolerance.acceptsMacro(target: 100, actual: 84), isFalse);
       });
 
-      test(
-        'accepts small-target drift via the absolute floor, where a pure '
-        'percentage would be unachievable',
-        () {
-          // 15% of 8 g is 1.2 g — nobody hits that by hand. The 7 g floor is
-          // what keeps small meals from failing every single day.
-          expect(tolerance.acceptsMacro(target: 8, actual: 14), isTrue);
-          expect(tolerance.acceptsMacro(target: 8, actual: 2), isTrue);
-        },
-      );
+      test('accepts small-target drift via the absolute floor, where a pure '
+          'percentage would be unachievable', () {
+        // 15% of 8 g is 1.2 g — nobody hits that by hand. The 7 g floor is
+        // what keeps small meals from failing every single day.
+        expect(tolerance.acceptsMacro(target: 8, actual: 14), isTrue);
+        expect(tolerance.acceptsMacro(target: 8, actual: 2), isTrue);
+      });
 
       test('rejects small-target drift beyond the absolute floor', () {
         expect(tolerance.acceptsMacro(target: 8, actual: 16), isFalse);

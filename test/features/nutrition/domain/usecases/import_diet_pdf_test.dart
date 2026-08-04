@@ -69,11 +69,13 @@ void main() {
   late ExtractedFoodResolver resolver;
 
   setUpAll(() {
-    realDocument =
-        File('assets/diets/nutrium_david_2950kcal.json').readAsStringSync();
+    realDocument = File(
+      'assets/diets/nutrium_david_2950kcal.json',
+    ).readAsStringSync();
     realDraft = draftFromDocument(realDocument);
-    final decoded = const FoodTableCodec()
-        .decode(File('assets/nutrition/food_table.json').readAsStringSync());
+    final decoded = const FoodTableCodec().decode(
+      File('assets/nutrition/food_table.json').readAsStringSync(),
+    );
     final foods = switch (decoded) {
       Ok(value: final value) => value,
       Err(failure: final failure) => fail('food table: $failure'),
@@ -158,24 +160,28 @@ void main() {
       }
     });
 
-    test('places a real plan\'s foods without asking about all of them', () async {
-      // Guards the wiring, not the matcher's accuracy: if resolution silently
-      // stopped working, every line would come back needing review and the
-      // screen would become a transcription chore.
-      //
-      // The bar is deliberately low because this fixture is ADVERSARIAL — it
-      // derives canonical names from ids and labels every food `raw`, which
-      // contradicts the cooked entries and costs them the preparation penalty.
-      // A real extractor states the preparation, so it does better than this.
-      final harness = build();
+    test(
+      'places a real plan\'s foods without asking about all of them',
+      () async {
+        // Guards the wiring, not the matcher's accuracy: if resolution silently
+        // stopped working, every line would come back needing review and the
+        // screen would become a transcription chore.
+        //
+        // The bar is deliberately low because this fixture is ADVERSARIAL — it
+        // derives canonical names from ids and labels every food `raw`, which
+        // contradicts the cooked entries and costs them the preparation penalty.
+        // A real extractor states the preparation, so it does better than this.
+        final harness = build();
 
-      final draft = draftOf(await harness.importer.prepare(pdfBytes));
-      final settled =
-          draft.resolutions.where((line) => !line.needsReview).length;
+        final draft = draftOf(await harness.importer.prepare(pdfBytes));
+        final settled = draft.resolutions
+            .where((line) => !line.needsReview)
+            .length;
 
-      expect(settled, greaterThan(draft.resolutions.length ~/ 3));
-      expect(settled, lessThan(draft.resolutions.length));
-    });
+        expect(settled, greaterThan(draft.resolutions.length ~/ 3));
+        expect(settled, lessThan(draft.resolutions.length));
+      },
+    );
 
     test('stores nothing while preparing', () async {
       final harness = build();
@@ -214,8 +220,9 @@ void main() {
 
     test('reports an extraction failure as its own', () async {
       final harness = build();
-      harness.extractor.failWith =
-          const MalformedPlanFailure('model returned prose, not a plan');
+      harness.extractor.failWith = const MalformedPlanFailure(
+        'model returned prose, not a plan',
+      );
 
       final result = await harness.importer.prepare(pdfBytes);
 
@@ -289,7 +296,10 @@ void main() {
 
       final failure = (result as Err<String, NutritionFailure>).failure;
       expect(failure, isA<UnknownFoodFailure>());
-      expect((failure as UnknownFoodFailure).foodIds, contains('beef_loin_test'));
+      expect(
+        (failure as UnknownFoodFailure).foodIds,
+        contains('beef_loin_test'),
+      );
     });
 
     test('refuses a decision list that does not match the draft', () async {

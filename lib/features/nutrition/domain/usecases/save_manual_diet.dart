@@ -57,9 +57,7 @@ class SaveManualDiet {
       return const Err(MalformedPlanFailure('a diet needs a name'));
     }
     if (slots.isEmpty) {
-      return const Err(
-        MalformedPlanFailure('a diet needs at least one meal'),
-      );
+      return const Err(MalformedPlanFailure('a diet needs at least one meal'));
     }
     final ids = slots.map((slot) => slot.id).toSet();
     if (ids.length != slots.length) {
@@ -79,9 +77,11 @@ class SaveManualDiet {
           DietPlanDayGroup(
             label: everyDayLabel,
             weekdays: {
-              for (var weekday = DateTime.monday;
-                  weekday <= DateTime.sunday;
-                  weekday++)
+              for (
+                var weekday = DateTime.monday;
+                weekday <= DateTime.sunday;
+                weekday++
+              )
                 weekday,
             },
             // Derived so the daily target is the sum of the meals rather than a

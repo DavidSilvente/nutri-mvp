@@ -273,28 +273,30 @@ void main() {
       }
     });
 
-    test('planned_meals loses its foreign key, so a slot id may be unknown',
-        () async {
-      // This is the point of recreating the table. A diet now lives in a
-      // document; nothing enforces that a planned meal's slot still exists, and
-      // it must not, or deleting a diet would erase the history judged against
-      // it.
-      final raw = openV6Raw();
+    test(
+      'planned_meals loses its foreign key, so a slot id may be unknown',
+      () async {
+        // This is the point of recreating the table. A diet now lives in a
+        // document; nothing enforces that a planned meal's slot still exists, and
+        // it must not, or deleting a diet would erase the history judged against
+        // it.
+        final raw = openV6Raw();
 
-      final db = NutritionDatabase(NativeDatabase.opened(raw));
-      addTearDown(db.close);
-      await db.select(db.plannedMeals).get();
+        final db = NutritionDatabase(NativeDatabase.opened(raw));
+        addTearDown(db.close);
+        await db.select(db.plannedMeals).get();
 
-      raw.execute(
-        'INSERT INTO planned_meals (id, slot_id, day_epoch, energy_kcal, '
-        'protein_g, carbs_g, fat_g) '
-        "VALUES ('pm-orphan', 'slot-from-a-deleted-diet', 20500, "
-        '500.0, 30.0, 55.0, 15.0);',
-      );
+        raw.execute(
+          'INSERT INTO planned_meals (id, slot_id, day_epoch, energy_kcal, '
+          'protein_g, carbs_g, fat_g) '
+          "VALUES ('pm-orphan', 'slot-from-a-deleted-diet', 20500, "
+          '500.0, 30.0, 55.0, 15.0);',
+        );
 
-      final meals = await db.select(db.plannedMeals).get();
-      expect(meals.single.slotId, 'slot-from-a-deleted-diet');
-    });
+        final meals = await db.select(db.plannedMeals).get();
+        expect(meals.single.slotId, 'slot-from-a-deleted-diet');
+      },
+    );
 
     test('does not switch the diet of a user who already chose one', () async {
       final raw = openV6Raw();
@@ -322,8 +324,7 @@ void main() {
       );
     });
 
-    test('suffixes a migrated name that an imported plan already uses',
-        () async {
+    test('suffixes a migrated name that an imported plan already uses', () async {
       // `diet_plan_records.name` is UNIQUE, so a collision would abort the whole
       // update if it were not handled.
       final raw = openV6Raw();
@@ -339,27 +340,30 @@ void main() {
       final db = NutritionDatabase(NativeDatabase.opened(raw));
       addTearDown(db.close);
 
-      final names = (await db.select(db.dietPlanRecords).get())
-          .map((p) => p.name)
-          .toList()
-        ..sort();
+      final names =
+          (await db.select(db.dietPlanRecords).get())
+              .map((p) => p.name)
+              .toList()
+            ..sort();
       expect(names, ['Cut-A', 'Cut-A (2)']);
     });
 
-    test('skips a template that has no meals, since it prescribes nothing',
-        () async {
-      final raw = openV6Raw();
-      raw.execute(
-        'INSERT INTO diet_templates (id, name, energy_kcal, protein_g, '
-        'carbs_g, fat_g, created_at, updated_at) '
-        "VALUES ('empty', 'Empty', 0, 0, 0, 0, 0, 0);",
-      );
+    test(
+      'skips a template that has no meals, since it prescribes nothing',
+      () async {
+        final raw = openV6Raw();
+        raw.execute(
+          'INSERT INTO diet_templates (id, name, energy_kcal, protein_g, '
+          'carbs_g, fat_g, created_at, updated_at) '
+          "VALUES ('empty', 'Empty', 0, 0, 0, 0, 0, 0);",
+        );
 
-      final db = NutritionDatabase(NativeDatabase.opened(raw));
-      addTearDown(db.close);
+        final db = NutritionDatabase(NativeDatabase.opened(raw));
+        addTearDown(db.close);
 
-      expect(await db.select(db.dietPlanRecords).get(), isEmpty);
-    });
+        expect(await db.select(db.dietPlanRecords).get(), isEmpty);
+      },
+    );
 
     test('a fresh database is at v7 with no template tables', () async {
       final db = NutritionDatabase(NativeDatabase.memory());

@@ -58,8 +58,7 @@ class SavedMeal {
           other.createdAt == createdAt);
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, target, portionNote, createdAt);
+  int get hashCode => Object.hash(id, name, target, portionNote, createdAt);
 
   @override
   String toString() =>

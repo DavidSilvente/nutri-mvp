@@ -33,11 +33,7 @@ class DietPlanPolicy {
           m.day == candidate.day,
     );
     if (duplicate) {
-      return const Err(
-        ConflictFailure(
-          'Slot is already planned for this day',
-        ),
-      );
+      return const Err(ConflictFailure('Slot is already planned for this day'));
     }
     return Ok(candidate);
   }

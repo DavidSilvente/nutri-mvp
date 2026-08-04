@@ -91,7 +91,7 @@ final class MalformedPlanFailure extends NutritionFailure {
 /// report the whole gap in one pass instead of surfacing them one at a time.
 final class UnknownFoodFailure extends NutritionFailure {
   UnknownFoodFailure(Set<String> foodIds)
-      : foodIds = Set.unmodifiable(foodIds) {
+    : foodIds = Set.unmodifiable(foodIds) {
     if (foodIds.isEmpty) {
       throw ArgumentError.value(
         foodIds,

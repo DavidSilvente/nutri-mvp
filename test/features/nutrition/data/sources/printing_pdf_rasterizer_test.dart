@@ -9,11 +9,7 @@ import 'package:printing/printing.dart';
 
 /// A 2x2 opaque raster, small enough that encoding it stays cheap.
 PdfRaster raster() {
-  return PdfRaster(
-    2,
-    2,
-    Uint8List.fromList(List<int>.filled(2 * 2 * 4, 0xFF)),
-  );
+  return PdfRaster(2, 2, Uint8List.fromList(List<int>.filled(2 * 2 * 4, 0xFF)));
 }
 
 Uint8List pdfBytes([int extra = 8]) =>

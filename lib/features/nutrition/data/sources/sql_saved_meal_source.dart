@@ -70,8 +70,9 @@ class SqlSavedMealSource implements SavedMealSource {
   @override
   Future<Result<void, NutritionFailure>> deleteSavedMeal(String id) async {
     try {
-      await (_db.delete(_db.savedMeals)..where((row) => row.id.equals(id)))
-          .go();
+      await (_db.delete(
+        _db.savedMeals,
+      )..where((row) => row.id.equals(id))).go();
       return const Ok(null);
     } catch (e) {
       return Err(StorageFailure(e.toString()));

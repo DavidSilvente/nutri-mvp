@@ -26,20 +26,17 @@ class DietDayController extends FamilyAsyncNotifier<DietDay?, NutritionDay> {
     required String componentId,
     required String optionId,
   }) async {
-    final result = await ref.read(dietPlanStoreProvider).selectOption(
-      day: arg,
-      componentId: componentId,
-      optionId: optionId,
-    );
+    final result = await ref
+        .read(dietPlanStoreProvider)
+        .selectOption(day: arg, componentId: componentId, optionId: optionId);
     await _applyWrite(result);
   }
 
   /// Reverts [componentId] to the plan's first choice for this day.
   Future<void> resetOption(String componentId) async {
-    final result = await ref.read(dietPlanStoreProvider).clearSelection(
-      day: arg,
-      componentId: componentId,
-    );
+    final result = await ref
+        .read(dietPlanStoreProvider)
+        .clearSelection(day: arg, componentId: componentId);
     await _applyWrite(result);
   }
 

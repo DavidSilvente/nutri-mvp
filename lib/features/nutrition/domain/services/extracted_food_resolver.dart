@@ -76,8 +76,9 @@ class ExtractedFoodResolver {
     );
   }
 
-  List<FoodResolution> resolveAll(Iterable<ExtractedFood> extracted) =>
-      [for (final food in extracted) resolve(food)];
+  List<FoodResolution> resolveAll(Iterable<ExtractedFood> extracted) => [
+    for (final food in extracted) resolve(food),
+  ];
 
   /// Reads a preparation string, tolerating an unknown value.
   ///

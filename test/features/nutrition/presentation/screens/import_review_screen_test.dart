@@ -109,7 +109,10 @@ void main() {
       // The 0.6 match exists but is below the threshold: it must not appear as
       // a decision, or the user would accept guessed macros without knowing.
       expect(find.text('Arroz blanco'), findsNothing);
-      expect(find.text('No confident match — 1 option to check'), findsOneWidget);
+      expect(
+        find.text('No confident match — 1 option to check'),
+        findsOneWidget,
+      );
       expect(find.text('Choose a food'), findsOneWidget);
     });
 
@@ -182,7 +185,10 @@ void main() {
       await tester.tap(find.byKey(const Key('editQuantityButton-0')));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byKey(const Key('quantityGramsField')), '110');
+      await tester.enterText(
+        find.byKey(const Key('quantityGramsField')),
+        '110',
+      );
       await tester.enterText(find.byKey(const Key('quantityCountField')), '2');
       await tester.enterText(
         find.byKey(const Key('quantityUnitField')),
@@ -235,7 +241,10 @@ void main() {
 
       await tester.tap(find.byKey(const Key('editQuantityButton-0')));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const Key('quantityGramsField')), '110');
+      await tester.enterText(
+        find.byKey(const Key('quantityGramsField')),
+        '110',
+      );
       await tester.tap(find.byKey(const Key('saveQuantityButton')));
       await tester.pumpAndSettle();
 
@@ -318,7 +327,10 @@ void main() {
 
       await tester.tap(find.byKey(const Key('editQuantityButton-0')));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const Key('quantityGramsField')), '999');
+      await tester.enterText(
+        find.byKey(const Key('quantityGramsField')),
+        '999',
+      );
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 

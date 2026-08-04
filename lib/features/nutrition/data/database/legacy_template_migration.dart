@@ -70,9 +70,8 @@ class LegacyTemplateMigration {
     var activeTaken = activeCount.read<int>('total') > 0;
 
     final takenNames = <String>{
-      for (final row in await db
-          .customSelect('SELECT name FROM diet_plan_records;')
-          .get())
+      for (final row
+          in await db.customSelect('SELECT name FROM diet_plan_records;').get())
         row.read<String>('name'),
     };
 
@@ -92,9 +91,11 @@ class LegacyTemplateMigration {
           DietPlanDayGroup(
             label: everyDayLabel,
             weekdays: {
-              for (var weekday = DateTime.monday;
-                  weekday <= DateTime.sunday;
-                  weekday++)
+              for (
+                var weekday = DateTime.monday;
+                weekday <= DateTime.sunday;
+                weekday++
+              )
                 weekday,
             },
             template: DietTemplate.derived(
@@ -159,7 +160,7 @@ class LegacyTemplateMigration {
   /// collision the user never knew about.
   static String _freeName(String preferred, Set<String> taken) {
     if (!taken.contains(preferred)) return preferred;
-    for (var suffix = 2;; suffix++) {
+    for (var suffix = 2; ; suffix++) {
       final candidate = '$preferred ($suffix)';
       if (!taken.contains(candidate)) return candidate;
     }

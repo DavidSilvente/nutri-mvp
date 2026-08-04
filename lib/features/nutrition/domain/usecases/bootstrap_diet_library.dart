@@ -32,10 +32,10 @@ class BootstrapDietLibrary {
     required ImportDietDocument import,
     required BundledDietDocumentSource bundled,
     required DateTime Function() now,
-  })  : _store = store,
-        _import = import,
-        _bundled = bundled,
-        _now = now;
+  }) : _store = store,
+       _import = import,
+       _bundled = bundled,
+       _now = now;
 
   final DietPlanStore _store;
   final ImportDietDocument _import;

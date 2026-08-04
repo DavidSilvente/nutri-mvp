@@ -72,6 +72,5 @@ void main() {
 
       expect(a, isNot(b));
     });
-
   });
 }

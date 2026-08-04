@@ -72,8 +72,8 @@ class _SavedMealsScreenState extends ConsumerState<SavedMealsScreen> {
                   final visible = query.isEmpty
                       ? meals
                       : meals
-                          .where((m) => m.name.toLowerCase().contains(query))
-                          .toList(growable: false);
+                            .where((m) => m.name.toLowerCase().contains(query))
+                            .toList(growable: false);
 
                   if (visible.isEmpty) {
                     return meals.isEmpty
@@ -89,8 +89,7 @@ class _SavedMealsScreenState extends ConsumerState<SavedMealsScreen> {
                         _SavedMealCard(meal: visible[index]),
                   );
                 },
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, stackTrace) => Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
@@ -359,18 +358,14 @@ class _SavedMealDialogState extends ConsumerState<_SavedMealDialog>
                 controller: _name,
                 decoration: const InputDecoration(labelText: 'Name'),
                 validator: (value) =>
-                    (value == null || value.trim().isEmpty)
-                        ? 'Required'
-                        : null,
+                    (value == null || value.trim().isEmpty) ? 'Required' : null,
               ),
               if (error != null) ...[
                 const SizedBox(height: 8),
                 Text(
                   error!,
                   key: const Key('savedMealDialogError'),
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],
               const SizedBox(height: 12),

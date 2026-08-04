@@ -58,8 +58,12 @@ class DietPlanCodec implements DietPlanDecoder, DietPlanEncoder {
     try {
       raw = jsonDecode(source);
     } on FormatException catch (error) {
-      return Err(MalformedPlanFailure('plan is not valid JSON: '
-          '${error.message}'));
+      return Err(
+        MalformedPlanFailure(
+          'plan is not valid JSON: '
+          '${error.message}',
+        ),
+      );
     }
 
     final JsonReader root;
@@ -69,10 +73,12 @@ class DietPlanCodec implements DietPlanDecoder, DietPlanEncoder {
       root = JsonReader.object(raw, 'plan');
       final version = root.integer('schemaVersion');
       if (!readableSchemaVersions.contains(version)) {
-        return Err(MalformedPlanFailure(
-          'unsupported plan schemaVersion $version, '
-          'expected one of ${readableSchemaVersions.join(', ')}',
-        ));
+        return Err(
+          MalformedPlanFailure(
+            'unsupported plan schemaVersion $version, '
+            'expected one of ${readableSchemaVersions.join(', ')}',
+          ),
+        );
       }
       diet = root.child('diet');
       recipes = _recipes(diet);
@@ -102,17 +108,21 @@ class DietPlanCodec implements DietPlanDecoder, DietPlanEncoder {
     }
 
     try {
-      return Ok(DecodedDietPlan(
-        plan: DietPlan(
-          id: planId,
-          name: diet.string('name'),
-          dayGroups: groups,
-          declaredDailyEnergyKcal: diet.numberOrNull('declaredDailyEnergyKcal'),
-          isDefault: isDefault,
-          sourceLabel: sourceLabel,
+      return Ok(
+        DecodedDietPlan(
+          plan: DietPlan(
+            id: planId,
+            name: diet.string('name'),
+            dayGroups: groups,
+            declaredDailyEnergyKcal: diet.numberOrNull(
+              'declaredDailyEnergyKcal',
+            ),
+            isDefault: isDefault,
+            sourceLabel: sourceLabel,
+          ),
+          catalog: catalog,
         ),
-        catalog: catalog,
-      ));
+      );
     } on JsonReadException catch (error) {
       return Err(MalformedPlanFailure(error.message));
     } on ArgumentError catch (error) {
@@ -123,8 +133,7 @@ class DietPlanCodec implements DietPlanDecoder, DietPlanEncoder {
   static List<FoodItem> _recipes(JsonReader diet) {
     if (!diet.has('recipes')) return const [];
     return [
-      for (final recipe in diet.objectList('recipes'))
-        _recipeFood(recipe),
+      for (final recipe in diet.objectList('recipes')) _recipeFood(recipe),
     ];
   }
 
@@ -171,21 +180,25 @@ class DietPlanCodec implements DietPlanDecoder, DietPlanEncoder {
         final statesTarget = mealReader.has('target');
         final statesFoods = mealReader.has('sections');
         if (statesTarget == statesFoods) {
-          return Err(MalformedPlanFailure(
-            'meal "$slotId" must state either "sections" or "target", '
-            'and states ${statesTarget ? 'both' : 'neither'}',
-          ));
+          return Err(
+            MalformedPlanFailure(
+              'meal "$slotId" must state either "sections" or "target", '
+              'and states ${statesTarget ? 'both' : 'neither'}',
+            ),
+          );
         }
 
         if (statesTarget) {
-          slots.add(DietMealSlot(
-            id: slotId,
-            label: mealReader.string('label'),
-            position: m,
-            target: _target(mealReader.child('target')),
-            timeOfDay: mealReader.stringOrNull('time'),
-            notes: mealReader.stringList('notes'),
-          ));
+          slots.add(
+            DietMealSlot(
+              id: slotId,
+              label: mealReader.string('label'),
+              position: m,
+              target: _target(mealReader.child('target')),
+              timeOfDay: mealReader.stringOrNull('time'),
+              notes: mealReader.stringList('notes'),
+            ),
+          );
           continue;
         }
 
@@ -206,18 +219,20 @@ class DietPlanCodec implements DietPlanDecoder, DietPlanEncoder {
         }
       }
 
-      groups.add(DietPlanDayGroup(
-        label: groupReader.string('label'),
-        weekdays: groupReader.integerList('weekdays').toSet(),
-        template: DietTemplate.derived(
-          id: '$planId:g$g',
-          name: '${diet.string('name')} — ${groupReader.string('label')}',
-          slots: slots,
-          declaredDailyEnergyKcal: diet.numberOrNull(
-            'declaredDailyEnergyKcal',
+      groups.add(
+        DietPlanDayGroup(
+          label: groupReader.string('label'),
+          weekdays: groupReader.integerList('weekdays').toSet(),
+          template: DietTemplate.derived(
+            id: '$planId:g$g',
+            name: '${diet.string('name')} — ${groupReader.string('label')}',
+            slots: slots,
+            declaredDailyEnergyKcal: diet.numberOrNull(
+              'declaredDailyEnergyKcal',
+            ),
           ),
         ),
-      ));
+      );
     }
     return Ok(groups);
   }
@@ -230,15 +245,17 @@ class DietPlanCodec implements DietPlanDecoder, DietPlanEncoder {
       for (final component in section.objectList('components')) {
         final componentId = '$slotId:c$position';
         final optionReaders = component.objectList('alternatives');
-        components.add(MealComponent(
-          id: componentId,
-          position: position,
-          sectionLabel: sectionLabel,
-          options: [
-            for (var o = 0; o < optionReaders.length; o++)
-              _option(optionReaders[o], '$componentId:o$o'),
-          ],
-        ));
+        components.add(
+          MealComponent(
+            id: componentId,
+            position: position,
+            sectionLabel: sectionLabel,
+            options: [
+              for (var o = 0; o < optionReaders.length; o++)
+                _option(optionReaders[o], '$componentId:o$o'),
+            ],
+          ),
+        );
         position++;
       }
     }
@@ -282,10 +299,12 @@ class DietPlanCodec implements DietPlanDecoder, DietPlanEncoder {
         // not on the slot. Writing the numbers alone would turn a plan that
         // knows what it prescribes into one that only remembers the totals.
         if (slot.isDerived) {
-          return Err(MalformedPlanFailure(
-            'meal "${slot.id}" is built from foods and cannot be encoded '
-            'without losing the recipes behind them',
-          ));
+          return Err(
+            MalformedPlanFailure(
+              'meal "${slot.id}" is built from foods and cannot be encoded '
+              'without losing the recipes behind them',
+            ),
+          );
         }
         meals.add({
           'slotId': slot.id,
@@ -307,14 +326,16 @@ class DietPlanCodec implements DietPlanDecoder, DietPlanEncoder {
       });
     }
 
-    return Ok(jsonEncode({
-      'schemaVersion': supportedSchemaVersion,
-      'diet': {
-        'name': plan.name,
-        if (plan.declaredDailyEnergyKcal != null)
-          'declaredDailyEnergyKcal': plan.declaredDailyEnergyKcal,
-        'dayGroups': groups,
-      },
-    }));
+    return Ok(
+      jsonEncode({
+        'schemaVersion': supportedSchemaVersion,
+        'diet': {
+          'name': plan.name,
+          if (plan.declaredDailyEnergyKcal != null)
+            'declaredDailyEnergyKcal': plan.declaredDailyEnergyKcal,
+          'dayGroups': groups,
+        },
+      }),
+    );
   }
 }

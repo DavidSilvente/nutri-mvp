@@ -39,17 +39,11 @@ void main() {
       await database.close();
     });
 
-    NutritionDay day(int d) =>
-        NutritionDay.fromDateTime(DateTime(2026, 7, d));
+    NutritionDay day(int d) => NutritionDay.fromDateTime(DateTime(2026, 7, d));
 
     Future<void> plan(String id, String slotId, NutritionDay? on) {
       return source.savePlannedMeal(
-        PlannedMeal(
-          id: id,
-          slotId: slotId,
-          day: on,
-          targetSnapshot: target(),
-        ),
+        PlannedMeal(id: id, slotId: slotId, day: on, targetSnapshot: target()),
       );
     }
 
@@ -61,10 +55,7 @@ void main() {
 
       final meals = unwrap(await source.plannedMealsBetween(day(10), day(15)));
 
-      expect(
-        meals.map((m) => m.id).toSet(),
-        {'pm-10', 'pm-15'},
-      );
+      expect(meals.map((m) => m.id).toSet(), {'pm-10', 'pm-15'});
     });
 
     test('excludes meals that have no day assigned', () async {

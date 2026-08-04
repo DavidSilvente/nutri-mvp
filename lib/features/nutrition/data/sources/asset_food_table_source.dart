@@ -16,8 +16,8 @@ class AssetFoodTableSource implements FoodTableSource {
     AssetBundle? bundle,
     this.assetKey = defaultAssetKey,
     FoodTableCodec codec = const FoodTableCodec(),
-  })  : _bundle = bundle ?? rootBundle,
-        _codec = codec;
+  }) : _bundle = bundle ?? rootBundle,
+       _codec = codec;
 
   static const String defaultAssetKey = 'assets/nutrition/food_table.json';
 
