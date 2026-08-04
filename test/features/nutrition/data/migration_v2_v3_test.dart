@@ -30,7 +30,7 @@ void main() {
       return raw;
     }
 
-    test('creates all six new diet/menu tables and keeps v2 tables intact',
+    test('creates the diet/menu tables and keeps v2 tables intact',
         () async {
       final raw = openV2Raw();
       raw.execute('PRAGMA user_version = 2;');
@@ -41,10 +41,8 @@ void main() {
       // Trigger migration by running a query.
       await database.select(database.nutritionEntries).get();
 
-      // (1) The six new tables are reachable through the generated API.
+      // (1) The new tables are reachable through the generated API.
       final tables = <String>[
-        'diet_templates',
-        'diet_meal_slots',
         'planned_meals',
         'meal_substitutes',
         'menu_photos',
@@ -69,7 +67,6 @@ void main() {
       }
 
       // (3) New tables accept rows with full target columns and FKs cascade.
-      final templateId = 'template-1';
       final slotId = 'slot-1';
       final plannedMealId = 'planned-1';
       final substituteId = 'substitute-1';
@@ -79,32 +76,6 @@ void main() {
       final day = DateTime.utc(2026, 8, 1);
       final dayEpoch =
           day.millisecondsSinceEpoch ~/ Duration.millisecondsPerDay;
-
-      await database.into(database.dietTemplates).insert(
-        DietTemplatesCompanion.insert(
-          id: templateId,
-          name: 'Cut-A',
-          energyKcal: 2200,
-          proteinG: 150,
-          carbsG: 220,
-          fatG: 73,
-          createdAt: now,
-          updatedAt: now,
-        ),
-      );
-
-      await database.into(database.dietMealSlots).insert(
-        DietMealSlotsCompanion.insert(
-          id: slotId,
-          templateId: templateId,
-          label: 'Breakfast',
-          position: 0,
-          energyKcal: 700,
-          proteinG: 40,
-          carbsG: 60,
-          fatG: 20,
-        ),
-      );
 
       await database.into(database.plannedMeals).insert(
         PlannedMealsCompanion.insert(
@@ -150,13 +121,6 @@ void main() {
         ),
       );
 
-      final templates = await database.select(database.dietTemplates).get();
-      expect(templates, hasLength(1));
-      expect(templates.single.name, 'Cut-A');
-
-      final slots = await database.select(database.dietMealSlots).get();
-      expect(slots.single.templateId, templateId);
-
       final planned = await database.select(database.plannedMeals).get();
       expect(planned.single.dayEpoch, dayEpoch);
 
@@ -170,12 +134,10 @@ void main() {
       final items = await database.select(database.menuItems).get();
       expect(items.single.photoId, photoId);
 
-      // (4) Deleting a template cascades to slots, planned meals and substitutes.
-      await (database.delete(database.dietTemplates)
-            ..where((t) => t.id.equals(templateId)))
+      // (4) Deleting a planned meal still cascades to its substitutes.
+      await (database.delete(database.plannedMeals)
+            ..where((t) => t.id.equals(plannedMealId)))
           .go();
-      expect(await database.select(database.dietTemplates).get(), isEmpty);
-      expect(await database.select(database.dietMealSlots).get(), isEmpty);
       expect(await database.select(database.plannedMeals).get(), isEmpty);
       expect(await database.select(database.mealSubstitutes).get(), isEmpty);
 
@@ -187,7 +149,7 @@ void main() {
       expect(await database.select(database.menuItems).get(), isEmpty);
     });
 
-    test('rejects duplicate template name, slot position, and planned day',
+    test('rejects a second planned meal for the same slot and day',
         () async {
       final raw = openV2Raw();
       raw.execute('PRAGMA user_version = 2;');
@@ -197,35 +159,10 @@ void main() {
 
       await database.select(database.nutritionEntries).get();
 
-      final now = DateTime.utc(2026, 7, 30);
       final day = DateTime.utc(2026, 8, 1);
       final dayEpoch =
           day.millisecondsSinceEpoch ~/ Duration.millisecondsPerDay;
 
-      await database.into(database.dietTemplates).insert(
-        DietTemplatesCompanion.insert(
-          id: 't1',
-          name: 'Cut-A',
-          energyKcal: 2200,
-          proteinG: 150,
-          carbsG: 220,
-          fatG: 73,
-          createdAt: now,
-          updatedAt: now,
-        ),
-      );
-      await database.into(database.dietMealSlots).insert(
-        DietMealSlotsCompanion.insert(
-          id: 's1',
-          templateId: 't1',
-          label: 'Breakfast',
-          position: 0,
-          energyKcal: 700,
-          proteinG: 40,
-          carbsG: 60,
-          fatG: 20,
-        ),
-      );
       await database.into(database.plannedMeals).insert(
         PlannedMealsCompanion.insert(
           id: 'pm1',
@@ -238,38 +175,9 @@ void main() {
         ),
       );
 
-      expect(
-        () => database.into(database.dietTemplates).insert(
-          DietTemplatesCompanion.insert(
-            id: 't2',
-            name: 'Cut-A',
-            energyKcal: 2000,
-            proteinG: 140,
-            carbsG: 200,
-            fatG: 66,
-            createdAt: now,
-            updatedAt: now,
-          ),
-        ),
-        throwsA(isA<Exception>()),
-      );
-
-      expect(
-        () => database.into(database.dietMealSlots).insert(
-          DietMealSlotsCompanion.insert(
-            id: 's2',
-            templateId: 't1',
-            label: 'Lunch',
-            position: 0,
-            energyKcal: 800,
-            proteinG: 50,
-            carbsG: 70,
-            fatG: 25,
-          ),
-        ),
-        throwsA(isA<Exception>()),
-      );
-
+      // The (slot, day) unique key is what keeps a day from ending up with the
+      // same meal twice, and it has to survive `planned_meals` being recreated
+      // in v7 to shed its foreign key.
       expect(
         () => database.into(database.plannedMeals).insert(
           PlannedMealsCompanion.insert(
@@ -286,16 +194,14 @@ void main() {
       );
     });
 
-    test('a fresh database creates schema v3 directly without running migrations',
+    test('a fresh database creates the current schema without running migrations',
         () async {
       final database = NutritionDatabase(NativeDatabase.memory());
       addTearDown(database.close);
 
       await database.select(database.nutritionEntries).get();
 
-      // We only assert the new tables are reachable on a fresh v3 database.
-      expect(await database.select(database.dietTemplates).get(), isEmpty);
-      expect(await database.select(database.dietMealSlots).get(), isEmpty);
+      // We only assert the new tables are reachable on a fresh database.
       expect(await database.select(database.plannedMeals).get(), isEmpty);
       expect(await database.select(database.mealSubstitutes).get(), isEmpty);
       expect(await database.select(database.menuPhotos).get(), isEmpty);
@@ -350,10 +256,8 @@ void main() {
       expect(hydrationRows, hasLength(1));
       expect(hydrationRows.single.id, 'hydration-meal-with-water');
 
-      // (2) v2 -> v3 created the six new tables.
+      // (2) v2 -> v3 created the diet/menu tables.
       final tables = <String>[
-        'diet_templates',
-        'diet_meal_slots',
         'planned_meals',
         'meal_substitutes',
         'menu_photos',

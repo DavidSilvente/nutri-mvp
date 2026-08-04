@@ -2,534 +2,309 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/core/health_failure_exception.dart';
 import 'package:nutri_mvp/core/result.dart';
+import 'package:nutri_mvp/features/nutrition/domain/entities/diet_plan.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/meal_substitute.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/planned_meal.dart';
 import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
 import 'package:nutri_mvp/features/nutrition/domain/ports/diet_plan_source.dart';
+import 'package:nutri_mvp/features/nutrition/domain/usecases/apply_diet_to_days.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_target.dart';
-import 'package:nutri_mvp/features/nutrition/presentation/controllers/diet_plan_controller.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
 
+import '../../_fakes/diet_fixture.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 
-/// A local test double that always fails, used ONLY to verify that
-/// [DietPlanController] surfaces the port's [Err] as an [AsyncError]
-/// instead of swallowing it. [FakeDietPlanSource] is intentionally NOT
-/// used for this scenario since it always succeeds.
+/// A source that fails every call, so the controller's error surfacing is
+/// exercised rather than assumed. [FakeDietPlanSource] always succeeds.
 class _AlwaysFailingSource implements DietPlanSource {
   @override
-  Future<Result<List<DietTemplate>, NutritionFailure>> listTemplates() async {
-    return const Err(StorageFailure('disk full'));
-  }
-
-  @override
-  Future<Result<DietTemplate, NutritionFailure>> saveTemplate(
-    DietTemplate template,
-  ) async {
-    return const Err(StorageFailure('disk full'));
-  }
-
-  @override
-  Future<Result<void, NutritionFailure>> deleteTemplate(String id) async {
-    return const Err(StorageFailure('disk full'));
-  }
-
-  @override
   Future<Result<List<PlannedMeal>, NutritionFailure>> listPlannedMeals({
-    String? templateId,
     NutritionDay? day,
-  }) async {
-    return const Err(StorageFailure('disk full'));
-  }
+  }) async => const Err(StorageFailure('disk full'));
 
   @override
   Future<Result<List<PlannedMeal>, NutritionFailure>> plannedMealsBetween(
     NutritionDay from,
     NutritionDay to,
-  ) async {
-    return const Err(StorageFailure('disk full'));
-  }
+  ) async => const Err(StorageFailure('disk full'));
 
   @override
   Future<Result<PlannedMeal, NutritionFailure>> savePlannedMeal(
     PlannedMeal meal,
-  ) async {
-    return const Err(StorageFailure('disk full'));
-  }
+  ) async => const Err(StorageFailure('disk full'));
 
   @override
-  Future<Result<void, NutritionFailure>> deletePlannedMeal(String id) async {
-    return const Err(StorageFailure('disk full'));
-  }
+  Future<Result<void, NutritionFailure>> deletePlannedMeal(String id) async =>
+      const Err(StorageFailure('disk full'));
 
   @override
   Future<Result<List<MealSubstitute>, NutritionFailure>> listSubstitutes(
     String plannedMealId,
-  ) async {
-    return const Err(StorageFailure('disk full'));
-  }
+  ) async => const Err(StorageFailure('disk full'));
 
   @override
   Future<Result<MealSubstitute, NutritionFailure>> saveSubstitute(
     MealSubstitute substitute,
-  ) async {
-    return const Err(StorageFailure('disk full'));
-  }
+  ) async => const Err(StorageFailure('disk full'));
 
   @override
-  Future<Result<void, NutritionFailure>> deleteSubstitute(String id) async {
-    return const Err(StorageFailure('disk full'));
-  }
+  Future<Result<void, NutritionFailure>> deleteSubstitute(String id) async =>
+      const Err(StorageFailure('disk full'));
 }
 
-/// A test double that returns an empty template list but fails when reading
-/// planned meals. Used to exercise the second `_load` error branch.
-class _PlannedMealsLoadFailingSource implements DietPlanSource {
-  @override
-  Future<Result<List<DietTemplate>, NutritionFailure>> listTemplates() async {
-    return const Ok([]);
-  }
-
-  @override
-  Future<Result<DietTemplate, NutritionFailure>> saveTemplate(
-    DietTemplate template,
-  ) async {
-    return const Err(StorageFailure('disk full'));
-  }
-
-  @override
-  Future<Result<void, NutritionFailure>> deleteTemplate(String id) async {
-    return const Err(StorageFailure('disk full'));
-  }
-
-  @override
-  Future<Result<List<PlannedMeal>, NutritionFailure>> listPlannedMeals({
-    String? templateId,
-    NutritionDay? day,
-  }) async {
-    return const Err(StorageFailure('planned meals unavailable'));
-  }
-
-  @override
-  Future<Result<List<PlannedMeal>, NutritionFailure>> plannedMealsBetween(
-    NutritionDay from,
-    NutritionDay to,
-  ) async {
-    return const Err(StorageFailure('planned meals unavailable'));
-  }
-
-  @override
-  Future<Result<PlannedMeal, NutritionFailure>> savePlannedMeal(
-    PlannedMeal meal,
-  ) async {
-    return const Err(StorageFailure('disk full'));
-  }
-
-  @override
-  Future<Result<void, NutritionFailure>> deletePlannedMeal(String id) async {
-    return const Err(StorageFailure('disk full'));
-  }
-
-  @override
-  Future<Result<List<MealSubstitute>, NutritionFailure>> listSubstitutes(
-    String plannedMealId,
-  ) async {
-    return const Err(StorageFailure('disk full'));
-  }
-
-  @override
-  Future<Result<MealSubstitute, NutritionFailure>> saveSubstitute(
-    MealSubstitute substitute,
-  ) async {
-    return const Err(StorageFailure('disk full'));
-  }
-
-  @override
-  Future<Result<void, NutritionFailure>> deleteSubstitute(String id) async {
-    return const Err(StorageFailure('disk full'));
-  }
-}
-
-NutritionTarget _target({
-  double kcal = 700,
-  double proteinG = 40,
-  double carbsG = 60,
-  double fatG = 20,
-}) {
-  return NutritionTarget(
-    energy: Energy(kcal: kcal),
-    macros: Macros(proteinG: proteinG, carbsG: carbsG, fatG: fatG),
-  );
-}
-
-DietTemplate _template({
-  required String id,
-  required String name,
-  NutritionTarget? target,
-  List<DietMealSlot>? slots,
-}) {
-  final resolvedSlots = slots ??
-      [
-        DietMealSlot(
-          id: '${id}_slot',
-          label: 'Meal',
-          position: 0,
-          target: target ?? _target(kcal: 2200),
-        ),
-      ];
-  return DietTemplate(
-    id: id,
-    name: name,
-    dailyTarget: target ?? NutritionTarget.sum(resolvedSlots.map((s) => s.target)),
-    slots: resolvedSlots,
-  );
-}
-
-PlannedMeal _plannedMeal({
-  required String id,
-  String slotId = 'slot',
-  NutritionDay? day,
-}) {
-  return PlannedMeal(
-    id: id,
-    slotId: slotId,
-    day: day,
-    targetSnapshot: _target(),
-  );
-}
+NutritionTarget _target({num kcal = 500}) => NutritionTarget(
+  energy: Energy(kcal: kcal),
+  macros: Macros(proteinG: 30, carbsG: 55, fatG: 15),
+);
 
 void main() {
-  group('DietPlanController', () {
-    test('builds with an empty diet plan state when source has no data',
-        () async {
-      final container = ProviderContainer(
-        overrides: [
-          dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
-        ],
-      );
-      addTearDown(container.dispose);
+  // A Monday, so the weekday arithmetic below reads plainly.
+  final monday = NutritionDay.fromDateTime(DateTime(2026, 8, 3));
+  NutritionDay dayAfter(int days) =>
+      NutritionDay.fromDateTime(DateTime(2026, 8, 3 + days));
 
-      final initial = await container.read(dietPlanControllerProvider.future);
+  late FakeDietPlanSource source;
 
-      expect(initial.templates, isEmpty);
-      expect(initial.plannedMeals, isEmpty);
-    });
+  setUp(() => source = FakeDietPlanSource());
 
-    test('saveTemplate reflects the created template in the async state',
-        () async {
-      final container = ProviderContainer(
-        overrides: [
-          dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
-        ],
-      );
-      addTearDown(container.dispose);
-      await container.read(dietPlanControllerProvider.future);
+  ProviderContainer container({DietPlanSource? override}) {
+    final c = ProviderContainer(
+      overrides: [
+        dietPlanSourceProvider.overrideWithValue(override ?? source),
+      ],
+    );
+    addTearDown(c.dispose);
+    return c;
+  }
 
-      final template = _template(
-        id: 't1',
-        name: 'Cut-A',
-        target: _target(kcal: 2200),
-      );
-      await container
-          .read(dietPlanControllerProvider.notifier)
-          .saveTemplate(template);
+  List<PlannedMeal> plannedMeals(Result<List<PlannedMeal>, NutritionFailure> r) =>
+      (r as Ok<List<PlannedMeal>, NutritionFailure>).value;
 
-      final state = container.read(dietPlanControllerProvider);
-      expect(state, isA<AsyncData<DietPlanState>>());
-      expect(state.value!.templates, [template]);
-      expect(state.value!.plannedMeals, isEmpty);
-    });
-
-    test('saveTemplate reflects an edited slot in the async state', () async {
-      final container = ProviderContainer(
-        overrides: [
-          dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
-        ],
-      );
-      addTearDown(container.dispose);
-      await container.read(dietPlanControllerProvider.future);
-
-      final original = _template(
-        id: 't1',
-        name: 'Cut-A',
-        target: _target(kcal: 2200),
-      );
-      await container
-          .read(dietPlanControllerProvider.notifier)
-          .saveTemplate(original);
-
-      final updated = _template(
-        id: 't1',
-        name: 'Cut-A',
-        slots: [
-          DietMealSlot(
-            id: 't1_slot',
-            label: 'Breakfast',
-            position: 0,
-            target: _target(kcal: 700),
+  /// A diet whose weekday coverage is explicit, so applying it can be checked
+  /// against the days it does and does not speak about.
+  DietPlan diet({required Map<String, Set<int>> groups, String id = 'diet-1'}) {
+    final entries = groups.entries.toList();
+    return DietPlan(
+      id: id,
+      name: 'Test diet',
+      dayGroups: [
+        for (var index = 0; index < entries.length; index++)
+          DietPlanDayGroup(
+            label: entries[index].key,
+            weekdays: entries[index].value,
+            template: DietTemplate.derived(
+              id: '$id:g$index',
+              name: 'Test diet — ${entries[index].key}',
+              slots: [
+                mealSlot(id: '$id:g$index:m0', label: 'Lunch', position: 0),
+              ],
+            ),
           ),
-          DietMealSlot(
-            id: 't1_slot_2',
-            label: 'Lunch',
-            position: 1,
-            target: _target(kcal: 1500),
-          ),
-        ],
-      );
-      await container
-          .read(dietPlanControllerProvider.notifier)
-          .saveTemplate(updated);
+      ],
+    );
+  }
 
-      final state = container.read(dietPlanControllerProvider);
-      expect(state.value!.templates, [updated]);
+  const everyDay = {1, 2, 3, 4, 5, 6, 7};
+
+  group('DietPlanController.applyDiet', () {
+    test('writes one planned meal per slot per covered day', () async {
+      final c = container();
+      final plan = diet(groups: {'EVERY DAY': everyDay});
+
+      final outcome = await c
+          .read(dietPlanControllerProvider.notifier)
+          .applyDiet(plan: plan, days: [monday, dayAfter(1)]);
+
+      expect(outcome?.mealsWritten, 2);
+      expect(outcome?.skippedDays, isEmpty);
+      expect(plannedMeals(await source.listPlannedMeals()), hasLength(2));
     });
 
-    test('assignMealToDay reflects the planned meal in the async state',
-        () async {
-      final container = ProviderContainer(
-        overrides: [
-          dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
-        ],
+    test('gives each day the group that covers ITS weekday', () async {
+      final c = container();
+      // Monday and Tuesday get different menus. Stamping one group across the
+      // range — what the old template-based apply did — would put the Monday
+      // slot on the Tuesday too.
+      final plan = diet(
+        groups: {
+          'MONDAY': {DateTime.monday},
+          'TUESDAY': {DateTime.tuesday},
+        },
       );
-      addTearDown(container.dispose);
-      await container.read(dietPlanControllerProvider.future);
 
-      final template = _template(
-        id: 't1',
-        name: 'Cut-A',
-        slots: [
-          DietMealSlot(
-            id: 't1_slot',
-            label: 'Breakfast',
-            position: 0,
-            target: _target(kcal: 700),
-          ),
-        ],
-      );
-      await container
+      await c
           .read(dietPlanControllerProvider.notifier)
-          .saveTemplate(template);
+          .applyDiet(plan: plan, days: [monday, dayAfter(1)]);
 
-      final day = NutritionDay.fromDateTime(DateTime(2026, 8, 1));
-      final meal = PlannedMeal(
-        id: 'm1',
-        slotId: 't1_slot',
-        day: day,
-        targetSnapshot: _target(kcal: 700),
+      expect(
+        plannedMeals(await source.listPlannedMeals(day: monday)).single.slotId,
+        'diet-1:g0:m0',
       );
-      await container
-          .read(dietPlanControllerProvider.notifier)
-          .assignMealToDay(meal);
-
-      final state = container.read(dietPlanControllerProvider);
-      expect(state.value!.plannedMeals, [meal]);
-      expect(state.value!.templates, [template]);
-    });
-
-    test('duplicate template name surfaces as AsyncError', () async {
-      final container = ProviderContainer(
-        overrides: [
-          dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
-        ],
+      expect(
+        plannedMeals(
+          await source.listPlannedMeals(day: dayAfter(1)),
+        ).single.slotId,
+        'diet-1:g1:m0',
       );
-      addTearDown(container.dispose);
-      await container.read(dietPlanControllerProvider.future);
-
-      final first = _template(
-        id: 't1',
-        name: 'Cut-A',
-        target: _target(kcal: 2200),
-      );
-      final duplicate = _template(
-        id: 't2',
-        name: 'Cut-A',
-        target: _target(kcal: 2200),
-      );
-      await container
-          .read(dietPlanControllerProvider.notifier)
-          .saveTemplate(first);
-      await container
-          .read(dietPlanControllerProvider.notifier)
-          .saveTemplate(duplicate);
-
-      final state = container.read(dietPlanControllerProvider);
-      expect(state, isA<AsyncError<DietPlanState>>());
-      final error = state.error! as HealthFailureException;
-      expect(error.failure, isA<ConflictFailure>());
-    });
-
-    test('duplicate slot-day assignment surfaces as AsyncError', () async {
-      final container = ProviderContainer(
-        overrides: [
-          dietPlanSourceProvider.overrideWithValue(FakeDietPlanSource()),
-        ],
-      );
-      addTearDown(container.dispose);
-      await container.read(dietPlanControllerProvider.future);
-
-      final template = _template(
-        id: 't1',
-        name: 'Cut-A',
-        slots: [
-          DietMealSlot(
-            id: 't1_slot',
-            label: 'Breakfast',
-            position: 0,
-            target: _target(kcal: 700),
-          ),
-        ],
-      );
-      await container
-          .read(dietPlanControllerProvider.notifier)
-          .saveTemplate(template);
-
-      final day = NutritionDay.fromDateTime(DateTime(2026, 8, 1));
-      final first = PlannedMeal(
-        id: 'm1',
-        slotId: 't1_slot',
-        day: day,
-        targetSnapshot: _target(kcal: 700),
-      );
-      final duplicate = PlannedMeal(
-        id: 'm2',
-        slotId: 't1_slot',
-        day: day,
-        targetSnapshot: _target(kcal: 700),
-      );
-      await container
-          .read(dietPlanControllerProvider.notifier)
-          .assignMealToDay(first);
-      await container
-          .read(dietPlanControllerProvider.notifier)
-          .assignMealToDay(duplicate);
-
-      final state = container.read(dietPlanControllerProvider);
-      expect(state, isA<AsyncError<DietPlanState>>());
-      final error = state.error! as HealthFailureException;
-      expect(error.failure, isA<ConflictFailure>());
-    });
-
-    test('a failure while loading surfaces as AsyncError', () async {
-      final container = ProviderContainer(
-        overrides: [
-          dietPlanSourceProvider.overrideWithValue(_AlwaysFailingSource()),
-        ],
-      );
-      addTearDown(container.dispose);
-
-        await expectLater(
-          container.read(dietPlanControllerProvider.future),
-          throwsA(isA<HealthFailureException>()),
-        );
     });
 
     test(
-      'a failure while loading planned meals (with templates OK) '
-      'surfaces as AsyncError',
+      'reports days the diet says nothing about instead of inventing a menu',
       () async {
-        final container = ProviderContainer(
-          overrides: [
-            dietPlanSourceProvider
-                .overrideWithValue(_PlannedMealsLoadFailingSource()),
-          ],
-        );
-        addTearDown(container.dispose);
+        final c = container();
+        final plan = diet(groups: {'WEEKDAYS': {1, 2, 3, 4, 5}});
 
-        await expectLater(
-          container.read(dietPlanControllerProvider.future),
-          throwsA(isA<HealthFailureException>()),
+        // Monday through Sunday: the weekend is uncovered.
+        final outcome = await c
+            .read(dietPlanControllerProvider.notifier)
+            .applyDiet(
+              plan: plan,
+              days: [for (var i = 0; i < 7; i++) dayAfter(i)],
+            );
+
+        expect(outcome?.mealsWritten, 5);
+        expect(
+          outcome?.skippedDays.map((d) => d.weekday),
+          [DateTime.saturday, DateTime.sunday],
         );
       },
     );
+
+    test('is idempotent, so re-applying does not stack duplicates', () async {
+      final c = container();
+      final plan = diet(groups: {'EVERY DAY': everyDay});
+      final notifier = c.read(dietPlanControllerProvider.notifier);
+
+      await notifier.applyDiet(plan: plan, days: [monday]);
+      await notifier.applyDiet(plan: plan, days: [monday]);
+
+      final meals = plannedMeals(await source.listPlannedMeals());
+      expect(meals, hasLength(1));
+      expect(
+        meals.single.id,
+        ApplyDietToDays.plannedMealId('diet-1:g0:m0', monday),
+      );
+    });
+
+    test('surfaces a storage failure as an AsyncError and no outcome', () async {
+      final c = container(override: _AlwaysFailingSource());
+      final plan = diet(groups: {'EVERY DAY': everyDay});
+
+      final outcome = await c
+          .read(dietPlanControllerProvider.notifier)
+          .applyDiet(plan: plan, days: [monday]);
+
+      expect(outcome, isNull);
+      final state = c.read(dietPlanControllerProvider);
+      expect(state.hasError, isTrue);
+      expect(state.error, isA<HealthFailureException>());
+    });
   });
 
-  group('DietPlanState', () {
-    test('an instance equals itself', () {
-      const state = DietPlanState(templates: [], plannedMeals: []);
-      expect(state == state, isTrue);
-    });
+  group('DietPlanController.clearPlan', () {
+    test('removes what the same diet wrote, leaving other days alone', () async {
+      final c = container();
+      final plan = diet(groups: {'EVERY DAY': everyDay});
+      final notifier = c.read(dietPlanControllerProvider.notifier);
 
-    test('two states with empty equal values are equal and share hashCode',
-        () {
-      const a = DietPlanState(templates: [], plannedMeals: []);
-      const b = DietPlanState(templates: [], plannedMeals: []);
-      expect(a, equals(b));
-      expect(a.hashCode, b.hashCode);
-    });
+      await notifier.applyDiet(plan: plan, days: [monday, dayAfter(1)]);
+      await notifier.clearPlan(plan: plan, days: [monday]);
 
-    test('two states with the same non-empty content are equal and share hashCode',
-        () {
-      final template = _template(id: 't1', name: 'Cut-A');
-      final meal = _plannedMeal(
-        id: 'm1',
-        day: NutritionDay.fromDateTime(DateTime(2026, 8, 1)),
+      expect(
+        plannedMeals(await source.listPlannedMeals()).map((m) => m.day),
+        [dayAfter(1)],
       );
-      final a = DietPlanState(templates: [template], plannedMeals: [meal]);
-      final b = DietPlanState(templates: [template], plannedMeals: [meal]);
-      expect(a, equals(b));
-      expect(a.hashCode, b.hashCode);
+    });
+  });
+
+  group('DietPlanController write paths', () {
+    PlannedMeal meal(String id, {String slotId = 'slot-a'}) => PlannedMeal(
+      id: id,
+      slotId: slotId,
+      day: monday,
+      targetSnapshot: _target(),
+    );
+
+    test('assignMealToDay persists the meal', () async {
+      final c = container();
+
+      await c
+          .read(dietPlanControllerProvider.notifier)
+          .assignMealToDay(meal('pm-1'));
+
+      expect(plannedMeals(await source.listPlannedMeals()).single.id, 'pm-1');
+      expect(c.read(dietPlanControllerProvider).hasError, isFalse);
     });
 
-    test('states with different template lengths are not equal', () {
-      final a = const DietPlanState(templates: [], plannedMeals: []);
-      final b = DietPlanState(
-        templates: [_template(id: 't1', name: 'Cut-A')],
-        plannedMeals: const [],
+    test('a duplicate slot-day assignment surfaces as an AsyncError', () async {
+      final c = container();
+      final notifier = c.read(dietPlanControllerProvider.notifier);
+      await notifier.assignMealToDay(meal('pm-1'));
+
+      await notifier.assignMealToDay(meal('pm-2'));
+
+      final state = c.read(dietPlanControllerProvider);
+      expect(state.hasError, isTrue);
+      expect(
+        (state.error as HealthFailureException).failure,
+        isA<ConflictFailure>(),
       );
-      expect(a, isNot(equals(b)));
     });
 
-    test('states with different planned meal lengths are not equal', () {
-      final a = const DietPlanState(templates: [], plannedMeals: []);
-      final b = DietPlanState(
-        templates: const [],
-        plannedMeals: [
-          _plannedMeal(id: 'm1'),
-        ],
-      );
-      expect(a, isNot(equals(b)));
+    test('deletePlannedMeal removes it', () async {
+      final c = container();
+      final notifier = c.read(dietPlanControllerProvider.notifier);
+      await notifier.assignMealToDay(meal('pm-1'));
+
+      await notifier.deletePlannedMeal('pm-1');
+
+      expect(plannedMeals(await source.listPlannedMeals()), isEmpty);
     });
 
-    test('states with different template content are not equal', () {
-      final a = DietPlanState(
-        templates: [_template(id: 't1', name: 'Cut-A')],
-        plannedMeals: const [],
+    test('saveSubstitute and deleteSubstitute round-trip', () async {
+      final c = container();
+      final notifier = c.read(dietPlanControllerProvider.notifier);
+      await notifier.assignMealToDay(meal('pm-1'));
+
+      await notifier.saveSubstitute(
+        MealSubstitute(
+          id: 'sub-1',
+          plannedMealId: 'pm-1',
+          label: 'Tofu bowl',
+          target: _target(kcal: 480),
+        ),
       );
-      final b = DietPlanState(
-        templates: [_template(id: 't2', name: 'Cut-B')],
-        plannedMeals: const [],
+      expect(
+        (await source.listSubstitutes('pm-1') as Ok<List<MealSubstitute>,
+            NutritionFailure>).value,
+        hasLength(1),
       );
-      expect(a, isNot(equals(b)));
+
+      await notifier.deleteSubstitute('sub-1');
+      expect(
+        (await source.listSubstitutes('pm-1') as Ok<List<MealSubstitute>,
+            NutritionFailure>).value,
+        isEmpty,
+      );
     });
 
-    test('states with different planned meal content are not equal', () {
-      final a = DietPlanState(
-        templates: const [],
-        plannedMeals: [_plannedMeal(id: 'm1')],
-      );
-      final b = DietPlanState(
-        templates: const [],
-        plannedMeals: [_plannedMeal(id: 'm2')],
-      );
-      expect(a, isNot(equals(b)));
-    });
+    test('a failing substitute write surfaces as an AsyncError', () async {
+      final c = container(override: _AlwaysFailingSource());
 
-    test('a state is not equal to an unrelated type', () {
-      const state = DietPlanState(templates: [], plannedMeals: []);
-      const other = Object();
-      expect(state == other, isFalse);
-    });
+      await c.read(dietPlanControllerProvider.notifier).saveSubstitute(
+        MealSubstitute(
+          id: 'sub-1',
+          plannedMealId: 'pm-1',
+          label: 'Tofu bowl',
+          target: _target(),
+        ),
+      );
 
-    test('toString includes the type name and fields', () {
-      const state = DietPlanState(templates: [], plannedMeals: []);
-      final representation = state.toString();
-      expect(representation, contains('DietPlanState'));
-      expect(representation, contains('templates'));
-      expect(representation, contains('plannedMeals'));
+      expect(c.read(dietPlanControllerProvider).hasError, isTrue);
     });
   });
 }

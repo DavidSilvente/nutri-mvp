@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/adherence_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_calendar_screen.dart';
-import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_templates_screen.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_library_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/home_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/hydration_screen.dart';
 
@@ -99,14 +99,14 @@ void main() {
     },
   );
 
-  testWidgets('the diet tab opens the template list', (tester) async {
+  testWidgets('the diets tab opens the diet library', (tester) async {
     await pumpHome(tester);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('dietTab')));
     await tester.pumpAndSettle();
 
-    expect(find.byType(DietTemplatesScreen), findsOneWidget);
+    expect(find.byType(DietLibraryScreen), findsOneWidget);
   });
 
   testWidgets('the calendar tab opens the month grid', (tester) async {

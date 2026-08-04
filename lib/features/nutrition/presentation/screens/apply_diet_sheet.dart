@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutri_mvp/core/format/day_format.dart';
 import 'package:nutri_mvp/core/format/nutrition_format.dart';
-import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
+import 'package:nutri_mvp/core/result.dart';
+import 'package:nutri_mvp/features/nutrition/domain/entities/stored_diet_plan.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/calendar_month.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/adherence_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
-import 'package:nutri_mvp/features/nutrition/presentation/widgets/macro_breakdown.dart';
 
 /// How many days a diet gets applied to in one go.
 enum ApplyRange {
@@ -22,10 +22,14 @@ enum ApplyRange {
   };
 }
 
-/// Picks a diet template and drops it onto the calendar.
+/// Picks one of the user's diets and drops it onto the calendar.
 ///
 /// Planning a month one meal at a time is the kind of chore that kills the
 /// habit, so the common cases — this day, this week, this month — are one tap.
+///
+/// Each day receives the menu the diet prescribes for ITS weekday, so a plan
+/// with a different Sunday lands correctly rather than having one day's meals
+/// stamped across the range.
 class ApplyDietSheet extends ConsumerStatefulWidget {
   const ApplyDietSheet({super.key, required this.anchorDay});
 
@@ -37,90 +41,100 @@ class ApplyDietSheet extends ConsumerStatefulWidget {
 }
 
 class _ApplyDietSheetState extends ConsumerState<ApplyDietSheet> {
-  String? _selectedTemplateId;
+  String? _selectedPlanId;
   ApplyRange _range = ApplyRange.singleDay;
   bool _saving = false;
+  String? _error;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final stateAsync = ref.watch(dietPlanControllerProvider);
+    final plansAsync = ref.watch(storedDietPlansProvider);
 
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        child: stateAsync.when(
-          data: (state) {
-            final templates = state.templates;
-            if (templates.isEmpty) return const _NoTemplates();
+        child: plansAsync.when(
+          data: (plans) {
+            if (plans.isEmpty) return const _NoDiets();
 
-            final selected = templates.firstWhere(
-              (t) => t.id == _selectedTemplateId,
-              orElse: () => templates.first,
+            // Defaults to the active diet, which `storedDietPlansProvider`
+            // returns first: applying anything else is the exception.
+            final selected = plans.firstWhere(
+              (plan) => plan.id == _selectedPlanId,
+              orElse: () => plans.first,
             );
             final days = _daysFor(_range);
 
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('Apply a diet', style: theme.textTheme.titleLarge),
-                const SizedBox(height: 4),
-                Text(
-                  'Assigns its meals to the calendar, starting '
-                  '${DayFormat.dayAndMonth(widget.anchorDay)}.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+            return SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Apply a diet', style: theme.textTheme.titleLarge),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Assigns its meals to the calendar, starting '
+                    '${DayFormat.dayAndMonth(widget.anchorDay)}.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                _TemplatePicker(
-                  templates: templates,
-                  selected: selected,
-                  onChanged: (id) => setState(() => _selectedTemplateId = id),
-                ),
-                const SizedBox(height: 20),
-                Text('Apply to', style: theme.textTheme.labelLarge),
-                const SizedBox(height: 8),
-                SegmentedButton<ApplyRange>(
-                  segments: [
-                    for (final range in ApplyRange.values)
-                      ButtonSegment(
-                        value: range,
-                        label: Text(
-                          range.label,
-                          style: theme.textTheme.labelSmall,
-                          textAlign: TextAlign.center,
+                  const SizedBox(height: 20),
+                  _DietPicker(
+                    plans: plans,
+                    selected: selected,
+                    onChanged: (id) => setState(() => _selectedPlanId = id),
+                  ),
+                  const SizedBox(height: 20),
+                  Text('Apply to', style: theme.textTheme.labelLarge),
+                  const SizedBox(height: 8),
+                  SegmentedButton<ApplyRange>(
+                    segments: [
+                      for (final range in ApplyRange.values)
+                        ButtonSegment(
+                          value: range,
+                          label: Text(
+                            range.label,
+                            style: theme.textTheme.labelSmall,
+                            textAlign: TextAlign.center,
+                          ),
                         ),
-                      ),
-                  ],
-                  selected: {_range},
-                  showSelectedIcon: false,
-                  onSelectionChanged: (selection) =>
-                      setState(() => _range = selection.first),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  '${days.length} '
-                  '${days.length == 1 ? 'day' : 'days'} · '
-                  '${days.length * selected.slots.length} meals',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                    ],
+                    selected: {_range},
+                    showSelectedIcon: false,
+                    onSelectionChanged: (selection) =>
+                        setState(() => _range = selection.first),
                   ),
-                ),
-                const SizedBox(height: 20),
-                FilledButton(
-                  key: const Key('confirmApplyDietButton'),
-                  onPressed: _saving ? null : () => _apply(selected, days),
-                  child: _saving
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Apply'),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  Text(
+                    '${days.length} ${days.length == 1 ? 'day' : 'days'}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  if (_error case final error?) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      error,
+                      key: const Key('applyDietError'),
+                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    key: const Key('confirmApplyDietButton'),
+                    onPressed: _saving ? null : () => _apply(selected, days),
+                    child: _saving
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Apply'),
+                  ),
+                ],
+              ),
             );
           },
           loading: () => const Padding(
@@ -162,28 +176,73 @@ class _ApplyDietSheetState extends ConsumerState<ApplyDietSheet> {
     ];
   }
 
-  Future<void> _apply(DietTemplate template, List<NutritionDay> days) async {
-    setState(() => _saving = true);
+  Future<void> _apply(StoredDietPlan stored, List<NutritionDay> days) async {
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
 
-    await ref
-        .read(dietPlanControllerProvider.notifier)
-        .applyTemplate(template: template, days: days);
-
+    // Decoded here rather than held in state: the sheet only needs the plan at
+    // the moment it applies it, and decoding every listed diet up front would
+    // load the food table for diets the user never picks.
+    final decoded = await ref.read(decodeStoredDietProvider)(stored);
     if (!mounted) return;
-    setState(() => _saving = false);
-    Navigator.of(context).pop();
+
+    switch (decoded) {
+      case Err(failure: final failure):
+        setState(() {
+          _saving = false;
+          _error = 'Could not read "${stored.name}": $failure';
+        });
+        return;
+      case Ok(value: final diet):
+        final outcome = await ref
+            .read(dietPlanControllerProvider.notifier)
+            .applyDiet(plan: diet.plan, days: days);
+        if (!mounted) return;
+        setState(() => _saving = false);
+
+        if (outcome == null) {
+          final state = ref.read(dietPlanControllerProvider);
+          setState(() => _error = state.error?.toString() ?? 'Apply failed.');
+          return;
+        }
+
+        Navigator.of(context).pop();
+        _reportSkippedDays(outcome.skippedDays.length, stored.name);
+    }
+  }
+
+  /// Says so when the diet had nothing for some of the days.
+  ///
+  /// A plan that only covers weekdays is normal; silently leaving those days
+  /// empty after the user asked for a month is not.
+  void _reportSkippedDays(int skipped, String dietName) {
+    if (skipped == 0) return;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    messenger
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            '$skipped ${skipped == 1 ? 'day was' : 'days were'} left empty — '
+            '"$dietName" says nothing about ${skipped == 1 ? 'that' : 'those'} '
+            'weekday${skipped == 1 ? '' : 's'}.',
+          ),
+        ),
+      );
   }
 }
 
-class _TemplatePicker extends StatelessWidget {
-  const _TemplatePicker({
-    required this.templates,
+class _DietPicker extends StatelessWidget {
+  const _DietPicker({
+    required this.plans,
     required this.selected,
     required this.onChanged,
   });
 
-  final List<DietTemplate> templates;
-  final DietTemplate selected;
+  final List<StoredDietPlan> plans;
+  final StoredDietPlan selected;
   final ValueChanged<String> onChanged;
 
   @override
@@ -192,32 +251,32 @@ class _TemplatePicker extends StatelessWidget {
 
     return Column(
       children: [
-        for (final template in templates)
+        for (final plan in plans)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: InkWell(
-              key: Key('applyTemplateOption-${template.id}'),
-              onTap: () => onChanged(template.id),
+              key: Key('applyDietOption-${plan.id}'),
+              onTap: () => onChanged(plan.id),
               borderRadius: BorderRadius.circular(16),
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: template.id == selected.id
+                    color: plan.id == selected.id
                         ? theme.colorScheme.primary
                         : theme.colorScheme.outlineVariant,
-                    width: template.id == selected.id ? 2 : 1,
+                    width: plan.id == selected.id ? 2 : 1,
                   ),
                 ),
                 child: Row(
                   children: [
                     Icon(
-                      template.id == selected.id
+                      plan.id == selected.id
                           ? Icons.radio_button_checked
                           : Icons.radio_button_unchecked,
                       size: 20,
-                      color: template.id == selected.id
+                      color: plan.id == selected.id
                           ? theme.colorScheme.primary
                           : theme.colorScheme.onSurfaceVariant,
                     ),
@@ -226,20 +285,33 @@ class _TemplatePicker extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            template.name,
-                            style: theme.textTheme.titleSmall,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  plan.name,
+                                  style: theme.textTheme.titleSmall,
+                                ),
+                              ),
+                              if (plan.isDefault)
+                                Text(
+                                  'Current',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                            ],
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${NutritionFormat.kcal(template.dailyTarget.energy.kcal)}'
-                            ' · ${template.slots.length} meals',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
+                          if (plan.declaredDailyEnergyKcal
+                              case final declared?) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              NutritionFormat.kcal(declared),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          MacroSummaryLine(target: template.dailyTarget),
+                          ],
                         ],
                       ),
                     ),
@@ -253,8 +325,8 @@ class _TemplatePicker extends StatelessWidget {
   }
 }
 
-class _NoTemplates extends StatelessWidget {
-  const _NoTemplates();
+class _NoDiets extends StatelessWidget {
+  const _NoDiets();
 
   @override
   Widget build(BuildContext context) {
@@ -274,7 +346,7 @@ class _NoTemplates extends StatelessWidget {
           Text('No diets to apply', style: theme.textTheme.titleMedium),
           const SizedBox(height: 6),
           Text(
-            'Create one in the Diet tab first.',
+            'Import or write one in My diets first.',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,

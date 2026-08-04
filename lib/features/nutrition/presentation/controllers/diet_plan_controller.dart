@@ -3,105 +3,61 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutri_mvp/core/health_failure_exception.dart';
 import 'package:nutri_mvp/core/result.dart';
-import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
+import 'package:nutri_mvp/features/nutrition/domain/entities/diet_plan.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/meal_substitute.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/planned_meal.dart';
 import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
-import 'package:nutri_mvp/features/nutrition/domain/usecases/apply_template_to_days.dart';
+import 'package:nutri_mvp/features/nutrition/domain/usecases/apply_diet_to_days.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/data_revision_provider.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
 
-/// The aggregated async state exposed by [DietPlanController].
+/// Writes to the calendar side of the diet: planned meals and their
+/// substitutes.
 ///
-/// It deliberately groups templates and planned meals together because the
-/// planning UI needs both: the template list drives creation/editing, and
-/// planned meals are required to show assignments and to validate uniqueness
-/// constraints in the presentation layer.
-class DietPlanState {
-  const DietPlanState({
-    required this.templates,
-    required this.plannedMeals,
-  });
-
-  final List<DietTemplate> templates;
-  final List<PlannedMeal> plannedMeals;
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! DietPlanState) return false;
-    if (other.templates.length != templates.length) return false;
-    if (other.plannedMeals.length != plannedMeals.length) return false;
-    for (var i = 0; i < templates.length; i++) {
-      if (other.templates[i] != templates[i]) return false;
-    }
-    for (var i = 0; i < plannedMeals.length; i++) {
-      if (other.plannedMeals[i] != plannedMeals[i]) return false;
-    }
-    return true;
-  }
-
-  @override
-  int get hashCode => Object.hash(
-        Object.hashAll(templates),
-        Object.hashAll(plannedMeals),
-      );
-
-  @override
-  String toString() =>
-      'DietPlanState(templates: $templates, plannedMeals: $plannedMeals)';
-}
-
-/// Orchestrates diet plan operations for the UI.
+/// Holds no data of its own. What a day or a month looks like is read through
+/// `dayPlanProvider` and `monthAdherenceProvider`, which re-run off
+/// [dataRevisionProvider]; this notifier exists to perform the writes, bump that
+/// revision, and give the caller one place to look for a failure.
 ///
-/// Wraps a [DietPlanSource] directly (no intermediate use case) because the
-/// source already encapsulates the persistence contract. The controller
-/// exposes templates and planned meals as an [AsyncValue] and provides
-/// mutation methods that refresh the aggregate state on success and surface
-/// failures as [AsyncError] via [HealthFailureException].
-class DietPlanController extends AsyncNotifier<DietPlanState> {
+/// Keeping it stateless is deliberate: the only thing it could cache is "every
+/// planned meal ever", which grows without bound and which nothing reads.
+class DietPlanController extends AsyncNotifier<void> {
   @override
-  FutureOr<DietPlanState> build() => _load();
+  FutureOr<void> build() {}
 
-  /// Persists [template]. On success the aggregate state is refreshed; on
-  /// failure the state becomes an [AsyncError] wrapping a
-  /// [HealthFailureException].
-  Future<void> saveTemplate(DietTemplate template) async {
-    final result = await ref.read(dietPlanSourceProvider).saveTemplate(template);
-    await _commit(result);
-  }
-
-  /// Persists [meal] as a planned assignment to a day. Refreshes the
-  /// aggregate state on success; surfaces failures as [AsyncError].
+  /// Persists [meal] as a planned assignment to a day.
   Future<void> assignMealToDay(PlannedMeal meal) async {
     final result =
         await ref.read(dietPlanSourceProvider).savePlannedMeal(meal);
     await _commit(result);
   }
 
-  /// Assigns every meal of [template] to each day in [days].
+  /// Assigns the meals [plan] prescribes to each day in [days].
   ///
-  /// Idempotent, so re-applying a diet over days that already have it is
-  /// harmless — see [ApplyTemplateToDays].
-  Future<void> applyTemplate({
-    required DietTemplate template,
+  /// Idempotent, and weekday-aware — see [ApplyDietToDays].
+  Future<ApplyDietOutcome?> applyDiet({
+    required DietPlan plan,
     required List<NutritionDay> days,
   }) async {
-    final result = await ref.read(applyTemplateProvider)(
-      template: template,
+    final result = await ref.read(applyDietProvider)(
+      plan: plan,
       days: days,
     );
     await _commit(result);
+    return switch (result) {
+      Ok(value: final outcome) => outcome,
+      Err() => null,
+    };
   }
 
-  /// Removes the meals [template] put on [days]. Logged intake survives.
+  /// Removes the meals [plan] put on [days]. Logged intake survives.
   Future<void> clearPlan({
-    required DietTemplate template,
+    required DietPlan plan,
     required List<NutritionDay> days,
   }) async {
-    final result = await ref.read(applyTemplateProvider).clear(
-      template: template,
+    final result = await ref.read(applyDietProvider).clear(
+      plan: plan,
       days: days,
     );
     await _commit(result);
@@ -132,29 +88,12 @@ class DietPlanController extends AsyncNotifier<DietPlanState> {
     switch (result) {
       case Ok():
         bumpDataRevision(ref);
-        state = await AsyncValue.guard(_load);
+        state = const AsyncValue.data(null);
       case Err(failure: final failure):
         state = AsyncValue.error(
           HealthFailureException(failure),
           StackTrace.current,
         );
     }
-  }
-
-  Future<DietPlanState> _load() async {
-    final source = ref.read(dietPlanSourceProvider);
-    final templatesResult = await source.listTemplates();
-    final plannedMealsResult = await source.listPlannedMeals();
-
-    return switch ((templatesResult, plannedMealsResult)) {
-      (Ok(value: final templates), Ok(value: final plannedMeals)) =>
-        DietPlanState(
-          templates: templates,
-          plannedMeals: plannedMeals,
-        ),
-      (Err(failure: final failure), _) => throw HealthFailureException(failure),
-      (_, Err(failure: final failure)) =>
-        throw HealthFailureException(failure),
-    };
   }
 }

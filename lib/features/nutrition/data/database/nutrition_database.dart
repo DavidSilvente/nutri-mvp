@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import 'legacy_template_migration.dart';
+
 part 'nutrition_database.g.dart';
 
 /// Local storage table for nutrition entries.
@@ -61,67 +63,22 @@ class HydrationEntries extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-/// Local storage table for reusable diet templates.
-///
-/// Each template stores an explicit daily macro target and is uniquely
-/// named. The per-user uniqueness expected by the domain is enforced in the
-/// application layer; the schema guarantees global name uniqueness.
-@DataClassName('DietTemplateRow')
-class DietTemplates extends Table {
-  TextColumn get id => text()();
-  TextColumn get name => text().unique()();
-
-  RealColumn get energyKcal => real()();
-  RealColumn get proteinG => real()();
-  RealColumn get carbsG => real()();
-  RealColumn get fatG => real()();
-
-  DateTimeColumn get createdAt => dateTime()();
-  DateTimeColumn get updatedAt => dateTime()();
-
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
-/// Local storage table for the ordered meal slots inside a [DietTemplate].
-@DataClassName('DietMealSlotRow')
-class DietMealSlots extends Table {
-  TextColumn get id => text()();
-  TextColumn get templateId => text().references(
-        DietTemplates,
-        #id,
-        onDelete: KeyAction.cascade,
-      )();
-  TextColumn get label => text()();
-  IntColumn get position => integer()();
-
-  RealColumn get energyKcal => real()();
-  RealColumn get proteinG => real()();
-  RealColumn get carbsG => real()();
-  RealColumn get fatG => real()();
-
-  @override
-  Set<Column> get primaryKey => {id};
-
-  @override
-  List<Set<Column>> get uniqueKeys => [
-    {templateId, position},
-  ];
-}
-
 /// Local storage table for planned assignments of a meal slot to a day.
 ///
 /// [dayEpoch] is nullable because a planned meal may exist without a fixed
 /// calendar day. The unique constraint on `(slotId, dayEpoch)` allows multiple
 /// rows with a NULL day as required by SQLite semantics.
+///
+/// [slotId] is a PLAIN reference, not a foreign key. Until v7 it cascaded from a
+/// `diet_meal_slots` table; a diet now lives in one place, as a document in
+/// [DietPlanRecords], and the slot it names is resolved by decoding that
+/// document. Keeping the column unconstrained is what lets this table stay the
+/// immutable ledger of what a day was committed to: deleting or editing a diet
+/// must never erase the record of what a past day was judged against.
 @DataClassName('PlannedMealRow')
 class PlannedMeals extends Table {
   TextColumn get id => text()();
-  TextColumn get slotId => text().references(
-        DietMealSlots,
-        #id,
-        onDelete: KeyAction.cascade,
-      )();
+  TextColumn get slotId => text()();
   IntColumn get dayEpoch => integer().nullable()();
 
   RealColumn get energyKcal => real()();
@@ -289,8 +246,6 @@ class ComponentSelections extends Table {
 @DriftDatabase(tables: [
   NutritionEntries,
   HydrationEntries,
-  DietTemplates,
-  DietMealSlots,
   PlannedMeals,
   MealSubstitutes,
   MenuPhotos,
@@ -303,7 +258,7 @@ class NutritionDatabase extends _$NutritionDatabase {
   NutritionDatabase(super.e);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -340,10 +295,15 @@ class NutritionDatabase extends _$NutritionDatabase {
           );
         }
         if (from < 3) {
-          // v2 -> v3: create the six diet/menu tables. No backfill is
-          // required; these aggregates start empty.
-          await m.createTable(dietTemplates);
-          await m.createTable(dietMealSlots);
+          // v2 -> v3: create the diet/menu tables. No backfill is required;
+          // these aggregates start empty.
+          //
+          // The original step also created `diet_templates` and
+          // `diet_meal_slots`. It no longer does: v7 below drops them, and
+          // creating a pair of tables here only to delete them two steps later
+          // would leave dead DDL that has to be maintained forever. A database
+          // that really was at v3 still HAS them, which is why v7 checks
+          // instead of assuming.
           await m.createTable(plannedMeals);
           await m.createTable(mealSubstitutes);
           await m.createTable(menuPhotos);
@@ -377,6 +337,27 @@ class NutritionDatabase extends _$NutritionDatabase {
           // empty.
           await m.createTable(savedMeals);
         }
+        if (from < 7) {
+          // v6 -> v7: a diet lives in ONE place. The hand-built templates of v3
+          // were a second, parallel store for the same idea, and the day and
+          // calendar views read only that one while imported plans sat unused.
+          //
+          // Order matters. The templates are rewritten as plan documents FIRST,
+          // while their tables are still there to be read; only then does the
+          // schema lose them.
+          if (await _hasTable('diet_templates')) {
+            await LegacyTemplateMigration.run(this);
+          }
+
+          // `planned_meals.slot_id` used to cascade from `diet_meal_slots`.
+          // Recreated from the current definition, which has no such key, so
+          // that dropping that table cannot take the calendar with it. This is
+          // the whole reason the step cannot be a plain DROP.
+          await m.alterTable(TableMigration(plannedMeals));
+
+          await customStatement('DROP TABLE IF EXISTS diet_meal_slots;');
+          await customStatement('DROP TABLE IF EXISTS diet_templates;');
+        }
       });
     },
     beforeOpen: (details) async {
@@ -394,5 +375,19 @@ class NutritionDatabase extends _$NutritionDatabase {
   Future<bool> _hasColumn(String table, String column) async {
     final rows = await customSelect("PRAGMA table_info('$table');").get();
     return rows.any((row) => row.read<String>('name') == column);
+  }
+
+  /// Whether [table] exists at all.
+  ///
+  /// Needed because a table can be absent for two different reasons: the
+  /// database predates it, or a later step already dropped it. A step that
+  /// tidies up after an earlier schema has to tell those apart rather than
+  /// failing on "no such table".
+  Future<bool> _hasTable(String table) async {
+    final rows = await customSelect(
+      "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?;",
+      variables: [Variable<String>(table)],
+    ).get();
+    return rows.isNotEmpty;
   }
 }

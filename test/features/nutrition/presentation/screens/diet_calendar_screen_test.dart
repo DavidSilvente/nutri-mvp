@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/planned_meal.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
@@ -15,6 +14,7 @@ import 'package:nutri_mvp/features/nutrition/presentation/screens/day_plan_scree
 import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_calendar_screen.dart';
 
 import '../../../../_helpers/pump_app.dart';
+import '../../_fakes/diet_fixture.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 import '../../_fakes/fake_hydration_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
@@ -30,22 +30,17 @@ void main() {
   NutritionDay day(int d) => NutritionDay.fromDateTime(DateTime(2026, 7, d));
 
   late FakeDietPlanSource dietSource;
+  late FakeMealSlotDirectory slotDirectory;
   late FakeNutritionSource nutritionSource;
 
   setUp(() async {
     dietSource = FakeDietPlanSource();
     nutritionSource = FakeNutritionSource();
 
-    final slots = [
-      DietMealSlot(id: 'slot-1', label: 'Lunch', position: 0, target: target()),
-    ];
-    await dietSource.saveTemplate(
-      DietTemplate(
-        id: 't1',
-        name: 'Plan',
-        dailyTarget: NutritionTarget.sum(slots.map((s) => s.target)),
-        slots: slots,
-      ),
+    slotDirectory = FakeMealSlotDirectory(
+      slots: [
+        mealSlot(id: 'slot-1', label: 'Lunch', position: 0),
+      ],
     );
   });
 
@@ -81,6 +76,7 @@ void main() {
       overrides: [
         nutritionSourceProvider.overrideWithValue(nutritionSource),
         dietPlanSourceProvider.overrideWithValue(dietSource),
+        mealSlotDirectoryProvider.overrideWithValue(slotDirectory),
         hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
         todayProvider.overrideWithValue(today),
       ],
