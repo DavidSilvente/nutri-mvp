@@ -147,12 +147,33 @@ class GetDietDay {
         selections = value;
     }
 
+    // Resolves all 3 precedence levels (day > preference > plan default), the
+    // same rule `GetDayPlan` already applies. Before this, only the day level
+    // was read here, so a standing preference set from the day plan screen
+    // silently had no effect on this screen for the same day.
+    //
+    // This still goes through `DietPlanStore` directly rather than the
+    // `OptionChoiceSource` port `GetDayPlan` uses — migrating fully onto that
+    // port is a deliberate follow-up, out of scope for this fix (see the
+    // day-shows-planned-food design notes).
+    final preferencesResult = await _store.preferredOptions();
+    final Map<String, String> preferences;
+    switch (preferencesResult) {
+      case Err(failure: final failure):
+        return Err(failure);
+      case Ok(value: final value):
+        preferences = value;
+    }
+
     return _assemble(
       day: day,
       plan: plan.plan,
       group: group,
       catalog: plan.catalog,
-      selections: selections,
+      choices: OptionChoices(
+        daySelections: selections,
+        preferences: preferences,
+      ),
     );
   }
 
@@ -161,7 +182,7 @@ class GetDietDay {
     required DietPlan plan,
     required DietPlanDayGroup group,
     required FoodCatalog catalog,
-    required Map<String, String> selections,
+    required OptionChoices choices,
   }) {
     final meals = <DietDayMeal>[];
     final unresolved = <String>{};
@@ -169,10 +190,7 @@ class GetDietDay {
     for (final slot in group.template.slots) {
       final components = <DietDayComponent>[];
       for (final component in slot.components) {
-        final chosen = DerivedTargets.optionFor(
-          component,
-          OptionChoices.day(selections),
-        );
+        final chosen = DerivedTargets.optionFor(component, choices);
         final food = catalog.byId(chosen.foodId);
         if (food == null) {
           unresolved.add(chosen.foodId);
