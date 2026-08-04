@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nutri_mvp/core/result.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/planned_meal.dart';
+import 'package:nutri_mvp/features/nutrition/domain/entities/saved_meal.dart';
+import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
@@ -11,6 +14,7 @@ import 'package:nutri_mvp/features/nutrition/presentation/providers/adherence_pr
 import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/hydration_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/providers/saved_meal_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/day_plan_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/record_intake_screen.dart';
 
@@ -18,6 +22,7 @@ import '../../../../_helpers/pump_app.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 import '../../_fakes/fake_hydration_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
+import '../../_fakes/fake_saved_meal_source.dart';
 
 NutritionTarget target({
   num kcal = 600,
@@ -104,7 +109,10 @@ void main() {
   /// surface would push most of them out of the viewport and out of the
   /// widget tree. A tall surface keeps the assertions about content, not
   /// about scrolling.
-  Future<void> pumpScreen(WidgetTester tester) async {
+  Future<void> pumpScreen(
+    WidgetTester tester, {
+    FakeSavedMealSource? savedMealSource,
+  }) async {
     await tester.binding.setSurfaceSize(const Size(1000, 3000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await pumpApp(
@@ -115,6 +123,9 @@ void main() {
         dietPlanSourceProvider.overrideWithValue(dietSource),
         hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
         todayProvider.overrideWithValue(today),
+        savedMealSourceProvider.overrideWithValue(
+          savedMealSource ?? FakeSavedMealSource(),
+        ),
       ],
     );
     await tester.pumpAndSettle();
@@ -225,5 +236,81 @@ void main() {
       expect(find.text('Extras'), findsOneWidget);
       expect(find.text('210 kcal'), findsOneWidget);
     });
+
+    testWidgets(
+      'saving an unplanned entry as a meal copies its macros without '
+      'changing the entry',
+      (tester) async {
+        final savedMealSource = FakeSavedMealSource();
+        await log(id: 'snack', kcal: 210, protein: 5, carbs: 25, fat: 8);
+
+        await pumpScreen(tester, savedMealSource: savedMealSource);
+
+        await tester.tap(
+          find.byKey(const Key('saveEntryAsMealButton-snack')),
+        );
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('saveEntryAsMealNameField')),
+          'Afternoon snack',
+        );
+        await tester.tap(
+          find.byKey(const Key('confirmSaveEntryAsMealButton')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('saveEntryAsMealNameField')),
+          findsNothing,
+        );
+
+        final listResult = await savedMealSource.listSavedMeals();
+        final meals =
+            (listResult as Ok<List<SavedMeal>, NutritionFailure>).value;
+        expect(meals, hasLength(1));
+        expect(meals.single.name, 'Afternoon snack');
+        expect(meals.single.target.energy.kcal, 210);
+
+        final entriesResult = await nutritionSource.entriesOn(day);
+        final entries = (entriesResult as Ok<List<NutritionEntry>, NutritionFailure>)
+            .value;
+        expect(entries.single.energy.kcal, 210);
+        expect(entries.single.plannedMealId, isNull);
+      },
+    );
+
+    testWidgets(
+      "saving a planned meal's logged entry as a meal is offered from its "
+      'own row and keeps the entry linked to the plan',
+      (tester) async {
+        final savedMealSource = FakeSavedMealSource();
+        await saveTemplate();
+        await plan('pm-breakfast', 'slot-breakfast');
+        await log(id: 'e1', plannedMealId: 'pm-breakfast');
+
+        await pumpScreen(tester, savedMealSource: savedMealSource);
+
+        await tester.tap(find.byKey(const Key('saveEntryAsMealButton-e1')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('saveEntryAsMealNameField')),
+          'Usual breakfast',
+        );
+        await tester.tap(
+          find.byKey(const Key('confirmSaveEntryAsMealButton')),
+        );
+        await tester.pumpAndSettle();
+
+        final listResult = await savedMealSource.listSavedMeals();
+        final meals =
+            (listResult as Ok<List<SavedMeal>, NutritionFailure>).value;
+        expect(meals.single.name, 'Usual breakfast');
+
+        final entriesResult = await nutritionSource.entriesOn(day);
+        final entries = (entriesResult as Ok<List<NutritionEntry>, NutritionFailure>)
+            .value;
+        expect(entries.single.plannedMealId, 'pm-breakfast');
+      },
+    );
   });
 }

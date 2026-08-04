@@ -5,6 +5,7 @@ import 'package:nutri_mvp/features/nutrition/presentation/screens/day_plan_scree
 import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_calendar_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_day_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_templates_screen.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/screens/saved_meals_screen.dart';
 
 /// The app shell: today, the calendar, and the diet itself.
 ///
@@ -33,6 +34,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           DietDayScreen(day: today),
           const DietCalendarScreen(),
           const DietTemplatesScreen(),
+          const SavedMealsScreen(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -62,6 +64,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             icon: Icon(Icons.restaurant_menu_outlined),
             selectedIcon: Icon(Icons.restaurant_menu),
             label: 'Templates',
+          ),
+          NavigationDestination(
+            key: Key('myMealsTab'),
+            icon: Icon(Icons.bookmark_outline),
+            selectedIcon: Icon(Icons.bookmark),
+            label: 'My meals',
           ),
         ],
       ),

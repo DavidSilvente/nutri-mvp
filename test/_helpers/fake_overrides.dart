@@ -5,11 +5,13 @@ import 'package:nutri_mvp/features/nutrition/domain/usecases/bootstrap_diet_libr
 import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/hydration_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/providers/saved_meal_providers.dart';
 
 import '../features/nutrition/_fakes/fake_diet_plan_source.dart';
 import '../features/nutrition/_fakes/fake_diet_plan_store.dart';
 import '../features/nutrition/_fakes/fake_hydration_source.dart';
 import '../features/nutrition/_fakes/fake_nutrition_source.dart';
+import '../features/nutrition/_fakes/fake_saved_meal_source.dart';
 
 /// Overrides every port the app shell touches with an in-memory fake, so a
 /// widget test never reaches drift, the filesystem, or a bundled asset.
@@ -28,6 +30,7 @@ List<Override> fakeAppOverrides({
   DietPlanStore? dietPlanStore,
   FoodTableSource? foodTable,
   BundledDietDocumentSource? bundledDiet,
+  FakeSavedMealSource? savedMealSource,
   DateTime Function()? clock,
 }) {
   return [
@@ -48,6 +51,9 @@ List<Override> fakeAppOverrides({
     ),
     bundledDietDocumentProvider.overrideWithValue(
       bundledDiet ?? FakeBundledDietDocumentSource(),
+    ),
+    savedMealSourceProvider.overrideWithValue(
+      savedMealSource ?? FakeSavedMealSource(),
     ),
     clockProvider.overrideWithValue(
       clock ?? () => DateTime.utc(2026, 8, 1, 12),
