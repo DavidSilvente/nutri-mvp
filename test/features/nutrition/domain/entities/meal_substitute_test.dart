@@ -50,48 +50,26 @@ void main() {
       );
     });
 
-    test('two substitutes with the same ingredients, in the same order, are '
-        'equal', () {
+    test('ingredients participate in equality element-wise', () {
+      MealSubstitute substitute(List<LoggedIngredient> ingredients) =>
+          MealSubstitute(
+            id: 'sub-1',
+            plannedMealId: 'meal-1',
+            label: 'Tofu (200g)',
+            target: target,
+            ingredients: ingredients,
+          );
       final ingredients = [
         LoggedIngredient(foodId: 'tofu', quantity: FoodQuantity(grams: 200)),
       ];
-      final a = MealSubstitute(
-        id: 'sub-1',
-        plannedMealId: 'meal-1',
-        label: 'Tofu (200g)',
-        target: target,
-        ingredients: ingredients,
-      );
-      final b = MealSubstitute(
-        id: 'sub-1',
-        plannedMealId: 'meal-1',
-        label: 'Tofu (200g)',
-        target: target,
-        ingredients: ingredients,
-      );
 
+      final a = substitute(ingredients);
+      final b = substitute(ingredients);
       expect(a, b);
       expect(a.hashCode, b.hashCode);
-    });
 
-    test('substitutes differing only by ingredients are not equal', () {
-      final a = MealSubstitute(
-        id: 'sub-1',
-        plannedMealId: 'meal-1',
-        label: 'Tofu (200g)',
-        target: target,
-        ingredients: [
-          LoggedIngredient(foodId: 'tofu', quantity: FoodQuantity(grams: 200)),
-        ],
-      );
-      final b = MealSubstitute(
-        id: 'sub-1',
-        plannedMealId: 'meal-1',
-        label: 'Tofu (200g)',
-        target: target,
-      );
-
-      expect(a, isNot(b));
+      final c = substitute(const []);
+      expect(a, isNot(c));
     });
 
     test('rejects an empty label', () {

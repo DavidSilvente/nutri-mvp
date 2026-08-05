@@ -48,8 +48,15 @@ void main() {
       );
     });
 
-    test('two entries with the same ingredients, in the same order, are '
-        'equal', () {
+    test('ingredients participate in equality element-wise', () {
+      NutritionEntry entry(List<LoggedIngredient> ingredients) =>
+          NutritionEntry(
+            id: 'entry-1',
+            recordedAt: DateTime(2026, 7, 24),
+            energy: Energy(kcal: 500),
+            macros: Macros(proteinG: 30, carbsG: 50, fatG: 15),
+            ingredients: ingredients,
+          );
       final ingredients = [
         LoggedIngredient(
           foodId: 'chicken_breast',
@@ -57,46 +64,14 @@ void main() {
         ),
         LoggedIngredient(foodId: 'rice', quantity: FoodQuantity(grams: 100)),
       ];
-      final a = NutritionEntry(
-        id: 'entry-1',
-        recordedAt: DateTime(2026, 7, 24),
-        energy: Energy(kcal: 500),
-        macros: Macros(proteinG: 30, carbsG: 50, fatG: 15),
-        ingredients: ingredients,
-      );
-      final b = NutritionEntry(
-        id: 'entry-1',
-        recordedAt: DateTime(2026, 7, 24),
-        energy: Energy(kcal: 500),
-        macros: Macros(proteinG: 30, carbsG: 50, fatG: 15),
-        ingredients: ingredients,
-      );
 
+      final a = entry(ingredients);
+      final b = entry(ingredients);
       expect(a, b);
       expect(a.hashCode, b.hashCode);
-    });
 
-    test('entries differing only by ingredients are not equal', () {
-      final a = NutritionEntry(
-        id: 'entry-1',
-        recordedAt: DateTime(2026, 7, 24),
-        energy: Energy(kcal: 500),
-        macros: Macros(proteinG: 30, carbsG: 50, fatG: 15),
-        ingredients: [
-          LoggedIngredient(
-            foodId: 'chicken_breast',
-            quantity: FoodQuantity(grams: 150),
-          ),
-        ],
-      );
-      final b = NutritionEntry(
-        id: 'entry-1',
-        recordedAt: DateTime(2026, 7, 24),
-        energy: Energy(kcal: 500),
-        macros: Macros(proteinG: 30, carbsG: 50, fatG: 15),
-      );
-
-      expect(a, isNot(b));
+      final c = entry(const []);
+      expect(a, isNot(c));
     });
 
     test(

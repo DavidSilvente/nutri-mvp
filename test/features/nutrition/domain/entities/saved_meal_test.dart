@@ -62,54 +62,28 @@ void main() {
       );
     });
 
-    test('two meals with the same ingredients, in the same order, are '
-        'equal', () {
+    test('ingredients participate in equality element-wise', () {
+      SavedMeal meal(List<LoggedIngredient> ingredients) => SavedMeal(
+        id: 'meal-1',
+        name: 'Chicken salad',
+        target: _target(),
+        createdAt: DateTime.utc(2026, 8, 1),
+        ingredients: ingredients,
+      );
       final ingredients = [
         LoggedIngredient(
           foodId: 'chicken_breast',
           quantity: FoodQuantity(grams: 150),
         ),
       ];
-      final a = SavedMeal(
-        id: 'meal-1',
-        name: 'Chicken salad',
-        target: _target(),
-        createdAt: DateTime.utc(2026, 8, 1),
-        ingredients: ingredients,
-      );
-      final b = SavedMeal(
-        id: 'meal-1',
-        name: 'Chicken salad',
-        target: _target(),
-        createdAt: DateTime.utc(2026, 8, 1),
-        ingredients: ingredients,
-      );
 
+      final a = meal(ingredients);
+      final b = meal(ingredients);
       expect(a, b);
       expect(a.hashCode, b.hashCode);
-    });
 
-    test('meals differing only by ingredients are not equal', () {
-      final a = SavedMeal(
-        id: 'meal-1',
-        name: 'Chicken salad',
-        target: _target(),
-        createdAt: DateTime.utc(2026, 8, 1),
-        ingredients: [
-          LoggedIngredient(
-            foodId: 'chicken_breast',
-            quantity: FoodQuantity(grams: 150),
-          ),
-        ],
-      );
-      final b = SavedMeal(
-        id: 'meal-1',
-        name: 'Chicken salad',
-        target: _target(),
-        createdAt: DateTime.utc(2026, 8, 1),
-      );
-
-      expect(a == b, isFalse);
+      final c = meal(const []);
+      expect(a == c, isFalse);
     });
 
     test('creates with an optional portionNote', () {
