@@ -3,13 +3,31 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/core/result.dart';
 import 'package:nutri_mvp/features/nutrition/data/database/nutrition_database.dart';
 import 'package:nutri_mvp/features/nutrition/data/sources/sql_diet_plan_source.dart';
+import 'package:nutri_mvp/features/nutrition/domain/entities/food_item.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/meal_substitute.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/planned_meal.dart';
 import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
+import 'package:nutri_mvp/features/nutrition/domain/services/derived_targets.dart';
+import 'package:nutri_mvp/features/nutrition/domain/services/food_catalog.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
+import 'package:nutri_mvp/features/nutrition/domain/value_objects/food_quantity.dart';
+import 'package:nutri_mvp/features/nutrition/domain/value_objects/logged_ingredient.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_target.dart';
+
+/// A food whose per-100g composition is 200 kcal / 20P / 10C / 5F, used by
+/// the composition round-trip tests below.
+FoodItem _food(String id) => FoodItem(
+  id: id,
+  name: 'Food $id',
+  preparation: FoodPreparation.raw,
+  per100g: NutritionTarget(
+    energy: Energy(kcal: 200),
+    macros: Macros(proteinG: 20, carbsG: 10, fatG: 5),
+  ),
+  source: FoodDataSource.usdaSrLegacy,
+);
 
 NutritionTarget _target({
   double kcal = 100,
@@ -212,6 +230,125 @@ void main() {
           (listResult as Ok<List<MealSubstitute>, NutritionFailure>).value;
       expect(substitutes, isEmpty);
     });
+
+    test(
+      'saveSubstitute persists a composed substitute\'s ingredients in '
+      'order, including an unresolved foodId, and listSubstitutes rehydrates '
+      'them verbatim',
+      () async {
+        final day = NutritionDay.fromDateTime(DateTime(2026, 8, 1));
+        await source.savePlannedMeal(
+          _plannedMeal(id: 'pm1', slotId: 'slot-a', day: day),
+        );
+        final catalog = FoodCatalog([_food('chicken_breast'), _food('rice')]);
+        final ingredients = [
+          LoggedIngredient(foodId: 'rice', quantity: FoodQuantity(grams: 90)),
+          LoggedIngredient(
+            foodId: 'discontinued_food',
+            quantity: FoodQuantity(grams: 20),
+          ),
+          LoggedIngredient(
+            foodId: 'chicken_breast',
+            quantity: FoodQuantity(grams: 140),
+          ),
+        ];
+        final substitute = MealSubstitute.composed(
+          id: 'sub1',
+          plannedMealId: 'pm1',
+          label: 'Chicken and rice',
+          composition: DerivedTargets.compose(ingredients, catalog),
+        );
+
+        await source.saveSubstitute(substitute);
+        final result = await source.listSubstitutes('pm1');
+        final loaded =
+            (result as Ok<List<MealSubstitute>, NutritionFailure>)
+                .value
+                .single;
+
+        expect(loaded, substitute);
+        expect(
+          loaded.ingredients.map((i) => i.foodId).toList(),
+          ['rice', 'discontinued_food', 'chicken_breast'],
+        );
+      },
+    );
+
+    // The legacy composition-less shape is already covered by
+    // 'saveSubstitute persists a substitute scoped to its planned meal'
+    // above: `_substitute()` builds a hand-typed substitute with zero
+    // ingredients, and `MealSubstitute.==` compares `ingredients`
+    // element-wise, so that round-trip already proves an empty ingredient
+    // list survives with the flat target unchanged — no separate test
+    // needed here.
+
+    test('deleteSubstitute cascades to remove its ingredient rows', () async {
+      final day = NutritionDay.fromDateTime(DateTime(2026, 8, 1));
+      await source.savePlannedMeal(
+        _plannedMeal(id: 'pm1', slotId: 'slot-a', day: day),
+      );
+      final catalog = FoodCatalog([_food('chicken_breast')]);
+      final substitute = MealSubstitute.composed(
+        id: 'sub1',
+        plannedMealId: 'pm1',
+        label: 'Chicken bowl',
+        composition: DerivedTargets.compose([
+          LoggedIngredient(
+            foodId: 'chicken_breast',
+            quantity: FoodQuantity(grams: 150),
+          ),
+        ], catalog),
+      );
+      await source.saveSubstitute(substitute);
+
+      await source.deleteSubstitute('sub1');
+
+      final remainingIngredients = await database
+          .select(database.mealSubstituteIngredients)
+          .get();
+      expect(remainingIngredients, isEmpty);
+    });
+
+    test(
+      'round-trip consistency: a substitute\'s stored flat target matches '
+      'DerivedTargets.compose of its stored ingredient rows',
+      () async {
+        final day = NutritionDay.fromDateTime(DateTime(2026, 8, 1));
+        await source.savePlannedMeal(
+          _plannedMeal(id: 'pm1', slotId: 'slot-a', day: day),
+        );
+        final catalog = FoodCatalog([_food('chicken_breast'), _food('rice')]);
+        final ingredients = [
+          LoggedIngredient(
+            foodId: 'chicken_breast',
+            quantity: FoodQuantity(grams: 110),
+          ),
+          LoggedIngredient(foodId: 'rice', quantity: FoodQuantity(grams: 60)),
+        ];
+        final substitute = MealSubstitute.composed(
+          id: 'sub1',
+          plannedMealId: 'pm1',
+          label: 'Chicken and rice',
+          composition: DerivedTargets.compose(ingredients, catalog),
+        );
+        await source.saveSubstitute(substitute);
+
+        final result = await source.listSubstitutes('pm1');
+        final loaded =
+            (result as Ok<List<MealSubstitute>, NutritionFailure>)
+                .value
+                .single;
+        final recomposed = DerivedTargets.compose(
+          loaded.ingredients,
+          catalog,
+        ).target;
+
+        expect(
+          loaded.target.equalsWithinTolerance(recomposed, tolerance: 0.01),
+          isTrue,
+        );
+      },
+    );
 
     test('data persists across separate SqlDietPlanSource instances '
         'sharing the same database', () async {
