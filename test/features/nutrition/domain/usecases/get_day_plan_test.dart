@@ -189,7 +189,8 @@ void main() {
       expect(result.plannedTotal, target());
     });
 
-    test('derives the day status from its meals', () async {
+    test('derives the day status from its daily totals, not per-meal '
+        'counts', () async {
       await saveTemplate();
       await plan('pm-breakfast', 'slot-breakfast');
       await plan('pm-dinner', 'slot-dinner');
@@ -197,10 +198,45 @@ void main() {
 
       final result = unwrap(await useCase(day, today: today));
 
-      // The day is settled (today is the 25th) with one of two meals met.
-      expect(result.status, DayAdherenceStatus.partial);
-      expect(result.adherence.completionRatio, 0.5);
+      // The day is settled (today is the 25th). Only one meal's worth was
+      // logged against a two-meal plan, so the daily total falls short.
+      expect(result.status, DayAdherenceStatus.under);
+      expect(result.entryCount, 1);
     });
+
+    test('DayPlan.entryCount forwards the day\'s total entry count', () async {
+      await saveTemplate();
+      await plan('pm-breakfast', 'slot-breakfast');
+      await log(id: 'e1', plannedMealId: 'pm-breakfast');
+      await log(id: 'snack', kcal: 200, protein: 10, carbs: 20, fat: 5);
+
+      final result = unwrap(await useCase(day, today: today));
+
+      expect(result.entryCount, 2);
+      expect(result.entryCount, result.adherence.entryCount);
+    });
+
+    test(
+      'an unlinked entry alone can push the daily total past the plan',
+      () async {
+        await saveTemplate();
+        await plan('pm-breakfast', 'slot-breakfast');
+        // Nothing logged against the meal itself, but a large "extra"
+        // pushes the day's total well past what was planned.
+        await log(
+          id: 'extra',
+          kcal: 1500,
+          protein: 90,
+          carbs: 150,
+          fat: 70,
+        );
+
+        final result = unwrap(await useCase(day, today: today));
+
+        expect(result.status, DayAdherenceStatus.over);
+        expect(result.entryCount, 1);
+      },
+    );
 
     test('propagates a slot directory failure unchanged', () async {
       final failing = GetDayPlan(

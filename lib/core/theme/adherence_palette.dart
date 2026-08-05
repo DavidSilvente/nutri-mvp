@@ -46,33 +46,33 @@ class AdherencePalette {
 
     Color shade(Color light, Color dark) => isDark ? dark : light;
 
-    final complete = shade(const Color(0xFF2E7D51), const Color(0xFF7FD1A3));
-    final partial = shade(const Color(0xFFB07B29), const Color(0xFFE8C07A));
-    final missed = shade(const Color(0xFF9B5A5A), const Color(0xFFD9A0A0));
+    final met = shade(const Color(0xFF2E7D51), const Color(0xFF7FD1A3));
+    final under = shade(const Color(0xFFB07B29), const Color(0xFFE8C07A));
+    final over = shade(const Color(0xFF9B5A5A), const Color(0xFFD9A0A0));
 
     return AdherencePalette._({
-      DayAdherenceStatus.complete: AdherenceStyle(
-        color: complete,
+      DayAdherenceStatus.met: AdherenceStyle(
+        color: met,
         onColor: shade(Colors.white, const Color(0xFF06301B)),
-        container: complete.withValues(alpha: isDark ? 0.22 : 0.14),
+        container: met.withValues(alpha: isDark ? 0.22 : 0.14),
         onContainer: shade(const Color(0xFF1B5E3A), const Color(0xFFA8E6C4)),
-        label: 'On plan',
+        label: 'Met',
         icon: Icons.check_circle_rounded,
       ),
-      DayAdherenceStatus.partial: AdherenceStyle(
-        color: partial,
+      DayAdherenceStatus.under: AdherenceStyle(
+        color: under,
         onColor: shade(Colors.white, const Color(0xFF3A2703)),
-        container: partial.withValues(alpha: isDark ? 0.22 : 0.14),
+        container: under.withValues(alpha: isDark ? 0.22 : 0.14),
         onContainer: shade(const Color(0xFF7A5313), const Color(0xFFF2D5A0)),
-        label: 'Partly',
+        label: 'Under',
         icon: Icons.adjust_rounded,
       ),
-      DayAdherenceStatus.missed: AdherenceStyle(
-        color: missed,
+      DayAdherenceStatus.over: AdherenceStyle(
+        color: over,
         onColor: shade(Colors.white, const Color(0xFF3A1414)),
-        container: missed.withValues(alpha: isDark ? 0.20 : 0.12),
+        container: over.withValues(alpha: isDark ? 0.20 : 0.12),
         onContainer: shade(const Color(0xFF7A3B3B), const Color(0xFFEFC3C3)),
-        label: 'Off plan',
+        label: 'Over',
         icon: Icons.remove_circle_outline_rounded,
       ),
       DayAdherenceStatus.inProgress: AdherenceStyle(
@@ -109,8 +109,8 @@ class AdherencePalette {
   /// Maps a single meal's state onto the day palette, so one meal and a whole
   /// day of that meal read identically.
   AdherenceStyle forMeal(MealAdherenceStatus status) => switch (status) {
-    MealAdherenceStatus.onTarget => forDay(DayAdherenceStatus.complete),
-    MealAdherenceStatus.off => forDay(DayAdherenceStatus.missed),
+    MealAdherenceStatus.onTarget => forDay(DayAdherenceStatus.met),
+    MealAdherenceStatus.off => forDay(DayAdherenceStatus.over),
     MealAdherenceStatus.pending => forDay(DayAdherenceStatus.upcoming),
   };
 
