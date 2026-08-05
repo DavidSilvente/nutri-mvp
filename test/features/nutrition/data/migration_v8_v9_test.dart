@@ -3,16 +3,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/features/nutrition/data/database/nutrition_database.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
-/// The v7 -> v8 migration only ADDS a table (`component_defaults`, the user's
-/// standing per-component preference). Nothing existing is touched, so this
-/// suite's job is narrower than the v6 -> v7 suite's: prove the new table
-/// shows up empty and that every table that existed at v7 keeps its data
-/// byte-for-byte.
+/// The v8 -> v9 migration only ADDS three child tables (`intake_ingredients`,
+/// `saved_meal_ingredients`, `meal_substitute_ingredients` — one per
+/// composition owner). Nothing existing is touched, so this suite's job is
+/// narrower than the v6 -> v7 suite's: prove the new tables show up empty,
+/// every table that existed at v8 keeps its data byte-for-byte, and the new
+/// cascade FKs actually delete ingredient rows when their owner is deleted.
 void main() {
-  /// Exactly the v7 DDL — every table [NutritionDatabase] declares today,
+  /// Exactly the v8 DDL — every table [NutritionDatabase] declares today,
   /// hand-written so the test does not depend on the Dart schema it is meant
   /// to be an independent check on.
-  sqlite3.Database openV7Raw() {
+  sqlite3.Database openV8Raw() {
     final raw = sqlite3.sqlite3.openInMemory();
     raw.execute('''
       CREATE TABLE nutrition_entries (
@@ -108,7 +109,13 @@ void main() {
         created_at INTEGER NOT NULL
       );
     ''');
-    raw.execute('PRAGMA user_version = 7;');
+    raw.execute('''
+      CREATE TABLE component_defaults (
+        component_id TEXT NOT NULL PRIMARY KEY,
+        option_id TEXT NOT NULL
+      );
+    ''');
+    raw.execute('PRAGMA user_version = 8;');
     return raw;
   }
 
@@ -160,13 +167,17 @@ void main() {
       "VALUES ('saved-1', 'Batch bowl', NULL, 600.0, 40.0, 60.0, 20.0, "
       '1750000000000);',
     );
+    raw.execute(
+      'INSERT INTO component_defaults (component_id, option_id) '
+      "VALUES ('plan:g0:m0:c0', 'plan:g0:m0:c0:o1');",
+    );
   }
 
-  group('NutritionDatabase schema migration v7 -> v8', () {
+  group('NutritionDatabase schema migration v8 -> v9', () {
     test(
-      'adds an empty component_defaults table and keeps v7 data intact',
+      'adds three empty ingredient tables and keeps v8 data intact',
       () async {
-        final raw = openV7Raw();
+        final raw = openV8Raw();
         seedOneRowPerTable(raw);
 
         final db = NutritionDatabase(NativeDatabase.opened(raw));
@@ -175,7 +186,9 @@ void main() {
         // Opening runs the migration.
         expect(db.schemaVersion, 9);
 
-        expect(await db.select(db.componentDefaults).get(), isEmpty);
+        expect(await db.select(db.intakeIngredients).get(), isEmpty);
+        expect(await db.select(db.savedMealIngredients).get(), isEmpty);
+        expect(await db.select(db.mealSubstituteIngredients).get(), isEmpty);
 
         expect(await db.select(db.plannedMeals).get(), hasLength(1));
         expect(await db.select(db.nutritionEntries).get(), hasLength(1));
@@ -186,6 +199,7 @@ void main() {
         expect(await db.select(db.dietPlanRecords).get(), hasLength(1));
         expect(await db.select(db.componentSelections).get(), hasLength(1));
         expect(await db.select(db.savedMeals).get(), hasLength(1));
+        expect(await db.select(db.componentDefaults).get(), hasLength(1));
 
         final selection =
             (await db.select(db.componentSelections).get()).single;
@@ -195,13 +209,51 @@ void main() {
     );
 
     test(
-      'a fresh database is at v8 with an empty component_defaults',
+      'a fresh database is at v9 with empty ingredient tables',
       () async {
         final db = NutritionDatabase(NativeDatabase.memory());
         addTearDown(db.close);
 
         expect(db.schemaVersion, 9);
-        expect(await db.select(db.componentDefaults).get(), isEmpty);
+        expect(await db.select(db.intakeIngredients).get(), isEmpty);
+        expect(await db.select(db.savedMealIngredients).get(), isEmpty);
+        expect(await db.select(db.mealSubstituteIngredients).get(), isEmpty);
+      },
+    );
+
+    test(
+      'deleting a saved meal cascades to delete its ingredient rows',
+      () async {
+        final db = NutritionDatabase(NativeDatabase.memory());
+        addTearDown(db.close);
+
+        await db.into(db.savedMeals).insert(
+          SavedMealRow(
+            id: 'saved-1',
+            name: 'Batch bowl',
+            energyKcal: 600.0,
+            proteinG: 40.0,
+            carbsG: 60.0,
+            fatG: 20.0,
+            createdAt: DateTime.fromMillisecondsSinceEpoch(1750000000000),
+          ),
+        );
+        await db.into(db.savedMealIngredients).insert(
+          SavedMealIngredientRow(
+            savedMealId: 'saved-1',
+            foodId: 'food-1',
+            grams: 150.0,
+            position: 0,
+          ),
+        );
+
+        expect(await db.select(db.savedMealIngredients).get(), hasLength(1));
+
+        await (db.delete(
+          db.savedMeals,
+        )..where((t) => t.id.equals('saved-1'))).go();
+
+        expect(await db.select(db.savedMealIngredients).get(), isEmpty);
       },
     );
   });
