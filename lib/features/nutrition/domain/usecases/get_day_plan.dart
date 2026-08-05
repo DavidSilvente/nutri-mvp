@@ -1,13 +1,17 @@
 import 'package:nutri_mvp/core/result.dart';
 
+import '../entities/meal_component.dart';
 import '../entities/nutrition_entry.dart';
 import '../entities/planned_meal.dart';
 import '../failures/nutrition_failure.dart';
 import '../ports/diet_plan_source.dart';
 import '../ports/meal_slot_directory.dart';
 import '../ports/nutrition_health_source.dart';
+import '../ports/option_choice_source.dart';
 import '../services/adherence_evaluator.dart';
+import '../services/derived_targets.dart';
 import '../services/meal_slot_index.dart';
+import '../services/resolved_component.dart';
 import '../value_objects/adherence_tolerance.dart';
 import '../value_objects/energy.dart';
 import '../value_objects/macros.dart';
@@ -15,7 +19,8 @@ import '../value_objects/nutrition_day.dart';
 import '../value_objects/nutrition_target.dart';
 
 /// A planned meal with everything the UI needs to render one row: its label,
-/// its position in the day, its adherence result, and the entries behind it.
+/// its position in the day, its adherence result, its resolved food, and the
+/// entries behind it.
 class PlannedMealDetail {
   const PlannedMealDetail({
     required this.meal,
@@ -23,6 +28,9 @@ class PlannedMealDetail {
     required this.position,
     required this.adherence,
     required this.entries,
+    this.components = const [],
+    this.timeOfDay,
+    this.notes = const [],
   });
 
   final PlannedMeal meal;
@@ -32,6 +40,18 @@ class PlannedMealDetail {
 
   /// The entries logged against this meal, in recording order.
   final List<NutritionEntry> entries;
+
+  /// The meal's food, resolved against the day's chosen options. Empty when
+  /// the meal's slot no longer exists in the active diet, or when it never
+  /// carried components (a hand-entered slot).
+  final List<ResolvedComponent> components;
+
+  /// The time the plan scheduled this meal for, as `HH:mm`, when it gave one
+  /// and the slot still exists.
+  final String? timeOfDay;
+
+  /// Free-text guidance the source plan attached to this meal.
+  final List<String> notes;
 
   MealAdherenceStatus get status => adherence.status;
   NutritionTarget get target => meal.targetSnapshot;
@@ -97,14 +117,17 @@ class GetDayPlan {
     required DietPlanSource dietPlanSource,
     required NutritionHealthSource nutritionSource,
     required MealSlotDirectory slotDirectory,
+    required OptionChoiceSource choiceSource,
     this.tolerance = AdherenceTolerance.standard,
   }) : _dietPlanSource = dietPlanSource,
        _nutritionSource = nutritionSource,
-       _slotDirectory = slotDirectory;
+       _slotDirectory = slotDirectory,
+       _choiceSource = choiceSource;
 
   final DietPlanSource _dietPlanSource;
   final NutritionHealthSource _nutritionSource;
   final MealSlotDirectory _slotDirectory;
+  final OptionChoiceSource _choiceSource;
   final AdherenceTolerance tolerance;
 
   Future<Result<DayPlan, NutritionFailure>> call(
@@ -120,15 +143,20 @@ class GetDayPlan {
     final entriesResult = await _nutritionSource.entriesOn(day);
     if (entriesResult case Err(failure: final failure)) return Err(failure);
 
+    // One call for the whole day, not per meal or per component: the choices
+    // in force do not vary within a day.
+    final choicesResult = await _choiceSource.choicesFor(day);
+    if (choicesResult case Err(failure: final failure)) return Err(failure);
+
     final index = (slotsResult as Ok).value as MealSlotIndex;
     final plannedMeals = (plannedResult as Ok).value as List<PlannedMeal>;
     final entries = (entriesResult as Ok).value as List<NutritionEntry>;
+    final choices = (choicesResult as Ok).value as OptionChoices;
 
     final ordered = [...plannedMeals]
       ..sort(
-        (a, b) => index
-            .positionOf(a.slotId)
-            .compareTo(index.positionOf(b.slotId)),
+        (a, b) =>
+            index.positionOf(a.slotId).compareTo(index.positionOf(b.slotId)),
       );
 
     final dayAdherence = AdherenceEvaluator.evaluateDay(
@@ -149,6 +177,9 @@ class GetDayPlan {
           entries: entries
               .where((e) => e.plannedMealId == ordered[i].id)
               .toList(growable: false),
+          components: _resolveComponents(index, ordered[i].slotId, choices),
+          timeOfDay: index[ordered[i].slotId]?.timeOfDay,
+          notes: index[ordered[i].slotId]?.notes ?? const [],
         ),
     ];
 
@@ -168,6 +199,37 @@ class GetDayPlan {
             .toList(growable: false),
         loggedTotal: _sum(entries),
       ),
+    );
+  }
+
+  /// The resolved food for [slotId], or an empty list when the slot no longer
+  /// exists in the active diet or never carried components — the same
+  /// degradation [MealSlotIndex.labelOf] already applies to a deleted slot's
+  /// label.
+  List<ResolvedComponent> _resolveComponents(
+    MealSlotIndex index,
+    String slotId,
+    OptionChoices choices,
+  ) {
+    final components = index[slotId]?.components ?? const [];
+    return [
+      for (final component in components) _resolve(component, index, choices),
+    ];
+  }
+
+  ResolvedComponent _resolve(
+    MealComponent component,
+    MealSlotIndex index,
+    OptionChoices choices,
+  ) {
+    final chosen = DerivedTargets.optionFor(component, choices);
+    return ResolvedComponent(
+      componentId: component.id,
+      sectionLabel: component.sectionLabel,
+      options: component.options,
+      chosen: chosen,
+      isDeviation: chosen.id != component.defaultOption.id,
+      needsReview: index.estimatedFoodIds.contains(chosen.foodId),
     );
   }
 

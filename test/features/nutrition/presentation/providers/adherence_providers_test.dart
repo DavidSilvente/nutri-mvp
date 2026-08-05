@@ -19,6 +19,7 @@ import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_pr
 import '../../_fakes/diet_fixture.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
+import '../../_fakes/fake_option_choice_source.dart';
 
 NutritionTarget target() => NutritionTarget(
   energy: Energy(kcal: 600),
@@ -38,9 +39,7 @@ void main() {
     nutritionSource = FakeNutritionSource();
 
     slotDirectory = FakeMealSlotDirectory(
-      slots: [
-        mealSlot(id: 'slot-1', label: 'Lunch', position: 0),
-      ],
+      slots: [mealSlot(id: 'slot-1', label: 'Lunch', position: 0)],
     );
     await dietSource.savePlannedMeal(
       PlannedMeal(
@@ -58,6 +57,7 @@ void main() {
         nutritionSourceProvider.overrideWithValue(nutritionSource),
         dietPlanSourceProvider.overrideWithValue(dietSource),
         mealSlotDirectoryProvider.overrideWithValue(slotDirectory),
+        optionChoiceSourceProvider.overrideWithValue(FakeOptionChoiceSource()),
         todayProvider.overrideWithValue(today),
         ...overrides,
       ],
@@ -75,25 +75,30 @@ void main() {
       expect(plan.status, DayAdherenceStatus.missed);
     });
 
-    test('re-runs after an intake is recorded, without manual invalidation', () async {
-      final c = container();
+    test(
+      're-runs after an intake is recorded, without manual invalidation',
+      () async {
+        final c = container();
 
-      final before = await c.read(dayPlanProvider(day).future);
-      expect(before.meals.single.status, MealAdherenceStatus.pending);
+        final before = await c.read(dayPlanProvider(day).future);
+        expect(before.meals.single.status, MealAdherenceStatus.pending);
 
-      await c.read(nutritionControllerProvider.notifier).record(
-        NutritionEntry(
-          id: 'e1',
-          recordedAt: DateTime(2026, 7, 24, 13),
-          energy: Energy(kcal: 600),
-          macros: Macros(proteinG: 40, carbsG: 60, fatG: 20),
-          plannedMealId: 'pm-1',
-        ),
-      );
+        await c
+            .read(nutritionControllerProvider.notifier)
+            .record(
+              NutritionEntry(
+                id: 'e1',
+                recordedAt: DateTime(2026, 7, 24, 13),
+                energy: Energy(kcal: 600),
+                macros: Macros(proteinG: 40, carbsG: 60, fatG: 20),
+                plannedMealId: 'pm-1',
+              ),
+            );
 
-      final after = await c.read(dayPlanProvider(day).future);
-      expect(after.meals.single.status, MealAdherenceStatus.onTarget);
-    });
+        final after = await c.read(dayPlanProvider(day).future);
+        expect(after.meals.single.status, MealAdherenceStatus.onTarget);
+      },
+    );
 
     test('surfaces a source failure as a HealthFailureException', () async {
       final c = container(
@@ -151,18 +156,26 @@ void main() {
       final c = container();
       final month = CalendarMonth(year: 2026, month: 7);
 
-      expect((await c.read(monthAdherenceProvider(month).future)).plannedDays, 1);
-
-      await c.read(dietPlanControllerProvider.notifier).assignMealToDay(
-        PlannedMeal(
-          id: 'pm-2',
-          slotId: 'slot-1',
-          day: NutritionDay.fromDateTime(DateTime(2026, 7, 26)),
-          targetSnapshot: target(),
-        ),
+      expect(
+        (await c.read(monthAdherenceProvider(month).future)).plannedDays,
+        1,
       );
 
-      expect((await c.read(monthAdherenceProvider(month).future)).plannedDays, 2);
+      await c
+          .read(dietPlanControllerProvider.notifier)
+          .assignMealToDay(
+            PlannedMeal(
+              id: 'pm-2',
+              slotId: 'slot-1',
+              day: NutritionDay.fromDateTime(DateTime(2026, 7, 26)),
+              targetSnapshot: target(),
+            ),
+          );
+
+      expect(
+        (await c.read(monthAdherenceProvider(month).future)).plannedDays,
+        2,
+      );
     });
   });
 }

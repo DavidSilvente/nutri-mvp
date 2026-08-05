@@ -28,6 +28,7 @@ final getDayPlanProvider = Provider<GetDayPlan>((ref) {
     dietPlanSource: ref.watch(dietPlanSourceProvider),
     nutritionSource: ref.watch(nutritionSourceProvider),
     slotDirectory: ref.watch(mealSlotDirectoryProvider),
+    choiceSource: ref.watch(optionChoiceSourceProvider),
     tolerance: ref.watch(adherenceToleranceProvider),
   );
 });

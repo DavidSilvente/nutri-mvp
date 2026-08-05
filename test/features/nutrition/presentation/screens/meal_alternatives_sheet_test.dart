@@ -20,6 +20,7 @@ import '../../_fakes/diet_fixture.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 import '../../_fakes/fake_hydration_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
+import '../../_fakes/fake_option_choice_source.dart';
 import '../../_fakes/fake_saved_meal_source.dart';
 
 NutritionTarget target({
@@ -49,9 +50,7 @@ void main() {
     savedMealSource = FakeSavedMealSource();
 
     slotDirectory = FakeMealSlotDirectory(
-      slots: [
-        mealSlot(id: 'slot-1', label: 'Lunch', position: 0),
-      ],
+      slots: [mealSlot(id: 'slot-1', label: 'Lunch', position: 0)],
     );
     await dietSource.savePlannedMeal(
       PlannedMeal(
@@ -104,6 +103,7 @@ void main() {
         nutritionSourceProvider.overrideWithValue(nutritionSource),
         dietPlanSourceProvider.overrideWithValue(dietSource),
         mealSlotDirectoryProvider.overrideWithValue(slotDirectory),
+        optionChoiceSourceProvider.overrideWithValue(FakeOptionChoiceSource()),
         hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
         savedMealSourceProvider.overrideWithValue(savedMealSource),
         todayProvider.overrideWithValue(today),
@@ -247,9 +247,7 @@ void main() {
         expect(find.text('Tuna bowl'), findsOneWidget);
 
         final planHeaderY = tester.getTopLeft(find.text('From your plan')).dy;
-        final savedHeaderY = tester
-            .getTopLeft(find.text('From your meals'))
-            .dy;
+        final savedHeaderY = tester.getTopLeft(find.text('From your meals')).dy;
         expect(planHeaderY, lessThan(savedHeaderY));
       },
     );
@@ -339,9 +337,7 @@ void main() {
       );
 
       await openSheet(tester);
-      await tester.tap(
-        find.byKey(const Key('pickAlternativeButton-saved:m1')),
-      );
+      await tester.tap(find.byKey(const Key('pickAlternativeButton-saved:m1')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('submitButton')));
       await tester.pumpAndSettle();

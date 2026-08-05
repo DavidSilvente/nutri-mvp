@@ -5,6 +5,7 @@ import 'package:nutri_mvp/core/format/nutrition_format.dart';
 import 'package:nutri_mvp/core/theme/adherence_palette.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/adherence_evaluator.dart';
+import 'package:nutri_mvp/features/nutrition/domain/services/resolved_component.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/get_day_plan.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_target.dart';
@@ -17,6 +18,7 @@ import 'package:nutri_mvp/features/nutrition/presentation/screens/record_intake_
 import 'package:nutri_mvp/features/nutrition/presentation/screens/save_entry_as_meal_dialog.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/widgets/adherence_chip.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/widgets/macro_breakdown.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/widgets/section_dot.dart';
 
 /// One day of the diet: what was planned, what was eaten, and how the two
 /// line up.
@@ -319,6 +321,7 @@ class _PlannedMealCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   width: 36,
@@ -335,26 +338,66 @@ class _PlannedMealCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(detail.label, style: theme.textTheme.titleMedium),
-                      const SizedBox(height: 2),
-                      Text(
-                        detail.status == MealAdherenceStatus.pending
-                            ? 'Target ${NutritionFormat.kcal(detail.target.energy.kcal)}'
-                            : NutritionFormat.kcalOf(
-                                detail.logged.energy.kcal,
-                                detail.target.energy.kcal,
-                              ),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                      if (detail.timeOfDay != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          detail.timeOfDay!,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: theme.colorScheme.primary,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
                 AdherenceChip.meal(detail.status),
               ],
             ),
+            // The food this meal is made of is the primary content: it
+            // answers "what do I eat", which the label and macros alone do
+            // not. Absent entirely when the slot no longer exists or never
+            // carried components, so a hand-entered meal degrades to exactly
+            // the layout it had before this existed.
+            if (detail.components.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _MealFoodList(
+                key: Key('mealFoodList-${detail.meal.id}'),
+                components: detail.components,
+              ),
+            ],
+            const SizedBox(height: 12),
+            Text(
+              detail.status == MealAdherenceStatus.pending
+                  ? 'Target ${NutritionFormat.kcal(detail.target.energy.kcal)}'
+                  : NutritionFormat.kcalOf(
+                      detail.logged.energy.kcal,
+                      detail.target.energy.kcal,
+                    ),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 16),
             MacroBreakdown(logged: detail.logged, target: detail.target),
+            if (detail.notes.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              ExpansionTile(
+                key: Key('notes-${detail.meal.slotId}'),
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: EdgeInsets.zero,
+                title: Text('Notes', style: theme.textTheme.labelMedium),
+                children: [
+                  for (final note in detail.notes)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(note, style: theme.textTheme.bodySmall),
+                      ),
+                    ),
+                ],
+              ),
+            ],
             if (detail.entries.isNotEmpty) ...[
               const SizedBox(height: 12),
               const Divider(height: 1),
@@ -407,10 +450,89 @@ class _PlannedMealCard extends ConsumerWidget {
   void _logMeal(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => RecordIntakeScreen(
-          day: day,
-          plannedMeal: detail,
-        ),
+        builder: (_) => RecordIntakeScreen(day: day, plannedMeal: detail),
+      ),
+    );
+  }
+}
+
+/// The food a meal is made of, one row per component.
+///
+/// A plain [Column], not a [ListView]: this always sits inside the day's
+/// outer scrollable, and a nested unbounded list would either need its own
+/// scroll physics or crash on layout.
+class _MealFoodList extends StatelessWidget {
+  const _MealFoodList({super.key, required this.components});
+
+  final List<ResolvedComponent> components;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final component in components)
+          _PlannedComponentRow(component: component),
+      ],
+    );
+  }
+}
+
+/// One resolved component of a meal: the plan's own wording, plus the
+/// signals that make a deviation or an estimate visible without opening
+/// anything.
+///
+/// Not tappable yet — reaching the options sheet from here is PR3's job, once
+/// [ComponentChoiceController] exists to write through it.
+class _PlannedComponentRow extends StatelessWidget {
+  const _PlannedComponentRow({required this.component});
+
+  final ResolvedComponent component;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (component.sectionLabel != null) ...[
+            SectionDot(label: component.sectionLabel!),
+            const SizedBox(width: 8),
+          ],
+          Expanded(
+            child: Text(
+              component.chosen.rawText,
+              style: theme.textTheme.bodyMedium,
+            ),
+          ),
+          if (component.isDeviation) ...[
+            const SizedBox(width: 6),
+            Icon(
+              Icons.swap_horiz,
+              size: 16,
+              color: theme.colorScheme.secondary,
+            ),
+          ],
+          if (component.needsReview) ...[
+            const SizedBox(width: 6),
+            Icon(
+              Icons.info_outline,
+              size: 14,
+              color: theme.colorScheme.tertiary,
+            ),
+          ],
+          if (component.hasAlternatives) ...[
+            const SizedBox(width: 6),
+            Text(
+              '${component.options.length}',
+              style: theme.textTheme.labelSmall,
+            ),
+            const Icon(Icons.chevron_right, size: 18),
+          ],
+        ],
       ),
     );
   }

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/core/result.dart';
+import 'package:nutri_mvp/features/nutrition/domain/entities/meal_component.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/planned_meal.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/saved_meal.dart';
 import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
+import 'package:nutri_mvp/features/nutrition/domain/value_objects/food_quantity.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_target.dart';
@@ -22,6 +24,7 @@ import '../../_fakes/diet_fixture.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 import '../../_fakes/fake_hydration_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
+import '../../_fakes/fake_option_choice_source.dart';
 import '../../_fakes/fake_saved_meal_source.dart';
 
 NutritionTarget target({
@@ -45,11 +48,13 @@ void main() {
   late FakeDietPlanSource dietSource;
   late FakeMealSlotDirectory slotDirectory;
   late FakeNutritionSource nutritionSource;
+  late FakeOptionChoiceSource choiceSource;
 
   setUp(() {
     dietSource = FakeDietPlanSource();
     nutritionSource = FakeNutritionSource();
     slotDirectory = FakeMealSlotDirectory();
+    choiceSource = FakeOptionChoiceSource();
   });
 
   /// Gives the active diet its meals, which is what turns a planned meal's
@@ -63,12 +68,7 @@ void main() {
 
   Future<void> plan(String id, String slotId) {
     return dietSource.savePlannedMeal(
-      PlannedMeal(
-        id: id,
-        slotId: slotId,
-        day: day,
-        targetSnapshot: target(),
-      ),
+      PlannedMeal(id: id, slotId: slotId, day: day, targetSnapshot: target()),
     );
   }
 
@@ -91,6 +91,29 @@ void main() {
     );
   }
 
+  /// A single-option component whose [rawText] is the plan's verbatim wording
+  /// — the exact text the card must show as its primary content.
+  MealComponent component({
+    required String id,
+    int position = 0,
+    String? sectionLabel,
+    required String rawText,
+  }) {
+    return MealComponent(
+      id: id,
+      position: position,
+      sectionLabel: sectionLabel,
+      options: [
+        ComponentOption(
+          id: '$id-option',
+          foodId: '$id-food',
+          quantity: FoodQuantity(grams: 100),
+          rawText: rawText,
+        ),
+      ],
+    );
+  }
+
   /// The day view stacks several tall cards, so the default 800x600 test
   /// surface would push most of them out of the viewport and out of the
   /// widget tree. A tall surface keeps the assertions about content, not
@@ -108,6 +131,7 @@ void main() {
         nutritionSourceProvider.overrideWithValue(nutritionSource),
         dietPlanSourceProvider.overrideWithValue(dietSource),
         mealSlotDirectoryProvider.overrideWithValue(slotDirectory),
+        optionChoiceSourceProvider.overrideWithValue(choiceSource),
         hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
         todayProvider.overrideWithValue(today),
         savedMealSourceProvider.overrideWithValue(
@@ -224,47 +248,36 @@ void main() {
       expect(find.text('210 kcal'), findsOneWidget);
     });
 
-    testWidgets(
-      'saving an unplanned entry as a meal copies its macros without '
-      'changing the entry',
-      (tester) async {
-        final savedMealSource = FakeSavedMealSource();
-        await log(id: 'snack', kcal: 210, protein: 5, carbs: 25, fat: 8);
+    testWidgets('saving an unplanned entry as a meal copies its macros without '
+        'changing the entry', (tester) async {
+      final savedMealSource = FakeSavedMealSource();
+      await log(id: 'snack', kcal: 210, protein: 5, carbs: 25, fat: 8);
 
-        await pumpScreen(tester, savedMealSource: savedMealSource);
+      await pumpScreen(tester, savedMealSource: savedMealSource);
 
-        await tester.tap(
-          find.byKey(const Key('saveEntryAsMealButton-snack')),
-        );
-        await tester.pumpAndSettle();
-        await tester.enterText(
-          find.byKey(const Key('saveEntryAsMealNameField')),
-          'Afternoon snack',
-        );
-        await tester.tap(
-          find.byKey(const Key('confirmSaveEntryAsMealButton')),
-        );
-        await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('saveEntryAsMealButton-snack')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('saveEntryAsMealNameField')),
+        'Afternoon snack',
+      );
+      await tester.tap(find.byKey(const Key('confirmSaveEntryAsMealButton')));
+      await tester.pumpAndSettle();
 
-        expect(
-          find.byKey(const Key('saveEntryAsMealNameField')),
-          findsNothing,
-        );
+      expect(find.byKey(const Key('saveEntryAsMealNameField')), findsNothing);
 
-        final listResult = await savedMealSource.listSavedMeals();
-        final meals =
-            (listResult as Ok<List<SavedMeal>, NutritionFailure>).value;
-        expect(meals, hasLength(1));
-        expect(meals.single.name, 'Afternoon snack');
-        expect(meals.single.target.energy.kcal, 210);
+      final listResult = await savedMealSource.listSavedMeals();
+      final meals = (listResult as Ok<List<SavedMeal>, NutritionFailure>).value;
+      expect(meals, hasLength(1));
+      expect(meals.single.name, 'Afternoon snack');
+      expect(meals.single.target.energy.kcal, 210);
 
-        final entriesResult = await nutritionSource.entriesOn(day);
-        final entries = (entriesResult as Ok<List<NutritionEntry>, NutritionFailure>)
-            .value;
-        expect(entries.single.energy.kcal, 210);
-        expect(entries.single.plannedMealId, isNull);
-      },
-    );
+      final entriesResult = await nutritionSource.entriesOn(day);
+      final entries =
+          (entriesResult as Ok<List<NutritionEntry>, NutritionFailure>).value;
+      expect(entries.single.energy.kcal, 210);
+      expect(entries.single.plannedMealId, isNull);
+    });
 
     testWidgets(
       "saving a planned meal's logged entry as a meal is offered from its "
@@ -283,9 +296,7 @@ void main() {
           find.byKey(const Key('saveEntryAsMealNameField')),
           'Usual breakfast',
         );
-        await tester.tap(
-          find.byKey(const Key('confirmSaveEntryAsMealButton')),
-        );
+        await tester.tap(find.byKey(const Key('confirmSaveEntryAsMealButton')));
         await tester.pumpAndSettle();
 
         final listResult = await savedMealSource.listSavedMeals();
@@ -294,10 +305,176 @@ void main() {
         expect(meals.single.name, 'Usual breakfast');
 
         final entriesResult = await nutritionSource.entriesOn(day);
-        final entries = (entriesResult as Ok<List<NutritionEntry>, NutritionFailure>)
-            .value;
+        final entries =
+            (entriesResult as Ok<List<NutritionEntry>, NutritionFailure>).value;
         expect(entries.single.plannedMealId, 'pm-breakfast');
       },
     );
+
+    group('planned meal food', () {
+      testWidgets(
+        "shows the resolved option's wording as the row's primary content",
+        (tester) async {
+          slotDirectory.slots.add(
+            mealSlot(
+              id: 'slot-breakfast',
+              label: 'Breakfast',
+              position: 0,
+              components: [
+                component(id: 'component-1', rawText: '2 huevos revueltos'),
+              ],
+            ),
+          );
+          await plan('pm-breakfast', 'slot-breakfast');
+
+          await pumpScreen(tester);
+
+          expect(find.text('2 huevos revueltos'), findsOneWidget);
+          // Macros stay complete and unchanged — display-only regression.
+          expect(find.text('On target'), findsNothing);
+          expect(find.text('Not logged'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'renders one row per component of a multi-course meal, grouped by '
+        'section, never concatenated into one string',
+        (tester) async {
+          slotDirectory.slots.add(
+            mealSlot(
+              id: 'slot-lunch',
+              label: 'Lunch',
+              position: 0,
+              components: [
+                component(
+                  id: 'c1',
+                  position: 0,
+                  sectionLabel: 'PRIMER PLATO',
+                  rawText: 'Sopa de verduras',
+                ),
+                component(
+                  id: 'c2',
+                  position: 1,
+                  sectionLabel: 'SEGUNDO PLATO',
+                  rawText: 'Pollo a la plancha',
+                ),
+                component(
+                  id: 'c3',
+                  position: 2,
+                  sectionLabel: 'POSTRE',
+                  rawText: 'Yogur natural',
+                ),
+              ],
+            ),
+          );
+          await plan('pm-lunch', 'slot-lunch');
+
+          await pumpScreen(tester);
+
+          expect(find.text('Sopa de verduras'), findsOneWidget);
+          expect(find.text('Pollo a la plancha'), findsOneWidget);
+          expect(find.text('Yogur natural'), findsOneWidget);
+          expect(
+            find.text('Sopa de verdurasPollo a la planchaYogur natural'),
+            findsNothing,
+          );
+        },
+      );
+
+      testWidgets("shows the meal's scheduled time in its header", (
+        tester,
+      ) async {
+        slotDirectory.slots.add(
+          mealSlot(
+            id: 'slot-breakfast',
+            label: 'Breakfast',
+            position: 0,
+            timeOfDay: '08:00',
+            components: [component(id: 'component-1', rawText: 'Oats')],
+          ),
+        );
+        await plan('pm-breakfast', 'slot-breakfast');
+
+        await pumpScreen(tester);
+
+        expect(find.text('08:00'), findsOneWidget);
+      });
+
+      testWidgets('collapses notes by default and reveals them on tap', (
+        tester,
+      ) async {
+        slotDirectory.slots.add(
+          mealSlot(
+            id: 'slot-breakfast',
+            label: 'Breakfast',
+            position: 0,
+            notes: const ['Soak the oats overnight'],
+            components: [component(id: 'component-1', rawText: 'Oats')],
+          ),
+        );
+        await plan('pm-breakfast', 'slot-breakfast');
+
+        await pumpScreen(tester);
+
+        expect(find.text('Soak the oats overnight'), findsNothing);
+
+        await tester.tap(find.byKey(const Key('notes-slot-breakfast')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Soak the oats overnight'), findsOneWidget);
+      });
+
+      testWidgets('shows no notes section when the meal has none', (
+        tester,
+      ) async {
+        slotDirectory.slots.add(
+          mealSlot(
+            id: 'slot-breakfast',
+            label: 'Breakfast',
+            position: 0,
+            components: [component(id: 'component-1', rawText: 'Oats')],
+          ),
+        );
+        await plan('pm-breakfast', 'slot-breakfast');
+
+        await pumpScreen(tester);
+
+        expect(find.byKey(const Key('notes-slot-breakfast')), findsNothing);
+      });
+
+      testWidgets(
+        'degrades to label, kcal and macros when the slot has no components',
+        (tester) async {
+          saveTemplate();
+          await plan('pm-breakfast', 'slot-breakfast');
+
+          await pumpScreen(tester);
+
+          expect(
+            find.byKey(const Key('mealFoodList-pm-breakfast')),
+            findsNothing,
+          );
+          expect(find.text('Breakfast'), findsOneWidget);
+          expect(find.text('Not logged'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'degrades to label, kcal and macros when the slot no longer exists',
+        (tester) async {
+          // No template saved at all: the planned meal points at a slot the
+          // active diet no longer defines.
+          await plan('pm-orphaned', 'slot-deleted');
+
+          await pumpScreen(tester);
+
+          expect(
+            find.byKey(const Key('mealFoodList-pm-orphaned')),
+            findsNothing,
+          );
+          expect(find.text('Not logged'), findsOneWidget);
+        },
+      );
+    });
   });
 }

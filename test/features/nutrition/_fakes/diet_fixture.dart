@@ -2,6 +2,7 @@ import 'package:nutri_mvp/core/result.dart';
 import 'package:nutri_mvp/features/nutrition/data/codecs/diet_plan_codec.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/diet_plan.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/diet_template.dart';
+import 'package:nutri_mvp/features/nutrition/domain/entities/meal_component.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/stored_diet_plan.dart';
 import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
 import 'package:nutri_mvp/features/nutrition/domain/ports/meal_slot_directory.dart';
@@ -25,6 +26,7 @@ DietMealSlot mealSlot({
   num fatG = 15,
   String? timeOfDay,
   List<String> notes = const [],
+  List<MealComponent> components = const [],
 }) {
   return DietMealSlot(
     id: id,
@@ -32,6 +34,7 @@ DietMealSlot mealSlot({
     position: position,
     timeOfDay: timeOfDay,
     notes: notes,
+    components: components,
     target: NutritionTarget(
       energy: Energy(kcal: kcal),
       macros: Macros(proteinG: proteinG, carbsG: carbsG, fatG: fatG),
@@ -62,9 +65,11 @@ StoredDietPlan manualDiet({
         weekdays:
             weekdays ??
             {
-              for (var weekday = DateTime.monday;
-                  weekday <= DateTime.sunday;
-                  weekday++)
+              for (
+                var weekday = DateTime.monday;
+                weekday <= DateTime.sunday;
+                weekday++
+              )
                 weekday,
             },
         template: DietTemplate.derived(
@@ -79,8 +84,9 @@ StoredDietPlan manualDiet({
   final encoded = const DietPlanCodec().encode(plan);
   final document = switch (encoded) {
     Ok(value: final value) => value,
-    Err(failure: final failure) =>
-      throw StateError('fixture diet failed to encode: $failure'),
+    Err(failure: final failure) => throw StateError(
+      'fixture diet failed to encode: $failure',
+    ),
   };
 
   return StoredDietPlan(
@@ -101,13 +107,20 @@ class FakeMealSlotDirectory implements MealSlotDirectory {
   FakeMealSlotDirectory({
     List<DietMealSlot> slots = const [],
     this.dayGroupLabel = 'EVERY DAY',
-  }) : slots = [...slots];
+    Set<String> estimatedFoodIds = const {},
+  }) : slots = [...slots],
+       estimatedFoodIds = {...estimatedFoodIds};
 
   /// Mutable so a test can define the diet AFTER the use case under test has
   /// already been handed the directory.
   final List<DietMealSlot> slots;
 
   final String dayGroupLabel;
+
+  /// Mirrors [MealSlotIndex.estimatedFoodIds] without needing a real
+  /// [FoodCatalog] to derive it — a test states directly which food ids need
+  /// review.
+  final Set<String> estimatedFoodIds;
 
   /// Fails every call with this failure when set, so error paths are testable.
   NutritionFailure? failWith;
@@ -124,8 +137,11 @@ class FakeMealSlotDirectory implements MealSlotDirectory {
             label: slot.label,
             position: slot.position,
             dayGroupLabel: dayGroupLabel,
+            components: slot.components,
+            timeOfDay: slot.timeOfDay,
+            notes: slot.notes,
           ),
-      }),
+      }, estimatedFoodIds: estimatedFoodIds),
     );
   }
 }

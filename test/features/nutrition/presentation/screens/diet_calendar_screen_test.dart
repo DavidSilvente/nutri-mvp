@@ -18,6 +18,7 @@ import '../../_fakes/diet_fixture.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
 import '../../_fakes/fake_hydration_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
+import '../../_fakes/fake_option_choice_source.dart';
 
 NutritionTarget target() => NutritionTarget(
   energy: Energy(kcal: 600),
@@ -38,9 +39,7 @@ void main() {
     nutritionSource = FakeNutritionSource();
 
     slotDirectory = FakeMealSlotDirectory(
-      slots: [
-        mealSlot(id: 'slot-1', label: 'Lunch', position: 0),
-      ],
+      slots: [mealSlot(id: 'slot-1', label: 'Lunch', position: 0)],
     );
   });
 
@@ -77,6 +76,7 @@ void main() {
         nutritionSourceProvider.overrideWithValue(nutritionSource),
         dietPlanSourceProvider.overrideWithValue(dietSource),
         mealSlotDirectoryProvider.overrideWithValue(slotDirectory),
+        optionChoiceSourceProvider.overrideWithValue(FakeOptionChoiceSource()),
         hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
         todayProvider.overrideWithValue(today),
       ],

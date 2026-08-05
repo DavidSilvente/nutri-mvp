@@ -5,6 +5,7 @@ import 'package:nutri_mvp/features/nutrition/domain/usecases/get_diet_day.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/component_options_sheet.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/widgets/section_dot.dart';
 
 /// What the active diet prescribes for one day, meal by meal.
 ///
@@ -22,9 +23,7 @@ class DietDayScreen extends ConsumerWidget {
     // an empty state that then pops into a diet.
     final bootstrap = ref.watch(dietLibraryBootstrapProvider);
     if (bootstrap.isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final dayState = ref.watch(dietDayControllerProvider(day));
@@ -64,8 +63,7 @@ class _DayContent extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 32),
       children: [
         _DaySummary(dietDay: dietDay),
-        for (final meal in dietDay.meals)
-          _MealCard(meal: meal, day: day),
+        for (final meal in dietDay.meals) _MealCard(meal: meal, day: day),
       ],
     );
   }
@@ -179,10 +177,7 @@ class _MealCard extends ConsumerWidget {
                     const SizedBox(width: 10),
                   ],
                   Expanded(
-                    child: Text(
-                      meal.label,
-                      style: theme.textTheme.titleSmall,
-                    ),
+                    child: Text(meal.label, style: theme.textTheme.titleSmall),
                   ),
                   Text(
                     '${meal.target.energy.kcal.round()} kcal',
@@ -201,10 +196,7 @@ class _MealCard extends ConsumerWidget {
                   key: Key('notes-${meal.slotId}'),
                   tilePadding: EdgeInsets.zero,
                   childrenPadding: const EdgeInsets.only(bottom: 8),
-                  title: Text(
-                    'Notes',
-                    style: theme.textTheme.labelMedium,
-                  ),
+                  title: Text('Notes', style: theme.textTheme.labelMedium),
                   children: [
                     for (final note in meal.notes)
                       Padding(
@@ -256,7 +248,7 @@ class _ComponentTile extends ConsumerWidget {
       ),
       leading: component.sectionLabel == null
           ? null
-          : _SectionDot(label: component.sectionLabel!),
+          : SectionDot(label: component.sectionLabel!),
       trailing: component.hasAlternatives
           ? Row(
               mainAxisSize: MainAxisSize.min,
@@ -280,33 +272,11 @@ class _ComponentTile extends ConsumerWidget {
           : null,
       onTap: component.hasAlternatives
           ? () => showComponentOptionsSheet(
-                context: context,
-                component: component,
-                day: day,
-              )
+              context: context,
+              component: component,
+              day: day,
+            )
           : null,
-    );
-  }
-}
-
-/// A compact marker for the plan's own section grouping (`PRIMER PLATO`,
-/// `POSTRE`), shown instead of repeating the words on every row.
-class _SectionDot extends StatelessWidget {
-  const _SectionDot({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDessert = label.toUpperCase().contains('POSTRE');
-    return Tooltip(
-      message: label,
-      child: Icon(
-        isDessert ? Icons.icecream_outlined : Icons.dinner_dining_outlined,
-        size: 18,
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
     );
   }
 }

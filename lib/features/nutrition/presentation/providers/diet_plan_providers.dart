@@ -19,11 +19,13 @@ import 'package:nutri_mvp/features/nutrition/domain/ports/diet_plan_source.dart'
 import 'package:nutri_mvp/features/nutrition/domain/ports/diet_plan_store.dart';
 import 'package:nutri_mvp/features/nutrition/domain/ports/food_table_source.dart';
 import 'package:nutri_mvp/features/nutrition/domain/ports/meal_slot_directory.dart';
+import 'package:nutri_mvp/features/nutrition/domain/ports/option_choice_source.dart';
 import 'package:nutri_mvp/features/nutrition/domain/ports/pdf_file_picker.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/active_diet_slot_directory.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/extracted_food_resolver.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/food_catalog.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/food_matcher.dart';
+import 'package:nutri_mvp/features/nutrition/domain/services/stored_option_choices.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/apply_diet_to_days.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/bootstrap_diet_library.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/get_diet_day.dart';
@@ -127,12 +129,22 @@ final mealSlotDirectoryProvider = Provider<MealSlotDirectory>((ref) {
   return ActiveDietSlotDirectory(ref.watch(resolveActiveDietProvider));
 });
 
+/// Answers which option is in force for a given day, at day-selection level.
+///
+/// User-level preferences layer in later without this provider's callers
+/// needing to change: the extra data lives inside [StoredOptionChoices].
+final optionChoiceSourceProvider = Provider<OptionChoiceSource>((ref) {
+  return StoredOptionChoices(ref.watch(dietPlanStoreProvider));
+});
+
 /// One stored diet, decoded, addressed by its id.
 ///
 /// What the editor loads. Returns null when the id names nothing, which happens
 /// if the diet was deleted from another screen while the editor was open.
-final storedDietProvider =
-    FutureProvider.family<DecodedDietPlan?, String>((ref, id) async {
+final storedDietProvider = FutureProvider.family<DecodedDietPlan?, String>((
+  ref,
+  id,
+) async {
   ref.watch(dietLibraryRevisionProvider);
   final plans = await ref.watch(storedDietPlansProvider.future);
   final plan = plans.where((p) => p.id == id).firstOrNull;
@@ -208,8 +220,9 @@ final pdfFilePickerProvider = Provider<PdfFilePicker>((ref) {
 });
 
 /// Matches the foods a plan describes against the shipped table.
-final extractedFoodResolverProvider =
-    FutureProvider<ExtractedFoodResolver>((ref) async {
+final extractedFoodResolverProvider = FutureProvider<ExtractedFoodResolver>((
+  ref,
+) async {
   return ExtractedFoodResolver(await ref.watch(foodMatcherProvider.future));
 });
 
@@ -245,8 +258,9 @@ final dietDayControllerProvider =
     );
 
 /// Every stored diet, active one first — the data behind the diet picker.
-final storedDietPlansProvider =
-    FutureProvider<List<StoredDietPlan>>((ref) async {
+final storedDietPlansProvider = FutureProvider<List<StoredDietPlan>>((
+  ref,
+) async {
   ref.watch(dietLibraryRevisionProvider);
   final result = await ref.watch(dietPlanStoreProvider).listPlans();
   return switch (result) {
@@ -260,11 +274,8 @@ final storedDietPlansProvider =
 final dietLibraryRevisionProvider = StateProvider<int>((ref) => 0);
 
 /// The plan document that ships with the build, used to seed the library.
-final bundledDietDocumentProvider =
-    Provider<BundledDietDocumentSource>((ref) {
-  return AssetBundledDietDocumentSource(
-    bundle: ref.watch(assetBundleProvider),
-  );
+final bundledDietDocumentProvider = Provider<BundledDietDocumentSource>((ref) {
+  return AssetBundledDietDocumentSource(bundle: ref.watch(assetBundleProvider));
 });
 
 /// Clock seam, so tests can pin import timestamps.
