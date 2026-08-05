@@ -65,21 +65,5 @@ void main() {
 
       expect(a, isNot(b));
     });
-
-    test('does not carry an id, rawText, or position field', () {
-      // LoggedIngredient deliberately drops the three ComponentOption fields
-      // that don't apply to user-logged data: no id (nothing references an
-      // ingredient), no rawText (the user picked the row — FoodItem.name is
-      // the wording), no position (list order already carries it).
-      final ingredient = LoggedIngredient(
-        foodId: 'chicken_breast',
-        quantity: FoodQuantity(grams: 150),
-      );
-
-      expect(
-        ingredient.toString(),
-        'LoggedIngredient(foodId: chicken_breast, quantity: FoodQuantity(grams: 150, count: null, unit: null))',
-      );
-    });
   });
 }

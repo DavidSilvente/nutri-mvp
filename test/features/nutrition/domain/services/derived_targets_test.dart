@@ -145,18 +145,11 @@ void main() {
         expect(composition.target.macros.proteinG, 20);
         expect(composition.unresolvedFoodIds, {'discontinued_food'});
         expect(composition.ingredients, [resolvable, unresolvable]);
+        // compose's return type is DerivedComposition, not
+        // Result<DerivedComposition, NutritionFailure> — there is no Err
+        // path, unlike forComponent/forComponents.
+        expect(composition, isA<DerivedComposition>());
       },
     );
-
-    test('never returns a Result — the return type has no Err path', () {
-      // compose's return type is DerivedComposition, not
-      // Result<DerivedComposition, NutritionFailure>: there is no way for
-      // this call to fail, by design (unlike forComponent/forComponents).
-      final composition = DerivedTargets.compose([
-        LoggedIngredient(foodId: 'unknown', quantity: FoodQuantity(grams: 1)),
-      ], catalog);
-
-      expect(composition, isA<DerivedComposition>());
-    });
   });
 }
