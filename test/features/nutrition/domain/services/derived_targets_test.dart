@@ -1,7 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nutri_mvp/features/nutrition/domain/entities/food_item.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/meal_component.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/derived_targets.dart';
+import 'package:nutri_mvp/features/nutrition/domain/services/food_catalog.dart';
+import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/food_quantity.dart';
+import 'package:nutri_mvp/features/nutrition/domain/value_objects/logged_ingredient.dart';
+import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
+import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_target.dart';
 
 void main() {
   group('OptionChoices precedence', () {
@@ -65,6 +71,92 @@ void main() {
       );
 
       expect(DerivedTargets.optionFor(component, choices).id, 'a');
+    });
+  });
+
+  group('DerivedTargets.compose', () {
+    FoodItem food(String id) => FoodItem(
+      id: id,
+      name: 'Food $id',
+      preparation: FoodPreparation.raw,
+      per100g: NutritionTarget(
+        energy: Energy(kcal: 200),
+        macros: Macros(proteinG: 20, carbsG: 10, fatG: 5),
+      ),
+      source: FoodDataSource.usdaSrLegacy,
+    );
+
+    final catalog = FoodCatalog([food('chicken_breast'), food('rice')]);
+
+    test('sums resolvable ingredients', () {
+      final ingredients = [
+        LoggedIngredient(
+          foodId: 'chicken_breast',
+          quantity: FoodQuantity(grams: 150),
+        ),
+        LoggedIngredient(foodId: 'rice', quantity: FoodQuantity(grams: 100)),
+      ];
+
+      final composition = DerivedTargets.compose(ingredients, catalog);
+
+      // chicken_breast: 150g @ 200kcal/100g = 300 kcal, 30/15/7.5
+      // rice: 100g @ 200kcal/100g = 200 kcal, 20/10/5
+      expect(composition.target.energy.kcal, 500);
+      expect(composition.target.macros.proteinG, 50);
+      expect(composition.target.macros.carbsG, 25);
+      expect(composition.target.macros.fatG, 12.5);
+      expect(composition.unresolvedFoodIds, isEmpty);
+      expect(composition.ingredients, ingredients);
+    });
+
+    test('an empty ingredient list yields a zero target', () {
+      final composition = DerivedTargets.compose([], catalog);
+
+      expect(composition.target.energy.kcal, 0);
+      expect(composition.target.macros.proteinG, 0);
+      expect(composition.target.macros.carbsG, 0);
+      expect(composition.target.macros.fatG, 0);
+      expect(composition.unresolvedFoodIds, isEmpty);
+      expect(composition.ingredients, isEmpty);
+    });
+
+    test(
+      'an unresolved foodId contributes zero, is reported in '
+      'unresolvedFoodIds, and survives verbatim in ingredients — never '
+      'dropped and never an Err',
+      () {
+        final resolvable = LoggedIngredient(
+          foodId: 'rice',
+          quantity: FoodQuantity(grams: 100),
+        );
+        final unresolvable = LoggedIngredient(
+          foodId: 'discontinued_food',
+          quantity: FoodQuantity(grams: 50),
+        );
+
+        final composition = DerivedTargets.compose(
+          [resolvable, unresolvable],
+          catalog,
+        );
+
+        // Only rice's 200 kcal / 20 / 10 / 5 contributes; the unresolved
+        // ingredient contributes zero.
+        expect(composition.target.energy.kcal, 200);
+        expect(composition.target.macros.proteinG, 20);
+        expect(composition.unresolvedFoodIds, {'discontinued_food'});
+        expect(composition.ingredients, [resolvable, unresolvable]);
+      },
+    );
+
+    test('never returns a Result — the return type has no Err path', () {
+      // compose's return type is DerivedComposition, not
+      // Result<DerivedComposition, NutritionFailure>: there is no way for
+      // this call to fail, by design (unlike forComponent/forComponents).
+      final composition = DerivedTargets.compose([
+        LoggedIngredient(foodId: 'unknown', quantity: FoodQuantity(grams: 1)),
+      ], catalog);
+
+      expect(composition, isA<DerivedComposition>());
     });
   });
 }
