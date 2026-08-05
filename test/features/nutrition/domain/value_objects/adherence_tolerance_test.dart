@@ -86,4 +86,35 @@ void main() {
       );
     });
   });
+
+  group('AdherenceTolerance.daily', () {
+    const dailyTolerance = AdherenceTolerance.daily;
+
+    test('is a tighter 10% band with zero macro and energy floors', () {
+      expect(dailyTolerance.relativeFraction, 0.10);
+      expect(dailyTolerance.macroFloorG, 0);
+      expect(dailyTolerance.energyFloorKcal, 0);
+    });
+
+    test('rejects any drift on a zero target — no floor to rescue it', () {
+      expect(dailyTolerance.acceptsMacro(target: 0, actual: 0), isTrue);
+      expect(dailyTolerance.acceptsMacro(target: 0, actual: 1), isFalse);
+    });
+
+    test('accepts drift inside 10% of a large target', () {
+      expect(dailyTolerance.acceptsEnergy(target: 2000, actual: 2200), isTrue);
+      expect(dailyTolerance.acceptsEnergy(target: 2000, actual: 1800), isTrue);
+    });
+
+    test('rejects drift just beyond the 10% boundary', () {
+      expect(
+        dailyTolerance.acceptsEnergy(target: 2000, actual: 2201),
+        isFalse,
+      );
+    });
+
+    test('is a distinct, independent criterion from .standard', () {
+      expect(dailyTolerance, isNot(AdherenceTolerance.standard));
+    });
+  });
 }
