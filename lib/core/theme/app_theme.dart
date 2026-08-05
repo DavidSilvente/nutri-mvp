@@ -53,13 +53,8 @@ class AppTheme {
         ),
       ),
       listTileTheme: ListTileThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 4,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -89,10 +84,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -105,9 +97,7 @@ class AppTheme {
         ),
       ),
       chipTheme: base.chipTheme.copyWith(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         side: BorderSide.none,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         labelStyle: base.textTheme.labelMedium?.copyWith(
@@ -117,9 +107,7 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         height: 68,
         elevation: 0,
-        backgroundColor: isDark
-            ? scheme.surfaceContainer
-            : Colors.white,
+        backgroundColor: isDark ? scheme.surfaceContainer : Colors.white,
         indicatorColor: scheme.primaryContainer,
         surfaceTintColor: Colors.transparent,
         labelTextStyle: WidgetStatePropertyAll(

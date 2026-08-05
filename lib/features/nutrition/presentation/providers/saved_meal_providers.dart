@@ -29,5 +29,5 @@ final savedMealIdFactoryProvider = Provider<String Function()>((ref) {
 /// [AsyncValue], plus mutation methods (`saveMeal`, `deleteSavedMeal`).
 final savedMealControllerProvider =
     AsyncNotifierProvider<SavedMealController, List<SavedMeal>>(
-  SavedMealController.new,
-);
+      SavedMealController.new,
+    );

@@ -60,9 +60,7 @@ Future<void> _pumpDialog(
         ),
       ),
     ),
-    overrides: [
-      savedMealSourceProvider.overrideWithValue(savedMealSource),
-    ],
+    overrides: [savedMealSourceProvider.overrideWithValue(savedMealSource)],
   );
   await tester.tap(find.text('open'));
   await tester.pumpAndSettle();
@@ -70,64 +68,53 @@ Future<void> _pumpDialog(
 
 void main() {
   group('SaveEntryAsMealDialog', () {
-    testWidgets(
-      'shows a required name field, an optional note field, and the '
-      'entry macros read-only',
-      (tester) async {
-        await _pumpDialog(
-          tester,
-          entry: _entry(),
-          savedMealSource: FakeSavedMealSource(),
-        );
+    testWidgets('shows a required name field, an optional note field, and the '
+        'entry macros read-only', (tester) async {
+      await _pumpDialog(
+        tester,
+        entry: _entry(),
+        savedMealSource: FakeSavedMealSource(),
+      );
 
-        expect(find.byKey(const Key('saveEntryAsMealNameField')), findsOneWidget);
-        expect(find.byKey(const Key('saveEntryAsMealNoteField')), findsOneWidget);
-        expect(find.text('270 kcal'), findsOneWidget);
-        expect(find.text('P 30 · C 20 · F 10'), findsOneWidget);
+      expect(find.byKey(const Key('saveEntryAsMealNameField')), findsOneWidget);
+      expect(find.byKey(const Key('saveEntryAsMealNoteField')), findsOneWidget);
+      expect(find.text('270 kcal'), findsOneWidget);
+      expect(find.text('P 30 · C 20 · F 10'), findsOneWidget);
 
-        await tester.tap(find.byKey(const Key('confirmSaveEntryAsMealButton')));
-        await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('confirmSaveEntryAsMealButton')));
+      await tester.pumpAndSettle();
 
-        expect(find.text('Required'), findsOneWidget);
-      },
-    );
+      expect(find.text('Required'), findsOneWidget);
+    });
 
-    testWidgets(
-      'confirming with a name creates a saved meal copying the entry '
-      'macros and closes the dialog',
-      (tester) async {
-        final savedMealSource = FakeSavedMealSource();
-        final entry = _entry();
+    testWidgets('confirming with a name creates a saved meal copying the entry '
+        'macros and closes the dialog', (tester) async {
+      final savedMealSource = FakeSavedMealSource();
+      final entry = _entry();
 
-        await _pumpDialog(
-          tester,
-          entry: entry,
-          savedMealSource: savedMealSource,
-        );
+      await _pumpDialog(tester, entry: entry, savedMealSource: savedMealSource);
 
-        await tester.enterText(
-          find.byKey(const Key('saveEntryAsMealNameField')),
-          'Post-workout shake',
-        );
-        await tester.enterText(
-          find.byKey(const Key('saveEntryAsMealNoteField')),
-          'One scoop, whole milk',
-        );
-        await tester.tap(find.byKey(const Key('confirmSaveEntryAsMealButton')));
-        await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('saveEntryAsMealNameField')),
+        'Post-workout shake',
+      );
+      await tester.enterText(
+        find.byKey(const Key('saveEntryAsMealNoteField')),
+        'One scoop, whole milk',
+      );
+      await tester.tap(find.byKey(const Key('confirmSaveEntryAsMealButton')));
+      await tester.pumpAndSettle();
 
-        expect(find.byKey(const Key('saveEntryAsMealNameField')), findsNothing);
+      expect(find.byKey(const Key('saveEntryAsMealNameField')), findsNothing);
 
-        final result = await savedMealSource.listSavedMeals();
-        final meals =
-            (result as Ok<List<SavedMeal>, NutritionFailure>).value;
-        expect(meals, hasLength(1));
-        expect(meals.single.name, 'Post-workout shake');
-        expect(meals.single.portionNote, 'One scoop, whole milk');
-        expect(meals.single.target.energy, entry.energy);
-        expect(meals.single.target.macros, entry.macros);
-      },
-    );
+      final result = await savedMealSource.listSavedMeals();
+      final meals = (result as Ok<List<SavedMeal>, NutritionFailure>).value;
+      expect(meals, hasLength(1));
+      expect(meals.single.name, 'Post-workout shake');
+      expect(meals.single.portionNote, 'One scoop, whole milk');
+      expect(meals.single.target.energy, entry.energy);
+      expect(meals.single.target.macros, entry.macros);
+    });
 
     testWidgets(
       'promoting under a name that already exists keeps the dialog open, '
@@ -151,7 +138,10 @@ void main() {
         await tester.tap(find.byKey(const Key('confirmSaveEntryAsMealButton')));
         await tester.pumpAndSettle();
 
-        expect(find.byKey(const Key('saveEntryAsMealNameField')), findsOneWidget);
+        expect(
+          find.byKey(const Key('saveEntryAsMealNameField')),
+          findsOneWidget,
+        );
         expect(find.textContaining('already exists'), findsOneWidget);
 
         final nameField = tester.widget<TextFormField>(
@@ -160,8 +150,7 @@ void main() {
         expect(nameField.controller?.text, 'Post-workout shake');
 
         final result = await savedMealSource.listSavedMeals();
-        final meals =
-            (result as Ok<List<SavedMeal>, NutritionFailure>).value;
+        final meals = (result as Ok<List<SavedMeal>, NutritionFailure>).value;
         expect(meals, hasLength(1));
       },
     );

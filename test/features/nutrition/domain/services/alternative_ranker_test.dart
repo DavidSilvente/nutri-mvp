@@ -41,10 +41,7 @@ void main() {
 
         expect(groups, hasLength(1));
         expect(groups.single.origin, AlternativeOrigin.plan);
-        expect(
-          groups.single.options.map((o) => o.ranked).toList(),
-          directRank,
-        );
+        expect(groups.single.options.map((o) => o.ranked).toList(), directRank);
         expect(
           groups.single.options.map((o) => o.ranked.id).toList(),
           directRank.map((r) => r.id).toList(),

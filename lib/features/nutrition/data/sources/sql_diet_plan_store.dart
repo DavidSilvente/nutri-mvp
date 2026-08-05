@@ -36,10 +36,11 @@ class SqlDietPlanStore implements DietPlanStore {
   @override
   Future<Result<StoredDietPlan?, NutritionFailure>> activePlan() async {
     try {
-      final row = await (_db.select(_db.dietPlanRecords)
-            ..where((row) => row.isDefault.equals(true))
-            ..limit(1))
-          .getSingleOrNull();
+      final row =
+          await (_db.select(_db.dietPlanRecords)
+                ..where((row) => row.isDefault.equals(true))
+                ..limit(1))
+              .getSingleOrNull();
       return Ok(row == null ? null : _toPlan(row));
     } catch (e) {
       return Err(StorageFailure(e.toString()));
@@ -53,9 +54,9 @@ class SqlDietPlanStore implements DietPlanStore {
     try {
       return await _db.transaction<Result<StoredDietPlan, NutritionFailure>>(
         () async {
-          final clash = await (_db.select(_db.dietPlanRecords)
-                ..where((row) => row.name.equals(plan.name)))
-              .getSingleOrNull();
+          final clash = await (_db.select(
+            _db.dietPlanRecords,
+          )..where((row) => row.name.equals(plan.name))).getSingleOrNull();
           if (clash != null && clash.id != plan.id) {
             return Err(
               ConflictFailure('Diet plan name "${plan.name}" already exists'),
@@ -66,9 +67,9 @@ class SqlDietPlanStore implements DietPlanStore {
           // diet with none selected would leave the day view with nothing to
           // read, which is never what the user meant by importing it.
           final total = await _countPlans();
-          final existing = await (_db.select(_db.dietPlanRecords)
-                ..where((row) => row.id.equals(plan.id)))
-              .getSingleOrNull();
+          final existing = await (_db.select(
+            _db.dietPlanRecords,
+          )..where((row) => row.id.equals(plan.id))).getSingleOrNull();
           final isFirstPlan = total == 0 || (total == 1 && existing != null);
           final shouldBeActive = plan.isDefault || isFirstPlan;
 
@@ -90,9 +91,9 @@ class SqlDietPlanStore implements DietPlanStore {
           if (existing == null) {
             await _db.into(_db.dietPlanRecords).insert(companion);
           } else {
-            await (_db.update(_db.dietPlanRecords)
-                  ..where((row) => row.id.equals(plan.id)))
-                .write(companion);
+            await (_db.update(
+              _db.dietPlanRecords,
+            )..where((row) => row.id.equals(plan.id))).write(companion);
           }
 
           return Ok(plan.copyWith(isDefault: shouldBeActive));
@@ -107,9 +108,9 @@ class SqlDietPlanStore implements DietPlanStore {
   Future<Result<void, NutritionFailure>> setActivePlan(String id) async {
     try {
       return await _db.transaction<Result<void, NutritionFailure>>(() async {
-        final target = await (_db.select(_db.dietPlanRecords)
-              ..where((row) => row.id.equals(id)))
-            .getSingleOrNull();
+        final target = await (_db.select(
+          _db.dietPlanRecords,
+        )..where((row) => row.id.equals(id))).getSingleOrNull();
         if (target == null) {
           return Err(StorageFailure('No diet plan with id "$id"'));
         }
@@ -128,22 +129,23 @@ class SqlDietPlanStore implements DietPlanStore {
   Future<Result<void, NutritionFailure>> deletePlan(String id) async {
     try {
       return await _db.transaction<Result<void, NutritionFailure>>(() async {
-        final target = await (_db.select(_db.dietPlanRecords)
-              ..where((row) => row.id.equals(id)))
-            .getSingleOrNull();
+        final target = await (_db.select(
+          _db.dietPlanRecords,
+        )..where((row) => row.id.equals(id))).getSingleOrNull();
         if (target == null) return const Ok(null);
 
-        await (_db.delete(_db.dietPlanRecords)
-              ..where((row) => row.id.equals(id)))
-            .go();
+        await (_db.delete(
+          _db.dietPlanRecords,
+        )..where((row) => row.id.equals(id))).go();
 
         // Deleting the active diet must not leave the app with plans but no
         // active one, so the most recent survivor is promoted.
         if (target.isDefault) {
-          final successor = await (_db.select(_db.dietPlanRecords)
-                ..orderBy([(row) => OrderingTerm.desc(row.importedAt)])
-                ..limit(1))
-              .getSingleOrNull();
+          final successor =
+              await (_db.select(_db.dietPlanRecords)
+                    ..orderBy([(row) => OrderingTerm.desc(row.importedAt)])
+                    ..limit(1))
+                  .getSingleOrNull();
           if (successor != null) {
             await (_db.update(_db.dietPlanRecords)
                   ..where((row) => row.id.equals(successor.id)))
@@ -162,12 +164,10 @@ class SqlDietPlanStore implements DietPlanStore {
     NutritionDay day,
   ) async {
     try {
-      final rows = await (_db.select(_db.componentSelections)
-            ..where((row) => row.dayEpoch.equals(day.epochDay)))
-          .get();
-      return Ok({
-        for (final row in rows) row.componentId: row.optionId,
-      });
+      final rows = await (_db.select(
+        _db.componentSelections,
+      )..where((row) => row.dayEpoch.equals(day.epochDay))).get();
+      return Ok({for (final row in rows) row.componentId: row.optionId});
     } catch (e) {
       return Err(StorageFailure(e.toString()));
     }
@@ -182,13 +182,15 @@ class SqlDietPlanStore implements DietPlanStore {
     try {
       // (dayEpoch, componentId) is the primary key, so an upsert replaces any
       // previous choice for that component on that day.
-      await _db.into(_db.componentSelections).insertOnConflictUpdate(
-        ComponentSelectionsCompanion.insert(
-          dayEpoch: day.epochDay,
-          componentId: componentId,
-          optionId: optionId,
-        ),
-      );
+      await _db
+          .into(_db.componentSelections)
+          .insertOnConflictUpdate(
+            ComponentSelectionsCompanion.insert(
+              dayEpoch: day.epochDay,
+              componentId: componentId,
+              optionId: optionId,
+            ),
+          );
       return const Ok(null);
     } catch (e) {
       return Err(StorageFailure(e.toString()));
@@ -201,10 +203,11 @@ class SqlDietPlanStore implements DietPlanStore {
     required String componentId,
   }) async {
     try {
-      await (_db.delete(_db.componentSelections)
-            ..where((row) =>
+      await (_db.delete(_db.componentSelections)..where(
+            (row) =>
                 row.dayEpoch.equals(day.epochDay) &
-                row.componentId.equals(componentId)))
+                row.componentId.equals(componentId),
+          ))
           .go();
       return const Ok(null);
     } catch (e) {
@@ -214,15 +217,16 @@ class SqlDietPlanStore implements DietPlanStore {
 
   Future<int> _countPlans() async {
     final count = _db.dietPlanRecords.id.count();
-    final row = await (_db.selectOnly(_db.dietPlanRecords)
-          ..addColumns([count]))
-        .getSingle();
+    final row = await (_db.selectOnly(
+      _db.dietPlanRecords,
+    )..addColumns([count])).getSingle();
     return row.read(count) ?? 0;
   }
 
   Future<void> _demoteAllExcept(String id) async {
-    await (_db.update(_db.dietPlanRecords)
-          ..where((row) => row.isDefault.equals(true) & row.id.equals(id).not()))
+    await (_db.update(
+          _db.dietPlanRecords,
+        )..where((row) => row.isDefault.equals(true) & row.id.equals(id).not()))
         .write(const DietPlanRecordsCompanion(isDefault: Value(false)));
   }
 

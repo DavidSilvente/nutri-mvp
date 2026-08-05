@@ -32,8 +32,7 @@ class SavedMealController extends AsyncNotifier<List<SavedMeal>> {
   /// `NutritionEntry` previously logged from it is unaffected — see
   /// `SavedMealSource.deleteSavedMeal`.
   Future<void> deleteSavedMeal(String id) async {
-    final result =
-        await ref.read(savedMealSourceProvider).deleteSavedMeal(id);
+    final result = await ref.read(savedMealSourceProvider).deleteSavedMeal(id);
     await _commit(result);
   }
 

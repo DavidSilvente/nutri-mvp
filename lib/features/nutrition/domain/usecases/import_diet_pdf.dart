@@ -31,13 +31,13 @@ class ImportDietPdf implements DietPdfImporter {
     required ImportDietDocument importDocument,
     required DateTime Function() now,
     required String Function() newPlanId,
-  })  : _rasterizer = rasterizer,
-        _extractor = extractor,
-        _draftCodec = draftCodec,
-        _resolver = resolver,
-        _importDocument = importDocument,
-        _now = now,
-        _newPlanId = newPlanId;
+  }) : _rasterizer = rasterizer,
+       _extractor = extractor,
+       _draftCodec = draftCodec,
+       _resolver = resolver,
+       _importDocument = importDocument,
+       _now = now,
+       _newPlanId = newPlanId;
 
   final PdfPageRasterizer _rasterizer;
   final DietPlanExtractor _extractor;
@@ -89,11 +89,13 @@ class ImportDietPdf implements DietPdfImporter {
       pending.map((food) => food.extracted),
     );
 
-    return Ok(DietImportDraft(
-      document: draft,
-      pendingFoods: pending,
-      resolutions: resolutions,
-    ));
+    return Ok(
+      DietImportDraft(
+        document: draft,
+        pendingFoods: pending,
+        resolutions: resolutions,
+      ),
+    );
   }
 
   /// Returns the stored plan's id on success.

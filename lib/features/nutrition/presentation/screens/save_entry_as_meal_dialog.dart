@@ -64,18 +64,14 @@ class _SaveEntryAsMealDialogState extends ConsumerState<SaveEntryAsMealDialog>
                 controller: _name,
                 decoration: const InputDecoration(labelText: 'Name'),
                 validator: (value) =>
-                    (value == null || value.trim().isEmpty)
-                        ? 'Required'
-                        : null,
+                    (value == null || value.trim().isEmpty) ? 'Required' : null,
               ),
               if (error != null) ...[
                 const SizedBox(height: 8),
                 Text(
                   error!,
                   key: const Key('saveEntryAsMealError'),
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],
               const SizedBox(height: 12),
@@ -124,7 +120,9 @@ class _SaveEntryAsMealDialogState extends ConsumerState<SaveEntryAsMealDialog>
     final note = _note.text.trim();
 
     await submitSavedMealWrite(
-      () => ref.read(savedMealControllerProvider.notifier).promoteEntry(
+      () => ref
+          .read(savedMealControllerProvider.notifier)
+          .promoteEntry(
             widget.entry,
             name: _name.text.trim(),
             portionNote: note.isEmpty ? null : note,

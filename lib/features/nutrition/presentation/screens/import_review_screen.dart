@@ -226,8 +226,9 @@ class _ReviewLineCard extends StatelessWidget {
                       color: entry.quantityWasCorrected
                           ? theme.colorScheme.primary
                           : theme.colorScheme.onSurfaceVariant,
-                      fontWeight:
-                          entry.quantityWasCorrected ? FontWeight.w600 : null,
+                      fontWeight: entry.quantityWasCorrected
+                          ? FontWeight.w600
+                          : null,
                     ),
                   ),
                 ),

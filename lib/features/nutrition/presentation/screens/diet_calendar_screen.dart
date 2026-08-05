@@ -89,7 +89,9 @@ class _DietCalendarScreenState extends ConsumerState<DietCalendarScreen> {
                   child: Text(
                     'Could not load the calendar.\n$error',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
                 ),
               ),
@@ -107,9 +109,9 @@ class _DietCalendarScreenState extends ConsumerState<DietCalendarScreen> {
   }
 
   void _openDay(NutritionDay day) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => DayPlanScreen(day: day)),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => DayPlanScreen(day: day)));
   }
 }
 
@@ -333,7 +335,8 @@ class _DayCell extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: '${day.day} ${_monthNames[day.month - 1]}, '
+      label:
+          '${day.day} ${_monthNames[day.month - 1]}, '
           '${hasPlan ? style.label : 'no plan'}',
       child: InkWell(
         key: Key('calendarDay-${day.epochDay}'),

@@ -68,32 +68,34 @@ class SqlDietPlanSource implements DietPlanSource {
     PlannedMeal meal,
   ) async {
     try {
-      final result = await _db.transaction<Result<PlannedMeal, NutritionFailure>>(
-        () async {
-          if (meal.day != null) {
-            final existing = await (_db.select(_db.plannedMeals)
-                  ..where(
-                    (row) =>
-                        row.slotId.equals(meal.slotId) &
-                        row.dayEpoch.equals(meal.day!.epochDay),
-                  ))
-                .getSingleOrNull();
-            if (existing != null && existing.id != meal.id) {
-              return Err(
-                ConflictFailure(
-                  'Slot ${meal.slotId} is already planned for ${meal.day}',
-                ),
-              );
+      final result = await _db
+          .transaction<Result<PlannedMeal, NutritionFailure>>(() async {
+            if (meal.day != null) {
+              final existing =
+                  await (_db.select(_db.plannedMeals)..where(
+                        (row) =>
+                            row.slotId.equals(meal.slotId) &
+                            row.dayEpoch.equals(meal.day!.epochDay),
+                      ))
+                      .getSingleOrNull();
+              if (existing != null && existing.id != meal.id) {
+                return Err(
+                  ConflictFailure(
+                    'Slot ${meal.slotId} is already planned for ${meal.day}',
+                  ),
+                );
+              }
             }
-          }
 
-          await _db
-              .into(_db.plannedMeals)
-              .insert(_toPlannedMealCompanion(meal), mode: InsertMode.insertOrReplace);
+            await _db
+                .into(_db.plannedMeals)
+                .insert(
+                  _toPlannedMealCompanion(meal),
+                  mode: InsertMode.insertOrReplace,
+                );
 
-          return Ok(meal);
-        },
-      );
+            return Ok(meal);
+          });
       return result;
     } catch (e) {
       return Err(StorageFailure(e.toString()));
@@ -103,7 +105,9 @@ class SqlDietPlanSource implements DietPlanSource {
   @override
   Future<Result<void, NutritionFailure>> deletePlannedMeal(String id) async {
     try {
-      await (_db.delete(_db.plannedMeals)..where((row) => row.id.equals(id))).go();
+      await (_db.delete(
+        _db.plannedMeals,
+      )..where((row) => row.id.equals(id))).go();
       return const Ok(null);
     } catch (e) {
       return Err(StorageFailure(e.toString()));
@@ -115,9 +119,9 @@ class SqlDietPlanSource implements DietPlanSource {
     String plannedMealId,
   ) async {
     try {
-      final rows = await (_db.select(_db.mealSubstitutes)
-            ..where((row) => row.plannedMealId.equals(plannedMealId)))
-          .get();
+      final rows = await (_db.select(
+        _db.mealSubstitutes,
+      )..where((row) => row.plannedMealId.equals(plannedMealId))).get();
       return Ok(rows.map(_toSubstitute).toList(growable: false));
     } catch (e) {
       return Err(StorageFailure(e.toString()));
@@ -131,7 +135,10 @@ class SqlDietPlanSource implements DietPlanSource {
     try {
       await _db
           .into(_db.mealSubstitutes)
-          .insert(_toSubstituteCompanion(substitute), mode: InsertMode.insertOrReplace);
+          .insert(
+            _toSubstituteCompanion(substitute),
+            mode: InsertMode.insertOrReplace,
+          );
       return Ok(substitute);
     } catch (e) {
       return Err(StorageFailure(e.toString()));
@@ -141,7 +148,9 @@ class SqlDietPlanSource implements DietPlanSource {
   @override
   Future<Result<void, NutritionFailure>> deleteSubstitute(String id) async {
     try {
-      await (_db.delete(_db.mealSubstitutes)..where((row) => row.id.equals(id))).go();
+      await (_db.delete(
+        _db.mealSubstitutes,
+      )..where((row) => row.id.equals(id))).go();
       return const Ok(null);
     } catch (e) {
       return Err(StorageFailure(e.toString()));
@@ -210,16 +219,12 @@ class SqlDietPlanSource implements DietPlanSource {
   }) {
     return NutritionTarget(
       energy: Energy(kcal: energyKcal),
-      macros: Macros(
-        proteinG: proteinG,
-        carbsG: carbsG,
-        fatG: fatG,
-      ),
+      macros: Macros(proteinG: proteinG, carbsG: carbsG, fatG: fatG),
     );
   }
 
   ({double energyKcal, double proteinG, double carbsG, double fatG})
-      _targetValues(NutritionTarget target) {
+  _targetValues(NutritionTarget target) {
     return (
       energyKcal: target.energy.kcal.toDouble(),
       proteinG: target.macros.proteinG.toDouble(),

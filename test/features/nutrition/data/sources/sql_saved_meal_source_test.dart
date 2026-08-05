@@ -58,25 +58,26 @@ void main() {
       final listResult = await source.listSavedMeals();
 
       expect(saveResult, isA<Ok<SavedMeal, NutritionFailure>>());
-      final meals =
-          (listResult as Ok<List<SavedMeal>, NutritionFailure>).value;
+      final meals = (listResult as Ok<List<SavedMeal>, NutritionFailure>).value;
       expect(meals, [meal]);
     });
 
-    test('saveMeal rejects a duplicate normalized name for a different id',
-        () async {
-      final first = _meal(id: 'm1', name: 'Chicken Salad');
-      final duplicate = _meal(id: 'm2', name: ' chicken SALAD ');
+    test(
+      'saveMeal rejects a duplicate normalized name for a different id',
+      () async {
+        final first = _meal(id: 'm1', name: 'Chicken Salad');
+        final duplicate = _meal(id: 'm2', name: ' chicken SALAD ');
 
-      await source.saveMeal(first);
-      final result = await source.saveMeal(duplicate);
+        await source.saveMeal(first);
+        final result = await source.saveMeal(duplicate);
 
-      expect(result, isA<Err<SavedMeal, NutritionFailure>>());
-      expect(
-        (result as Err<SavedMeal, NutritionFailure>).failure,
-        isA<ConflictFailure>(),
-      );
-    });
+        expect(result, isA<Err<SavedMeal, NutritionFailure>>());
+        expect(
+          (result as Err<SavedMeal, NutritionFailure>).failure,
+          isA<ConflictFailure>(),
+        );
+      },
+    );
 
     test('saveMeal allows renaming while keeping the same id (edit, '
         'not a conflict)', () async {
@@ -103,8 +104,7 @@ void main() {
 
       expect(result, isA<Ok<SavedMeal, NutritionFailure>>());
       final listResult = await source.listSavedMeals();
-      final meals =
-          (listResult as Ok<List<SavedMeal>, NutritionFailure>).value;
+      final meals = (listResult as Ok<List<SavedMeal>, NutritionFailure>).value;
       expect(meals, [edited]);
     });
 
@@ -113,8 +113,7 @@ void main() {
       await source.saveMeal(_meal(id: 'm2', name: 'Apple snack'));
 
       final result = await source.listSavedMeals();
-      final meals =
-          (result as Ok<List<SavedMeal>, NutritionFailure>).value;
+      final meals = (result as Ok<List<SavedMeal>, NutritionFailure>).value;
 
       expect(meals.map((m) => m.name).toList(), [
         'Apple snack',
@@ -151,8 +150,7 @@ void main() {
 
       await source.saveMeal(meal);
       final result = await source.listSavedMeals();
-      final meals =
-          (result as Ok<List<SavedMeal>, NutritionFailure>).value;
+      final meals = (result as Ok<List<SavedMeal>, NutritionFailure>).value;
 
       expect(meals.single.portionNote, '200g grilled breast + greens');
     });

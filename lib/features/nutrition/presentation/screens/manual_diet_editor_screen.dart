@@ -64,7 +64,8 @@ class ManualDietEditorScreen extends ConsumerWidget {
               appBar: AppBar(title: title),
               body: const _Message(
                 key: Key('importedDietNotEditable'),
-                text: 'This diet came from a PDF, so its meals are made of '
+                text:
+                    'This diet came from a PDF, so its meals are made of '
                     'foods rather than typed macros. Import the PDF again to '
                     'change it.',
               ),
@@ -329,8 +330,7 @@ class _EditorScaffoldState extends ConsumerState<_EditorScaffold> {
                     key: Key('mealLabelField_$index'),
                     controller: meal.label,
                     decoration: const InputDecoration(labelText: 'Meal name'),
-                    validator: (value) =>
-                        value == null || value.trim().isEmpty
+                    validator: (value) => value == null || value.trim().isEmpty
                         ? 'Required'
                         : null,
                   ),
@@ -405,9 +405,7 @@ class _EditorScaffoldState extends ConsumerState<_EditorScaffold> {
     final result = await ref.read(saveManualDietProvider)(
       planId: widget.planId,
       name: _nameController.text,
-      slots: [
-        for (var i = 0; i < _meals.length; i++) _meals[i].readSlot(i),
-      ],
+      slots: [for (var i = 0; i < _meals.length; i++) _meals[i].readSlot(i)],
       // Creating a diet is how the user says which one they are on; editing the
       // one they are already following must not quietly switch them off it.
       makeActive: widget.planId == null,

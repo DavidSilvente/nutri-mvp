@@ -46,18 +46,9 @@ class AdherencePalette {
 
     Color shade(Color light, Color dark) => isDark ? dark : light;
 
-    final complete = shade(
-      const Color(0xFF2E7D51),
-      const Color(0xFF7FD1A3),
-    );
-    final partial = shade(
-      const Color(0xFFB07B29),
-      const Color(0xFFE8C07A),
-    );
-    final missed = shade(
-      const Color(0xFF9B5A5A),
-      const Color(0xFFD9A0A0),
-    );
+    final complete = shade(const Color(0xFF2E7D51), const Color(0xFF7FD1A3));
+    final partial = shade(const Color(0xFFB07B29), const Color(0xFFE8C07A));
+    final missed = shade(const Color(0xFF9B5A5A), const Color(0xFFD9A0A0));
 
     return AdherencePalette._({
       DayAdherenceStatus.complete: AdherenceStyle(

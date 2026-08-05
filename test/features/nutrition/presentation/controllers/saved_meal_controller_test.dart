@@ -49,61 +49,52 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      final initial =
-          await container.read(savedMealControllerProvider.future);
+      final initial = await container.read(savedMealControllerProvider.future);
 
       expect(initial, isEmpty);
     });
 
-    test(
-      'saveMeal reflects the created meal in the async state and bumps the '
-      'data revision',
-      () async {
-        final container = ProviderContainer(
-          overrides: [
-            savedMealSourceProvider.overrideWithValue(FakeSavedMealSource()),
-          ],
-        );
-        addTearDown(container.dispose);
-        await container.read(savedMealControllerProvider.future);
-        final revisionBefore = container.read(dataRevisionProvider);
+    test('saveMeal reflects the created meal in the async state and bumps the '
+        'data revision', () async {
+      final container = ProviderContainer(
+        overrides: [
+          savedMealSourceProvider.overrideWithValue(FakeSavedMealSource()),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(savedMealControllerProvider.future);
+      final revisionBefore = container.read(dataRevisionProvider);
 
-        final meal = _meal(id: 'm1', name: 'Chicken salad');
-        await container
-            .read(savedMealControllerProvider.notifier)
-            .saveMeal(meal);
+      final meal = _meal(id: 'm1', name: 'Chicken salad');
+      await container.read(savedMealControllerProvider.notifier).saveMeal(meal);
 
-        final state = container.read(savedMealControllerProvider);
-        expect(state.value, [meal]);
-        expect(container.read(dataRevisionProvider), revisionBefore + 1);
-      },
-    );
+      final state = container.read(savedMealControllerProvider);
+      expect(state.value, [meal]);
+      expect(container.read(dataRevisionProvider), revisionBefore + 1);
+    });
 
-    test(
-      'saveMeal with a duplicate (trimmed/case-insensitive) name surfaces a '
-      'ConflictFailure as AsyncError',
-      () async {
-        final container = ProviderContainer(
-          overrides: [
-            savedMealSourceProvider.overrideWithValue(FakeSavedMealSource()),
-          ],
-        );
-        addTearDown(container.dispose);
-        await container.read(savedMealControllerProvider.future);
+    test('saveMeal with a duplicate (trimmed/case-insensitive) name surfaces a '
+        'ConflictFailure as AsyncError', () async {
+      final container = ProviderContainer(
+        overrides: [
+          savedMealSourceProvider.overrideWithValue(FakeSavedMealSource()),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(savedMealControllerProvider.future);
 
-        await container
-            .read(savedMealControllerProvider.notifier)
-            .saveMeal(_meal(id: 'm1', name: 'Chicken salad'));
-        await container
-            .read(savedMealControllerProvider.notifier)
-            .saveMeal(_meal(id: 'm2', name: ' chicken SALAD '));
+      await container
+          .read(savedMealControllerProvider.notifier)
+          .saveMeal(_meal(id: 'm1', name: 'Chicken salad'));
+      await container
+          .read(savedMealControllerProvider.notifier)
+          .saveMeal(_meal(id: 'm2', name: ' chicken SALAD '));
 
-        final state = container.read(savedMealControllerProvider);
-        expect(state, isA<AsyncError<List<SavedMeal>>>());
-        final error = state.error! as HealthFailureException;
-        expect(error.failure, isA<ConflictFailure>());
-      },
-    );
+      final state = container.read(savedMealControllerProvider);
+      expect(state, isA<AsyncError<List<SavedMeal>>>());
+      final error = state.error! as HealthFailureException;
+      expect(error.failure, isA<ConflictFailure>());
+    });
 
     test(
       'a failed saveMeal preserves the previously loaded list instead of '
@@ -141,9 +132,7 @@ void main() {
       await container.read(savedMealControllerProvider.future);
 
       final meal = _meal(id: 'm1', name: 'Chicken salad');
-      await container
-          .read(savedMealControllerProvider.notifier)
-          .saveMeal(meal);
+      await container.read(savedMealControllerProvider.notifier).saveMeal(meal);
       await container
           .read(savedMealControllerProvider.notifier)
           .deleteSavedMeal('m1');
@@ -171,36 +160,33 @@ void main() {
       );
     }
 
-    test(
-      'copies the entry macros verbatim into a new saved meal, leaving the '
-      'entry unchanged',
-      () async {
-        final container = ProviderContainer(
-          overrides: [
-            savedMealSourceProvider.overrideWithValue(FakeSavedMealSource()),
-          ],
-        );
-        addTearDown(container.dispose);
-        await container.read(savedMealControllerProvider.future);
+    test('copies the entry macros verbatim into a new saved meal, leaving the '
+        'entry unchanged', () async {
+      final container = ProviderContainer(
+        overrides: [
+          savedMealSourceProvider.overrideWithValue(FakeSavedMealSource()),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(savedMealControllerProvider.future);
 
-        final source = entry(plannedMealId: 'pm-1');
-        final untouched = entry(plannedMealId: 'pm-1');
+      final source = entry(plannedMealId: 'pm-1');
+      final untouched = entry(plannedMealId: 'pm-1');
 
-        await container
-            .read(savedMealControllerProvider.notifier)
-            .promoteEntry(source, name: 'Post-workout shake');
+      await container
+          .read(savedMealControllerProvider.notifier)
+          .promoteEntry(source, name: 'Post-workout shake');
 
-        final state = container.read(savedMealControllerProvider);
-        final meals = state.value!;
-        expect(meals, hasLength(1));
-        expect(meals.single.name, 'Post-workout shake');
-        expect(meals.single.target.energy, source.energy);
-        expect(meals.single.target.macros, source.macros);
-        expect(meals.single.portionNote, isNull);
-        // The source entry object was never mutated by promotion.
-        expect(source, untouched);
-      },
-    );
+      final state = container.read(savedMealControllerProvider);
+      final meals = state.value!;
+      expect(meals, hasLength(1));
+      expect(meals.single.name, 'Post-workout shake');
+      expect(meals.single.target.energy, source.energy);
+      expect(meals.single.target.macros, source.macros);
+      expect(meals.single.portionNote, isNull);
+      // The source entry object was never mutated by promotion.
+      expect(source, untouched);
+    });
 
     test('an optional portionNote is copied onto the saved meal', () async {
       final container = ProviderContainer(
@@ -223,34 +209,31 @@ void main() {
       expect(state.value!.single.portionNote, 'One scoop, whole milk');
     });
 
-    test(
-      'promoting a second entry under a name that already exists surfaces a '
-      'ConflictFailure and leaves the catalogue at one meal',
-      () async {
-        final container = ProviderContainer(
-          overrides: [
-            savedMealSourceProvider.overrideWithValue(FakeSavedMealSource()),
-          ],
-        );
-        addTearDown(container.dispose);
-        await container.read(savedMealControllerProvider.future);
+    test('promoting a second entry under a name that already exists surfaces a '
+        'ConflictFailure and leaves the catalogue at one meal', () async {
+      final container = ProviderContainer(
+        overrides: [
+          savedMealSourceProvider.overrideWithValue(FakeSavedMealSource()),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(savedMealControllerProvider.future);
 
-        await container
-            .read(savedMealControllerProvider.notifier)
-            .promoteEntry(entry(id: 'e1'), name: 'Post-workout shake');
-        await container
-            .read(savedMealControllerProvider.notifier)
-            .promoteEntry(
-              entry(id: 'e2', kcal: 300),
-              name: ' post-workout SHAKE ',
-            );
+      await container
+          .read(savedMealControllerProvider.notifier)
+          .promoteEntry(entry(id: 'e1'), name: 'Post-workout shake');
+      await container
+          .read(savedMealControllerProvider.notifier)
+          .promoteEntry(
+            entry(id: 'e2', kcal: 300),
+            name: ' post-workout SHAKE ',
+          );
 
-        final state = container.read(savedMealControllerProvider);
-        expect(state.hasError, isTrue);
-        final error = state.error! as HealthFailureException;
-        expect(error.failure, isA<ConflictFailure>());
-        expect(state.valueOrNull, hasLength(1));
-      },
-    );
+      final state = container.read(savedMealControllerProvider);
+      expect(state.hasError, isTrue);
+      final error = state.error! as HealthFailureException;
+      expect(error.failure, isA<ConflictFailure>());
+      expect(state.valueOrNull, hasLength(1));
+    });
   });
 }

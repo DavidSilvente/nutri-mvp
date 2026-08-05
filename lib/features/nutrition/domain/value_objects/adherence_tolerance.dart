@@ -60,7 +60,8 @@ class AdherenceTolerance {
           other.energyFloorKcal == energyFloorKcal);
 
   @override
-  int get hashCode => Object.hash(relativeFraction, macroFloorG, energyFloorKcal);
+  int get hashCode =>
+      Object.hash(relativeFraction, macroFloorG, energyFloorKcal);
 
   @override
   String toString() =>

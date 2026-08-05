@@ -25,10 +25,7 @@ void main() {
         targetSnapshot: target,
       );
 
-      final result = DietPlanPolicy.ensureUniqueSameDaySlot(
-        meal,
-        [],
-      );
+      final result = DietPlanPolicy.ensureUniqueSameDaySlot(meal, []);
 
       expect(result, isA<Ok<PlannedMeal, NutritionFailure>>());
       final ok = result as Ok<PlannedMeal, NutritionFailure>;
@@ -124,21 +121,14 @@ void main() {
         targetSnapshot: target,
       );
 
-      final result = DietPlanPolicy.ensureUniqueSameDaySlot(
-        meal,
-        [meal],
-      );
+      final result = DietPlanPolicy.ensureUniqueSameDaySlot(meal, [meal]);
 
       expect(result, isA<Ok<PlannedMeal, NutritionFailure>>());
     });
 
     test('does not constrain meals without a day', () {
       final existing = [
-        PlannedMeal(
-          id: 'meal-1',
-          slotId: 'slot-1',
-          targetSnapshot: target,
-        ),
+        PlannedMeal(id: 'meal-1', slotId: 'slot-1', targetSnapshot: target),
       ];
 
       final candidate = PlannedMeal(

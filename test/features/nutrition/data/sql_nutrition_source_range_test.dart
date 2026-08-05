@@ -43,11 +43,12 @@ void main() {
       await database.close();
     });
 
-    NutritionDay day(int d) =>
-        NutritionDay.fromDateTime(DateTime(2026, 7, d));
+    NutritionDay day(int d) => NutritionDay.fromDateTime(DateTime(2026, 7, d));
 
     test('returns entries within the range, both bounds inclusive', () async {
-      await source.record(buildEntry(id: 'a', recordedAt: DateTime(2026, 7, 9)));
+      await source.record(
+        buildEntry(id: 'a', recordedAt: DateTime(2026, 7, 9)),
+      );
       await source.record(
         buildEntry(id: 'b', recordedAt: DateTime(2026, 7, 10, 8)),
       );

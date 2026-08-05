@@ -59,9 +59,7 @@ class _RecordIntakeScreenState extends ConsumerState<RecordIntakeScreen> {
     // meal in one tap and re-typing four numbers you already decided on.
     final prefill = widget.prefill ?? widget.plannedMeal?.target;
     _energyController = TextEditingController(
-      text: prefill == null
-          ? ''
-          : NutritionFormat.amount(prefill.energy.kcal),
+      text: prefill == null ? '' : NutritionFormat.amount(prefill.energy.kcal),
     );
     _proteinController = TextEditingController(
       text: prefill == null

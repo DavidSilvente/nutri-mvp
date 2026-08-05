@@ -38,7 +38,10 @@ void main() {
   group('starting a review', () {
     test('pre-fills the lines the resolver was confident about', () {
       final review = ImportReview.from([
-        resolution('chicken breast', candidates: [('chicken_breast_grilled', 0.9)]),
+        resolution(
+          'chicken breast',
+          candidates: [('chicken_breast_grilled', 0.9)],
+        ),
       ]);
 
       final entry = review.entries.single;
@@ -72,7 +75,10 @@ void main() {
 
     test('keeps plan order and counts what is pending', () {
       final review = ImportReview.from([
-        resolution('chicken breast', candidates: [('chicken_breast_grilled', 0.9)]),
+        resolution(
+          'chicken breast',
+          candidates: [('chicken_breast_grilled', 0.9)],
+        ),
         resolution('zzqq imaginary'),
         resolution('white rice', candidates: [('rice_white_raw', 0.88)]),
       ]);
@@ -89,7 +95,10 @@ void main() {
 
     setUp(() {
       review = ImportReview.from([
-        resolution('chicken breast', candidates: [('chicken_breast_grilled', 0.9)]),
+        resolution(
+          'chicken breast',
+          candidates: [('chicken_breast_grilled', 0.9)],
+        ),
         resolution('zzqq imaginary'),
       ]);
     });
@@ -128,19 +137,24 @@ void main() {
 
     setUp(() {
       review = ImportReview.from([
-        resolution('chicken breast', candidates: [('chicken_breast_grilled', 0.9)]),
+        resolution(
+          'chicken breast',
+          candidates: [('chicken_breast_grilled', 0.9)],
+        ),
       ]);
     });
 
-    test('starts from what the extraction read, without claiming a correction',
-        () {
-      final entry = review.entries.single;
+    test(
+      'starts from what the extraction read, without claiming a correction',
+      () {
+        final entry = review.entries.single;
 
-      expect(entry.quantityWasCorrected, isFalse);
-      expect(entry.quantity, isNull);
-      expect(entry.effectiveQuantity.grams, 100);
-      expect(review.requantifiedCount, 0);
-    });
+        expect(entry.quantityWasCorrected, isFalse);
+        expect(entry.quantity, isNull);
+        expect(entry.effectiveQuantity.grams, 100);
+        expect(review.requantifiedCount, 0);
+      },
+    );
 
     test('records a correction as an override', () {
       // Null and "the same numbers" mean different things downstream: only an
@@ -190,7 +204,10 @@ void main() {
       // Dropping the unsettled lines instead would silently import a plan
       // missing exactly the foods that were hardest to read.
       final review = ImportReview.from([
-        resolution('chicken breast', candidates: [('chicken_breast_grilled', 0.9)]),
+        resolution(
+          'chicken breast',
+          candidates: [('chicken_breast_grilled', 0.9)],
+        ),
         resolution('zzqq imaginary'),
       ]);
 
@@ -199,13 +216,12 @@ void main() {
 
     test('returns every line in plan order, saying which the user picked', () {
       final review = ImportReview.from([
-            resolution(
-              'chicken breast',
-              candidates: [('chicken_breast_grilled', 0.9)],
-            ),
-            resolution('zzqq imaginary'),
-          ])
-          .select(1, FakeFoodTableSource.food('ham_serrano'));
+        resolution(
+          'chicken breast',
+          candidates: [('chicken_breast_grilled', 0.9)],
+        ),
+        resolution('zzqq imaginary'),
+      ]).select(1, FakeFoodTableSource.food('ham_serrano'));
 
       final decisions = review.decisions;
       expect(decisions, hasLength(2));

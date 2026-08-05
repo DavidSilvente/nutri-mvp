@@ -171,8 +171,9 @@ class _DietLibraryScreenState extends ConsumerState<DietLibraryScreen> {
   /// Says which step broke, in the words of the failure that broke it.
   void _report(NutritionFailure failure) {
     _say(switch (failure) {
-      MalformedPlanFailure(reason: final reason) => 'Could not read the plan: '
-          '$reason',
+      MalformedPlanFailure(reason: final reason) =>
+        'Could not read the plan: '
+            '$reason',
       UnknownFoodFailure(sortedIds: final ids) =>
         'The plan still mentions foods we do not know: ${ids.join(', ')}',
       StorageFailure(reason: final reason) => reason,

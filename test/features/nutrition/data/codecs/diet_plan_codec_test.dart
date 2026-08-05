@@ -108,12 +108,7 @@ void main() {
     'label': label,
     'time': ?time,
     if (notes.isNotEmpty) 'notes': notes,
-    'target': {
-      'energyKcal': 500,
-      'proteinG': 30,
-      'carbsG': 55,
-      'fatG': 15,
-    },
+    'target': {'energyKcal': 500, 'proteinG': 30, 'carbsG': 55, 'fatG': 15},
   };
 
   Map<String, Object?> document({
@@ -156,7 +151,12 @@ void main() {
       // v1 documents have no slotId, and their planned meals and selections are
       // already keyed to the positional form. It must not move.
       final decoded = decode(
-        document(meals: [foodMeal(), foodMeal(label: 'Dinner')]),
+        document(
+          meals: [
+            foodMeal(),
+            foodMeal(label: 'Dinner'),
+          ],
+        ),
       );
       final slots = decoded.plan.dayGroups.single.template.slots;
       expect(slots.map((s) => s.id), ['plan-1:g0:m0', 'plan-1:g0:m1']);
@@ -171,15 +171,17 @@ void main() {
       // Selections are keyed by component id, so it has to follow the slot
       // rather than the position — otherwise reordering meals reassigns swaps.
       expect(slot.components.single.id, 'manual-breakfast:c0');
-      expect(
-        slot.components.single.options.map((o) => o.id),
-        ['manual-breakfast:c0:o0', 'manual-breakfast:c0:o1'],
-      );
+      expect(slot.components.single.options.map((o) => o.id), [
+        'manual-breakfast:c0:o0',
+        'manual-breakfast:c0:o1',
+      ]);
     });
 
     test('survive a meal being inserted before them', () {
       final before = decode(
-        document(meals: [targetMeal(slotId: 'lunch', label: 'Lunch')]),
+        document(
+          meals: [targetMeal(slotId: 'lunch', label: 'Lunch')],
+        ),
       );
       final after = decode(
         document(
@@ -202,7 +204,9 @@ void main() {
   group('hand-entered meals', () {
     test('take their target from the document instead of from foods', () {
       final decoded = decode(
-        document(meals: [targetMeal(slotId: 'breakfast', time: '08:30')]),
+        document(
+          meals: [targetMeal(slotId: 'breakfast', time: '08:30')],
+        ),
       );
       final slot = decoded.plan.dayGroups.single.template.slots.single;
 
@@ -215,7 +219,12 @@ void main() {
 
     test('sum into the day group target alongside food-first meals', () {
       final decoded = decode(
-        document(meals: [targetMeal(slotId: 'breakfast'), foodMeal()]),
+        document(
+          meals: [
+            targetMeal(slotId: 'breakfast'),
+            foodMeal(),
+          ],
+        ),
       );
       final template = decoded.plan.dayGroups.single.template;
 
@@ -233,7 +242,11 @@ void main() {
 
     test('are refused when a meal states neither', () {
       final failure = decodeFailure(
-        document(meals: [{'slotId': 'empty', 'label': 'Nothing'}]),
+        document(
+          meals: [
+            {'slotId': 'empty', 'label': 'Nothing'},
+          ],
+        ),
       );
 
       expect(failure, isA<MalformedPlanFailure>());
@@ -303,10 +316,7 @@ void main() {
       expect(decoded.coversWholeWeek, isTrue);
 
       final slots = decoded.dayGroups.single.template.slots;
-      expect(slots.map((s) => s.id), [
-        'manual-1:breakfast',
-        'manual-1:lunch',
-      ]);
+      expect(slots.map((s) => s.id), ['manual-1:breakfast', 'manual-1:lunch']);
       expect(slots.map((s) => s.label), ['Breakfast', 'Lunch']);
       expect(slots.first.timeOfDay, '08:00');
       expect(slots.first.notes, ['Soak the oats overnight']);

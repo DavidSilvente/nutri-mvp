@@ -12,10 +12,7 @@ import '_helpers/fake_overrides.dart';
 void main() {
   testWidgets('NutritionApp starts on today\'s plan', (tester) async {
     await tester.pumpWidget(
-      ProviderScope(
-        overrides: fakeAppOverrides(),
-        child: const NutritionApp(),
-      ),
+      ProviderScope(overrides: fakeAppOverrides(), child: const NutritionApp()),
     );
     await tester.pumpAndSettle();
 
@@ -28,10 +25,7 @@ void main() {
 
   testWidgets('every destination is reachable', (tester) async {
     await tester.pumpWidget(
-      ProviderScope(
-        overrides: fakeAppOverrides(),
-        child: const NutritionApp(),
-      ),
+      ProviderScope(overrides: fakeAppOverrides(), child: const NutritionApp()),
     );
     await tester.pumpAndSettle();
 

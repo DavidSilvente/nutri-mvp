@@ -73,16 +73,15 @@ void main() {
 
   ProviderContainer container({DietPlanSource? override}) {
     final c = ProviderContainer(
-      overrides: [
-        dietPlanSourceProvider.overrideWithValue(override ?? source),
-      ],
+      overrides: [dietPlanSourceProvider.overrideWithValue(override ?? source)],
     );
     addTearDown(c.dispose);
     return c;
   }
 
-  List<PlannedMeal> plannedMeals(Result<List<PlannedMeal>, NutritionFailure> r) =>
-      (r as Ok<List<PlannedMeal>, NutritionFailure>).value;
+  List<PlannedMeal> plannedMeals(
+    Result<List<PlannedMeal>, NutritionFailure> r,
+  ) => (r as Ok<List<PlannedMeal>, NutritionFailure>).value;
 
   /// A diet whose weekday coverage is explicit, so applying it can be checked
   /// against the days it does and does not speak about.
@@ -156,7 +155,11 @@ void main() {
       'reports days the diet says nothing about instead of inventing a menu',
       () async {
         final c = container();
-        final plan = diet(groups: {'WEEKDAYS': {1, 2, 3, 4, 5}});
+        final plan = diet(
+          groups: {
+            'WEEKDAYS': {1, 2, 3, 4, 5},
+          },
+        );
 
         // Monday through Sunday: the weekend is uncovered.
         final outcome = await c
@@ -167,10 +170,10 @@ void main() {
             );
 
         expect(outcome?.mealsWritten, 5);
-        expect(
-          outcome?.skippedDays.map((d) => d.weekday),
-          [DateTime.saturday, DateTime.sunday],
-        );
+        expect(outcome?.skippedDays.map((d) => d.weekday), [
+          DateTime.saturday,
+          DateTime.sunday,
+        ]);
       },
     );
 
@@ -190,35 +193,41 @@ void main() {
       );
     });
 
-    test('surfaces a storage failure as an AsyncError and no outcome', () async {
-      final c = container(override: _AlwaysFailingSource());
-      final plan = diet(groups: {'EVERY DAY': everyDay});
+    test(
+      'surfaces a storage failure as an AsyncError and no outcome',
+      () async {
+        final c = container(override: _AlwaysFailingSource());
+        final plan = diet(groups: {'EVERY DAY': everyDay});
 
-      final outcome = await c
-          .read(dietPlanControllerProvider.notifier)
-          .applyDiet(plan: plan, days: [monday]);
+        final outcome = await c
+            .read(dietPlanControllerProvider.notifier)
+            .applyDiet(plan: plan, days: [monday]);
 
-      expect(outcome, isNull);
-      final state = c.read(dietPlanControllerProvider);
-      expect(state.hasError, isTrue);
-      expect(state.error, isA<HealthFailureException>());
-    });
+        expect(outcome, isNull);
+        final state = c.read(dietPlanControllerProvider);
+        expect(state.hasError, isTrue);
+        expect(state.error, isA<HealthFailureException>());
+      },
+    );
   });
 
   group('DietPlanController.clearPlan', () {
-    test('removes what the same diet wrote, leaving other days alone', () async {
-      final c = container();
-      final plan = diet(groups: {'EVERY DAY': everyDay});
-      final notifier = c.read(dietPlanControllerProvider.notifier);
+    test(
+      'removes what the same diet wrote, leaving other days alone',
+      () async {
+        final c = container();
+        final plan = diet(groups: {'EVERY DAY': everyDay});
+        final notifier = c.read(dietPlanControllerProvider.notifier);
 
-      await notifier.applyDiet(plan: plan, days: [monday, dayAfter(1)]);
-      await notifier.clearPlan(plan: plan, days: [monday]);
+        await notifier.applyDiet(plan: plan, days: [monday, dayAfter(1)]);
+        await notifier.clearPlan(plan: plan, days: [monday]);
 
-      expect(
-        plannedMeals(await source.listPlannedMeals()).map((m) => m.day),
-        [dayAfter(1)],
-      );
-    });
+        expect(
+          plannedMeals(await source.listPlannedMeals()).map((m) => m.day),
+          [dayAfter(1)],
+        );
+      },
+    );
   });
 
   group('DietPlanController write paths', () {
@@ -279,15 +288,17 @@ void main() {
         ),
       );
       expect(
-        (await source.listSubstitutes('pm-1') as Ok<List<MealSubstitute>,
-            NutritionFailure>).value,
+        (await source.listSubstitutes('pm-1')
+                as Ok<List<MealSubstitute>, NutritionFailure>)
+            .value,
         hasLength(1),
       );
 
       await notifier.deleteSubstitute('sub-1');
       expect(
-        (await source.listSubstitutes('pm-1') as Ok<List<MealSubstitute>,
-            NutritionFailure>).value,
+        (await source.listSubstitutes('pm-1')
+                as Ok<List<MealSubstitute>, NutritionFailure>)
+            .value,
         isEmpty,
       );
     });
@@ -295,14 +306,16 @@ void main() {
     test('a failing substitute write surfaces as an AsyncError', () async {
       final c = container(override: _AlwaysFailingSource());
 
-      await c.read(dietPlanControllerProvider.notifier).saveSubstitute(
-        MealSubstitute(
-          id: 'sub-1',
-          plannedMealId: 'pm-1',
-          label: 'Tofu bowl',
-          target: _target(),
-        ),
-      );
+      await c
+          .read(dietPlanControllerProvider.notifier)
+          .saveSubstitute(
+            MealSubstitute(
+              id: 'sub-1',
+              plannedMealId: 'pm-1',
+              label: 'Tofu bowl',
+              target: _target(),
+            ),
+          );
 
       expect(c.read(dietPlanControllerProvider).hasError, isTrue);
     });

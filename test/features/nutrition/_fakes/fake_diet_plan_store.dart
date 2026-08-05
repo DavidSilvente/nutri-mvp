@@ -151,7 +151,8 @@ class FakeDietPlanStore implements DietPlanStore {
 /// A [FoodTableSource] serving a handful of foods, so tests do not load the
 /// shipped USDA asset.
 class FakeFoodTableSource implements FoodTableSource {
-  FakeFoodTableSource({List<FoodItem>? foods}) : foods = foods ?? defaultFoods();
+  FakeFoodTableSource({List<FoodItem>? foods})
+    : foods = foods ?? defaultFoods();
 
   final List<FoodItem> foods;
 
@@ -181,14 +182,39 @@ class FakeFoodTableSource implements FoodTableSource {
   }
 
   static List<FoodItem> defaultFoods() => [
-    food('chicken_breast_grilled', name: 'Pollo, pechuga', kcal: 151,
-        proteinG: 30.5, carbsG: 0, fatG: 3.2),
-    food('rice_white_raw', name: 'Arroz blanco', kcal: 365, proteinG: 7.1,
-        carbsG: 80, fatG: 0.7),
-    food('beef_loin', name: 'Ternera, lomo', kcal: 138, proteinG: 22.9,
-        carbsG: 0, fatG: 5.2),
-    food('ham_serrano', name: 'Jamón serrano', kcal: 241, proteinG: 31,
-        carbsG: 0.3, fatG: 13, source: FoodDataSource.estimated),
+    food(
+      'chicken_breast_grilled',
+      name: 'Pollo, pechuga',
+      kcal: 151,
+      proteinG: 30.5,
+      carbsG: 0,
+      fatG: 3.2,
+    ),
+    food(
+      'rice_white_raw',
+      name: 'Arroz blanco',
+      kcal: 365,
+      proteinG: 7.1,
+      carbsG: 80,
+      fatG: 0.7,
+    ),
+    food(
+      'beef_loin',
+      name: 'Ternera, lomo',
+      kcal: 138,
+      proteinG: 22.9,
+      carbsG: 0,
+      fatG: 5.2,
+    ),
+    food(
+      'ham_serrano',
+      name: 'Jamón serrano',
+      kcal: 241,
+      proteinG: 31,
+      carbsG: 0.3,
+      fatG: 13,
+      source: FoodDataSource.estimated,
+    ),
   ];
 
   @override

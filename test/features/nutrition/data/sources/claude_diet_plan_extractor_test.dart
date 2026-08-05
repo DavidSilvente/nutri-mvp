@@ -82,7 +82,9 @@ void main() {
       final body = jsonDecode(sent!.body) as Map<String, dynamic>;
       final content =
           ((body['messages'] as List).single as Map)['content'] as List;
-      final images = content.where((block) => block['type'] == 'image').toList();
+      final images = content
+          .where((block) => block['type'] == 'image')
+          .toList();
 
       expect(images, hasLength(3));
       expect(images.first['source']['media_type'], 'image/png');
@@ -101,16 +103,19 @@ void main() {
       expect(sent!.headers['anthropic-version'], '2023-06-01');
     });
 
-    test('tells the model to describe foods, never to name table ids', () async {
-      // The whole reason the extractor exists as a transcriber: matching is a
-      // local, deterministic job, and a model guessing at ids would break it.
-      await extractorSaying(document).extract(pages());
+    test(
+      'tells the model to describe foods, never to name table ids',
+      () async {
+        // The whole reason the extractor exists as a transcriber: matching is a
+        // local, deterministic job, and a model guessing at ids would break it.
+        await extractorSaying(document).extract(pages());
 
-      final system = (jsonDecode(sent!.body) as Map)['system'] as String;
-      expect(system, contains('extractedFoods'));
-      expect(system, contains('NEVER'));
-      expect(system, contains('TOTAL'));
-    });
+        final system = (jsonDecode(sent!.body) as Map)['system'] as String;
+        expect(system, contains('extractedFoods'));
+        expect(system, contains('NEVER'));
+        expect(system, contains('TOTAL'));
+      },
+    );
 
     test('returns the document the model produced', () async {
       final result = await extractorSaying(document).extract(pages());
@@ -130,8 +135,10 @@ void main() {
 
   group('refusing to pretend a failed read worked', () {
     test('does not call the service without a key', () async {
-      final result = await extractorSaying(document, stopReason: 'end_turn')
-          .extract(pages());
+      final result = await extractorSaying(
+        document,
+        stopReason: 'end_turn',
+      ).extract(pages());
       expect(result, isA<Ok<String, NutritionFailure>>());
 
       final unconfigured = extractorReturning(
@@ -177,8 +184,9 @@ void main() {
 
     test('reports an HTTP error as a storage failure', () async {
       final failure = failureOf(
-        await extractorReturning((_) => http.Response('nope', 401))
-            .extract(pages()),
+        await extractorReturning(
+          (_) => http.Response('nope', 401),
+        ).extract(pages()),
       );
 
       expect(failure, isA<StorageFailure>());
@@ -199,8 +207,9 @@ void main() {
 
     test('reports a reply that is not a message', () async {
       final failure = failureOf(
-        await extractorReturning((_) => http.Response('not json', 200))
-            .extract(pages()),
+        await extractorReturning(
+          (_) => http.Response('not json', 200),
+        ).extract(pages()),
       );
 
       expect(failure, isA<StorageFailure>());

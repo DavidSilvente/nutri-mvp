@@ -44,7 +44,8 @@ void main() {
       expect(
         name,
         contains(fold(fragment)),
-        reason: '"$query" matched "${best.food.name}" '
+        reason:
+            '"$query" matched "${best.food.name}" '
             '(${best.score.toStringAsFixed(2)})',
       );
     }
@@ -110,8 +111,10 @@ void main() {
         FoodMatcher.statedPreparation('pollo a la plancha'),
         FoodPreparation.grilled,
       );
-      expect(FoodMatcher.statedPreparation('atún enlatado'),
-          FoodPreparation.canned);
+      expect(
+        FoodMatcher.statedPreparation('atún enlatado'),
+        FoodPreparation.canned,
+      );
     });
 
     test('returns null when the text says nothing about preparation', () {

@@ -7,11 +7,7 @@ import '../value_objects/nutrition_target.dart';
 /// The ranking is driven by the [target] macronutrient values; the energy
 /// value stored on the target is not part of the distance calculation.
 class MacroCandidate {
-  MacroCandidate({
-    required this.id,
-    required this.label,
-    required this.target,
-  });
+  MacroCandidate({required this.id, required this.label, required this.target});
 
   final String id;
   final String label;
@@ -61,8 +57,7 @@ class RankedOption {
           other.proteinDelta == proteinDelta);
 
   @override
-  int get hashCode =>
-      Object.hash(id, label, target, distance, proteinDelta);
+  int get hashCode => Object.hash(id, label, target, distance, proteinDelta);
 
   @override
   String toString() =>
@@ -92,11 +87,13 @@ class SubstitutionEngine {
 
     final targetMacros = target.macros;
 
-    final scored = <({int index, RankedOption option, double squaredDistance})>[];
+    final scored =
+        <({int index, RankedOption option, double squaredDistance})>[];
     for (var i = 0; i < candidates.length; i++) {
       final candidate = candidates[i];
       final macros = candidate.target.macros;
-      final pDiff = macros.proteinG.toDouble() - targetMacros.proteinG.toDouble();
+      final pDiff =
+          macros.proteinG.toDouble() - targetMacros.proteinG.toDouble();
       final cDiff = macros.carbsG.toDouble() - targetMacros.carbsG.toDouble();
       final fDiff = macros.fatG.toDouble() - targetMacros.fatG.toDouble();
       final squaredDistance = pDiff * pDiff + cDiff * cDiff + fDiff * fDiff;
@@ -118,8 +115,7 @@ class SubstitutionEngine {
     scored.sort((a, b) {
       final distanceCmp = a.squaredDistance.compareTo(b.squaredDistance);
       if (distanceCmp != 0) return distanceCmp;
-      final proteinCmp =
-          a.option.proteinDelta.compareTo(b.option.proteinDelta);
+      final proteinCmp = a.option.proteinDelta.compareTo(b.option.proteinDelta);
       if (proteinCmp != 0) return proteinCmp;
       return a.index.compareTo(b.index);
     });

@@ -102,47 +102,49 @@ void main() {
       return raw;
     }
 
-    test('creates the two new tables and leaves existing data intact',
-        () async {
-      final raw = openV4Raw();
-      raw.execute('PRAGMA user_version = 4;');
-      // A pre-existing intake row must survive the upgrade untouched: this is
-      // what a real user's phone looks like before the update.
-      raw.execute('''
+    test(
+      'creates the two new tables and leaves existing data intact',
+      () async {
+        final raw = openV4Raw();
+        raw.execute('PRAGMA user_version = 4;');
+        // A pre-existing intake row must survive the upgrade untouched: this is
+        // what a real user's phone looks like before the update.
+        raw.execute('''
           INSERT INTO nutrition_entries
             (id, recorded_at, day_epoch, energy_kcal, protein_g, carbs_g, fat_g,
              planned_meal_id)
           VALUES ('entry-1', 1750000000000, 20300, 500.0, 40.0, 50.0, 15.0, NULL);
         ''');
-      raw.execute('''
+        raw.execute('''
           INSERT INTO hydration_entries
             (id, recorded_at, day_epoch, water_ml)
           VALUES ('hydration-1', 1750000000000, 20300, 750.0);
         ''');
 
-      final db = NutritionDatabase(NativeDatabase.opened(raw));
-      addTearDown(db.close);
+        final db = NutritionDatabase(NativeDatabase.opened(raw));
+        addTearDown(db.close);
 
-      // Opening runs the migration.
-      final entries = await db.select(db.nutritionEntries).get();
-      expect(entries, hasLength(1));
-      expect(entries.single.id, 'entry-1');
-      expect(entries.single.energyKcal, 500.0);
-      final hydration = await db.select(db.hydrationEntries).get();
-      expect(hydration, hasLength(1));
+        // Opening runs the migration.
+        final entries = await db.select(db.nutritionEntries).get();
+        expect(entries, hasLength(1));
+        expect(entries.single.id, 'entry-1');
+        expect(entries.single.energyKcal, 500.0);
+        final hydration = await db.select(db.hydrationEntries).get();
+        expect(hydration, hasLength(1));
 
-      // Compared against the database's own schemaVersion rather than a
-      // hardcoded number: a v4 database must land on whatever the CURRENT
-      // schema is, so this keeps asserting the real property (the whole
-      // migration chain ran) instead of needing an edit on every version
-      // bump.
-      final version = raw.select('PRAGMA user_version;').single.values.first;
-      expect(version, db.schemaVersion);
+        // Compared against the database's own schemaVersion rather than a
+        // hardcoded number: a v4 database must land on whatever the CURRENT
+        // schema is, so this keeps asserting the real property (the whole
+        // migration chain ran) instead of needing an edit on every version
+        // bump.
+        final version = raw.select('PRAGMA user_version;').single.values.first;
+        expect(version, db.schemaVersion);
 
-      // The new tables exist and are empty.
-      expect(await db.select(db.dietPlanRecords).get(), isEmpty);
-      expect(await db.select(db.componentSelections).get(), isEmpty);
-    });
+        // The new tables exist and are empty.
+        expect(await db.select(db.dietPlanRecords).get(), isEmpty);
+        expect(await db.select(db.componentSelections).get(), isEmpty);
+      },
+    );
 
     test('the migrated database can store a plan and a selection', () async {
       final raw = openV4Raw();

@@ -9,7 +9,9 @@ import 'package:nutri_mvp/features/nutrition/domain/ports/menu_text_extractor.da
 /// input path and deferring OCR/AI integration to a future adapter.
 class NoopMenuTextExtractor implements MenuTextExtractor {
   @override
-  Future<Result<List<String>, NutritionFailure>> extract(MenuPhoto photo) async {
+  Future<Result<List<String>, NutritionFailure>> extract(
+    MenuPhoto photo,
+  ) async {
     return const Ok<List<String>, NutritionFailure>([]);
   }
 }

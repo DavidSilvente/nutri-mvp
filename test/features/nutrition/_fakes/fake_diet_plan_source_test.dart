@@ -24,31 +24,27 @@ NutritionTarget _target({
 
 void main() {
   group('FakeDietPlanSource', () {
+    test(
+      'savePlannedMeal persists a meal so it is returned by listPlannedMeals',
+      () async {
+        final source = FakeDietPlanSource();
+        final day = NutritionDay.fromDateTime(DateTime(2026, 8, 1));
+        final meal = PlannedMeal(
+          id: 'm1',
+          slotId: 's1',
+          day: day,
+          targetSnapshot: _target(),
+        );
 
+        final saveResult = await source.savePlannedMeal(meal);
+        final listResult = await source.listPlannedMeals();
 
-
-
-
-
-    test('savePlannedMeal persists a meal so it is returned by listPlannedMeals',
-        () async {
-      final source = FakeDietPlanSource();
-      final day = NutritionDay.fromDateTime(DateTime(2026, 8, 1));
-      final meal = PlannedMeal(
-        id: 'm1',
-        slotId: 's1',
-        day: day,
-        targetSnapshot: _target(),
-      );
-
-      final saveResult = await source.savePlannedMeal(meal);
-      final listResult = await source.listPlannedMeals();
-
-      expect(saveResult, isA<Ok<PlannedMeal, NutritionFailure>>());
-      final meals =
-          (listResult as Ok<List<PlannedMeal>, NutritionFailure>).value;
-      expect(meals, [meal]);
-    });
+        expect(saveResult, isA<Ok<PlannedMeal, NutritionFailure>>());
+        final meals =
+            (listResult as Ok<List<PlannedMeal>, NutritionFailure>).value;
+        expect(meals, [meal]);
+      },
+    );
 
     test('savePlannedMeal rejects the same slot on the same day', () async {
       final source = FakeDietPlanSource();
@@ -100,7 +96,6 @@ void main() {
       expect(secondResult, isA<Ok<PlannedMeal, NutritionFailure>>());
     });
 
-
     test('listPlannedMeals filters by day when provided', () async {
       final source = FakeDietPlanSource();
       final day1 = NutritionDay.fromDateTime(DateTime(2026, 8, 1));
@@ -121,8 +116,7 @@ void main() {
       await source.savePlannedMeal(meal2);
 
       final result = await source.listPlannedMeals(day: day1);
-      final meals =
-          (result as Ok<List<PlannedMeal>, NutritionFailure>).value;
+      final meals = (result as Ok<List<PlannedMeal>, NutritionFailure>).value;
       expect(meals, [meal1]);
     });
 
@@ -158,49 +152,53 @@ void main() {
       );
     });
 
-    test('saveSubstitute persists a substitute scoped to its planned meal',
-        () async {
-      final source = FakeDietPlanSource();
-      final substitute = MealSubstitute(
-        id: 'sub1',
-        plannedMealId: 'm1',
-        label: 'Tofu',
-        target: _target(),
-      );
+    test(
+      'saveSubstitute persists a substitute scoped to its planned meal',
+      () async {
+        final source = FakeDietPlanSource();
+        final substitute = MealSubstitute(
+          id: 'sub1',
+          plannedMealId: 'm1',
+          label: 'Tofu',
+          target: _target(),
+        );
 
-      final saveResult = await source.saveSubstitute(substitute);
-      final listResult = await source.listSubstitutes('m1');
+        final saveResult = await source.saveSubstitute(substitute);
+        final listResult = await source.listSubstitutes('m1');
 
-      expect(saveResult, isA<Ok<MealSubstitute, NutritionFailure>>());
-      final substitutes =
-          (listResult as Ok<List<MealSubstitute>, NutritionFailure>).value;
-      expect(substitutes, [substitute]);
-    });
+        expect(saveResult, isA<Ok<MealSubstitute, NutritionFailure>>());
+        final substitutes =
+            (listResult as Ok<List<MealSubstitute>, NutritionFailure>).value;
+        expect(substitutes, [substitute]);
+      },
+    );
 
-    test('listSubstitutes does not leak substitutes across planned meals',
-        () async {
-      final source = FakeDietPlanSource();
-      final subA = MealSubstitute(
-        id: 'subA',
-        plannedMealId: 'mA',
-        label: 'Tofu',
-        target: _target(),
-      );
-      final subB = MealSubstitute(
-        id: 'subB',
-        plannedMealId: 'mB',
-        label: 'Tempeh',
-        target: _target(),
-      );
+    test(
+      'listSubstitutes does not leak substitutes across planned meals',
+      () async {
+        final source = FakeDietPlanSource();
+        final subA = MealSubstitute(
+          id: 'subA',
+          plannedMealId: 'mA',
+          label: 'Tofu',
+          target: _target(),
+        );
+        final subB = MealSubstitute(
+          id: 'subB',
+          plannedMealId: 'mB',
+          label: 'Tempeh',
+          target: _target(),
+        );
 
-      await source.saveSubstitute(subA);
-      await source.saveSubstitute(subB);
+        await source.saveSubstitute(subA);
+        await source.saveSubstitute(subB);
 
-      final result = await source.listSubstitutes('mA');
-      final substitutes =
-          (result as Ok<List<MealSubstitute>, NutritionFailure>).value;
-      expect(substitutes, [subA]);
-    });
+        final result = await source.listSubstitutes('mA');
+        final substitutes =
+            (result as Ok<List<MealSubstitute>, NutritionFailure>).value;
+        expect(substitutes, [subA]);
+      },
+    );
 
     test('deleteSubstitute removes the substitute', () async {
       final source = FakeDietPlanSource();

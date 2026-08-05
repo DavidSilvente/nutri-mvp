@@ -19,9 +19,9 @@ class ImportDietDocument {
     required DietPlanStore store,
     required FoodTableSource foodTable,
     required DietPlanDecoder decoder,
-  })  : _store = store,
-        _foodTable = foodTable,
-        _decoder = decoder;
+  }) : _store = store,
+       _foodTable = foodTable,
+       _decoder = decoder;
 
   final DietPlanStore _store;
   final FoodTableSource _foodTable;
@@ -58,17 +58,19 @@ class ImportDietDocument {
       case Err(failure: final failure):
         return Err(failure);
       case Ok(value: final value):
-        return _store.savePlan(StoredDietPlan(
-          id: id,
-          // The document names itself; an explicit [name] only overrides that
-          // when the user retitles the import.
-          name: name ?? value.plan.name,
-          document: document,
-          importedAt: importedAt,
-          declaredDailyEnergyKcal: value.plan.declaredDailyEnergyKcal,
-          isDefault: makeActive,
-          sourceLabel: sourceLabel,
-        ));
+        return _store.savePlan(
+          StoredDietPlan(
+            id: id,
+            // The document names itself; an explicit [name] only overrides that
+            // when the user retitles the import.
+            name: name ?? value.plan.name,
+            document: document,
+            importedAt: importedAt,
+            declaredDailyEnergyKcal: value.plan.declaredDailyEnergyKcal,
+            isDefault: makeActive,
+            sourceLabel: sourceLabel,
+          ),
+        );
     }
   }
 }

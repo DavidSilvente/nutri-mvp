@@ -14,8 +14,7 @@ class FoodMatch {
   final double score;
 
   @override
-  String toString() =>
-      'FoodMatch(${food.id}, ${score.toStringAsFixed(3)})';
+  String toString() => 'FoodMatch(${food.id}, ${score.toStringAsFixed(3)})';
 }
 
 /// Resolves free-text food descriptions to entries in a [FoodCatalog].
@@ -59,11 +58,40 @@ class FoodMatcher {
 
   /// Words carrying no discriminating power in food descriptions.
   static const Set<String> _stopWords = {
-    'and', 'or', 'with', 'without', 'the', 'of', 'in', 'a', 'an', 'to',
-    'includes', 'foods', 'food', 'for', 'usda', 'distribution', 'program',
-    'commercially', 'prepared', 'all', 'types', 'type', 'variety',
-    'varieties', 'commercial', 'only', 'separable', 'trimmed', 'added',
-    'solution', 'enhanced', 'unspecified', 'ns', 'nfs',
+    'and',
+    'or',
+    'with',
+    'without',
+    'the',
+    'of',
+    'in',
+    'a',
+    'an',
+    'to',
+    'includes',
+    'foods',
+    'food',
+    'for',
+    'usda',
+    'distribution',
+    'program',
+    'commercially',
+    'prepared',
+    'all',
+    'types',
+    'type',
+    'variety',
+    'varieties',
+    'commercial',
+    'only',
+    'separable',
+    'trimmed',
+    'added',
+    'solution',
+    'enhanced',
+    'unspecified',
+    'ns',
+    'nfs',
   };
 
   /// Preparation words a query may state, mapped to the enum.
@@ -106,8 +134,7 @@ class FoodMatcher {
     for (final entry in _postings.entries) {
       // Smoothed IDF, so a token present in every name still has a floor above
       // zero instead of silently dropping out of the score.
-      _idf[entry.key] =
-          1.0 + math.log(total / (1 + entry.value.length));
+      _idf[entry.key] = 1.0 + math.log(total / (1 + entry.value.length));
     }
   }
 
@@ -133,7 +160,9 @@ class FoodMatcher {
   /// that are harder to debug than the plurals it fixed.
   static String _singularize(String token) {
     if (token.length <= 3) return token;
-    if (token.endsWith('ies')) return '${token.substring(0, token.length - 3)}y';
+    if (token.endsWith('ies')) {
+      return '${token.substring(0, token.length - 3)}y';
+    }
     for (final ending in const ['sses', 'shes', 'ches', 'xes', 'zes', 'oes']) {
       if (token.endsWith(ending)) {
         return token.substring(0, token.length - 2);

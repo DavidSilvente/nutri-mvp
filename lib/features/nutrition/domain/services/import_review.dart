@@ -143,8 +143,10 @@ class ImportReview {
   int get length => entries.length;
 
   /// Lines still waiting for a decision.
-  List<ImportReviewEntry> get pending =>
-      [for (final entry in entries) if (entry.needsAttention) entry];
+  List<ImportReviewEntry> get pending => [
+    for (final entry in entries)
+      if (entry.needsAttention) entry,
+  ];
 
   int get pendingCount => pending.length;
 
@@ -152,8 +154,7 @@ class ImportReview {
   bool get isComplete => pendingCount == 0;
 
   /// How many lines the user settled by hand.
-  int get correctedCount =>
-      entries.where((entry) => entry.chosenByUser).length;
+  int get correctedCount => entries.where((entry) => entry.chosenByUser).length;
 
   /// How many lines had their quantity corrected.
   int get requantifiedCount =>

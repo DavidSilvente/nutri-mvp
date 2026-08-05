@@ -72,12 +72,16 @@ String draft({
 void main() {
   group('reading the foods a draft has not placed', () {
     test('reads every described field', () {
-      final foods = pendingOf(draft(pendingFoods: '''
+      final foods = pendingOf(
+        draft(
+          pendingFoods: '''
         [
           {"ref":"x1","rawText":"2 lonchas de Pavo Campofrío (60 g)",
            "canonicalName":"turkey breast","preparation":"cured","grams":60,
            "count":2,"unit":"loncha","brandNormalizedFrom":"Pavo Campofrío"}
-        ]'''));
+        ]''',
+        ),
+      );
 
       expect(foods, hasLength(1));
       final food = foods.single;
@@ -102,13 +106,17 @@ void main() {
     test('rejects a duplicate ref instead of silently dropping one', () {
       // Two foods under one ref would make the rewrite ambiguous, and one of the
       // user's decisions would quietly overwrite the other.
-      final result = codec.readPendingFoods(draft(pendingFoods: '''
+      final result = codec.readPendingFoods(
+        draft(
+          pendingFoods: '''
         [
           {"ref":"x1","rawText":"a","canonicalName":"rice","preparation":"raw",
            "grams":100},
           {"ref":"x1","rawText":"b","canonicalName":"oats","preparation":"raw",
            "grams":50}
-        ]'''));
+        ]''',
+        ),
+      );
 
       final failure = failureOf(result);
       expect(failure, isA<MalformedPlanFailure>());
@@ -116,8 +124,12 @@ void main() {
     });
 
     test('names the missing field when the model omits one', () {
-      final result = codec.readPendingFoods(draft(pendingFoods: '''
-        [{"ref":"x1","rawText":"a","preparation":"raw","grams":100}]'''));
+      final result = codec.readPendingFoods(
+        draft(
+          pendingFoods: '''
+        [{"ref":"x1","rawText":"a","preparation":"raw","grams":100}]''',
+        ),
+      );
 
       final failure = failureOf(result);
       expect(failure, isA<MalformedPlanFailure>());
@@ -141,11 +153,13 @@ void main() {
   group('baking the decisions into the document', () {
     test('replaces the ref everywhere it appears', () {
       final rewritten = codec.resolveRefs(
-        draft(alternatives: '''
+        draft(
+          alternatives: '''
         [
           {"foodRef":"x1","rawText":"a","quantity":{"grams":140}},
           {"foodRef":"x1","rawText":"b","quantity":{"grams":100}}
-        ]'''),
+        ]''',
+        ),
         {'x1': settled('chicken_breast_grilled')},
       );
 
@@ -163,7 +177,9 @@ void main() {
 
     test('drops the draft section, so the result is a plain document', () {
       // Leaving it in would make the stored document fail its own schema.
-      final rewritten = codec.resolveRefs(draft(), {'x1': settled('rice_white_raw')});
+      final rewritten = codec.resolveRefs(draft(), {
+        'x1': settled('rice_white_raw'),
+      });
       final document = switch (rewritten) {
         Ok(value: final value) => value,
         Err(failure: final failure) => fail('$failure'),
@@ -179,11 +195,13 @@ void main() {
       // an untouched line must keep each mention's own quantity. Writing a
       // single reading everywhere would rewrite meals nobody looked at.
       final rewritten = codec.resolveRefs(
-        draft(alternatives: '''
+        draft(
+          alternatives: '''
         [
           {"foodRef":"x1","rawText":"a","quantity":{"grams":140}},
           {"foodRef":"x1","rawText":"b","quantity":{"grams":100}}
-        ]'''),
+        ]''',
+        ),
         {'x1': settled('chicken_breast_grilled')},
       );
 
@@ -199,15 +217,12 @@ void main() {
     test('writes a corrected quantity over what the extraction read', () {
       // The invisible failure this guards: "2 portions (110 g)" read as 220 g
       // decodes perfectly and doubles the meal forever.
-      final rewritten = codec.resolveRefs(
-        draft(),
-        {
-          'x1': settled(
-            'chicken_breast_grilled',
-            quantity: FoodQuantity(grams: 110, count: 2, unit: 'porcion'),
-          ),
-        },
-      );
+      final rewritten = codec.resolveRefs(draft(), {
+        'x1': settled(
+          'chicken_breast_grilled',
+          quantity: FoodQuantity(grams: 110, count: 2, unit: 'porcion'),
+        ),
+      });
 
       final document = switch (rewritten) {
         Ok(value: final value) => value,
@@ -223,17 +238,20 @@ void main() {
       // The whole safety property: an unsettled ref would become a dangling id
       // in a stored plan, which only shows up when the user opens that day.
       final result = codec.resolveRefs(
-        draft(pendingFoods: '''
+        draft(
+          pendingFoods: '''
         [
           {"ref":"x1","rawText":"a","canonicalName":"chicken breast",
            "preparation":"grilled","grams":140},
           {"ref":"x2","rawText":"b","canonicalName":"rice","preparation":"raw",
            "grams":80}
-        ]''', alternatives: '''
+        ]''',
+          alternatives: '''
         [
           {"foodRef":"x1","rawText":"a","quantity":{"grams":140}},
           {"foodRef":"x2","rawText":"b","quantity":{"grams":80}}
-        ]'''),
+        ]''',
+        ),
         {'x1': settled('chicken_breast_grilled')},
       );
 
@@ -283,7 +301,10 @@ void main() {
 
     test('reports a draft whose shape is wrong instead of crashing', () {
       final failure = failureOf(
-        codec.resolveRefs('{"schemaVersion":1,"diet":{"dayGroups":"nope"}}', {}),
+        codec.resolveRefs(
+          '{"schemaVersion":1,"diet":{"dayGroups":"nope"}}',
+          {},
+        ),
       );
 
       expect(failure, isA<MalformedPlanFailure>());
@@ -296,8 +317,9 @@ void main() {
     late String realDraft;
 
     setUpAll(() {
-      document =
-          File('assets/diets/nutrium_david_2950kcal.json').readAsStringSync();
+      document = File(
+        'assets/diets/nutrium_david_2950kcal.json',
+      ).readAsStringSync();
       realDraft = draftFromDocument(document);
     });
 
@@ -307,8 +329,14 @@ void main() {
       expect(pending, hasLength(originalFoodIds(document).length));
       expect(pending.length, greaterThan(20));
       // Refs are unique and the descriptions carry the plan's own wording.
-      expect(pending.map((food) => food.ref).toSet(), hasLength(pending.length));
-      expect(pending.every((food) => food.extracted.rawText.isNotEmpty), isTrue);
+      expect(
+        pending.map((food) => food.ref).toSet(),
+        hasLength(pending.length),
+      );
+      expect(
+        pending.every((food) => food.extracted.rawText.isNotEmpty),
+        isTrue,
+      );
     });
 
     test('a fully settled draft round-trips back to the original document', () {

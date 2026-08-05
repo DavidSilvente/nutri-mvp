@@ -113,7 +113,10 @@ void main() {
       tester,
     ) async {
       await store.savePlan(
-        manualDiet(name: 'Cut', slots: [mealSlot(id: 'existing')]),
+        manualDiet(
+          name: 'Cut',
+          slots: [mealSlot(id: 'existing')],
+        ),
       );
 
       await pumpEditor(tester);
@@ -128,7 +131,9 @@ void main() {
   });
 
   group('ManualDietEditorScreen editing', () {
-    testWidgets('loads the diet and keeps its slot ids on save', (tester) async {
+    testWidgets('loads the diet and keeps its slot ids on save', (
+      tester,
+    ) async {
       await store.savePlan(
         manualDiet(
           id: 'diet-1',
@@ -174,10 +179,7 @@ void main() {
 
       await pumpEditor(tester, planId: 'imported-1');
 
-      expect(
-        find.byKey(const Key('importedDietNotEditable')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('importedDietNotEditable')), findsOneWidget);
       expect(find.byKey(const Key('saveDietButton')), findsNothing);
     });
 

@@ -25,16 +25,19 @@ void main() {
   late String planSource;
 
   setUpAll(() {
-    final tableSource =
-        File('assets/nutrition/food_table.json').readAsStringSync();
+    final tableSource = File(
+      'assets/nutrition/food_table.json',
+    ).readAsStringSync();
     final decodedTable = const FoodTableCodec().decode(tableSource);
     table = switch (decodedTable) {
       Ok(value: final foods) => FoodCatalog(foods),
-      Err(failure: final failure) =>
-        fail('food table failed to decode: $failure'),
+      Err(failure: final failure) => fail(
+        'food table failed to decode: $failure',
+      ),
     };
-    planSource =
-        File('assets/diets/nutrium_david_2950kcal.json').readAsStringSync();
+    planSource = File(
+      'assets/diets/nutrium_david_2950kcal.json',
+    ).readAsStringSync();
   });
 
   DecodedDietPlan decodePlan() {
@@ -76,8 +79,9 @@ void main() {
     test('resolves each id uniquely', () {
       // FoodCatalog throws on duplicate ids, so construction already proved it;
       // this pins that curated slugs never collide with a pool id.
-      final curated =
-          table.all.where((food) => !food.id.startsWith('usda_')).toList();
+      final curated = table.all
+          .where((food) => !food.id.startsWith('usda_'))
+          .toList();
       expect(curated.length, 48);
       for (final food in curated) {
         expect(food.id.startsWith('usda_'), isFalse);
@@ -98,8 +102,9 @@ void main() {
     });
 
     test('keeps an auditable FDC reference on every table-sourced food', () {
-      final tableSourced =
-          table.all.where((f) => f.source == FoodDataSource.usdaSrLegacy);
+      final tableSourced = table.all.where(
+        (f) => f.source == FoodDataSource.usdaSrLegacy,
+      );
       expect(tableSourced, isNotEmpty);
       for (final food in tableSourced) {
         expect(
@@ -149,7 +154,10 @@ void main() {
       // (25 kcal/100 g) are different recipes in the same PDF. Mixing them up
       // is a silent 2x error on a component that appears in most meals.
       final catalog = decodePlan().catalog;
-      expect(catalog.byId('recipe_grilled_vegetables')!.per100g.energy.kcal, 51);
+      expect(
+        catalog.byId('recipe_grilled_vegetables')!.per100g.energy.kcal,
+        51,
+      );
       expect(
         catalog.byId('recipe_grilled_vegetable_platter')!.per100g.energy.kcal,
         25,
@@ -160,8 +168,9 @@ void main() {
       final plan = decodePlan().plan;
       // "3 unidades medianas de huevo de gallina, entero, crudo (150 g)"
       final saturday = plan.groupForWeekday(DateTime.saturday)!;
-      final lunch = saturday.template.slots
-          .firstWhere((slot) => slot.label == 'COMIDA');
+      final lunch = saturday.template.slots.firstWhere(
+        (slot) => slot.label == 'COMIDA',
+      );
       final eggOption = lunch.components
           .expand((component) => component.options)
           .firstWhere((option) => option.rawText.startsWith('3 unidades'));
@@ -191,16 +200,18 @@ void main() {
     test('groups alternatives per item, not per meal', () {
       final plan = decodePlan().plan;
       final monday = plan.groupForWeekday(DateTime.monday)!;
-      final lunch = monday.template.slots
-          .firstWhere((slot) => slot.label == 'COMIDA');
+      final lunch = monday.template.slots.firstWhere(
+        (slot) => slot.label == 'COMIDA',
+      );
       // The protein has four interchangeable options while the side dish has
       // its own separate four — that is the whole point of per-item swaps.
       final protein = lunch.components.first;
       expect(protein.options.length, 4);
       expect(protein.defaultOption.rawText, contains('pollo, pechuga'));
       expect(protein.sectionLabel, 'PRIMER PLATO');
-      final dessert = lunch.components
-          .where((component) => component.sectionLabel == 'POSTRE');
+      final dessert = lunch.components.where(
+        (component) => component.sectionLabel == 'POSTRE',
+      );
       expect(dessert, hasLength(1));
     });
   });
@@ -248,7 +259,8 @@ void main() {
       final plan = decodePlan().plan;
       for (final group in plan.dayGroups) {
         final target = group.template.dailyTarget;
-        final fromMacros = target.macros.proteinG * 4 +
+        final fromMacros =
+            target.macros.proteinG * 4 +
             target.macros.carbsG * 4 +
             target.macros.fatG * 9;
         final drift =
@@ -256,7 +268,8 @@ void main() {
         expect(
           drift,
           lessThan(0.02),
-          reason: '${group.label}: energy and macros disagree by '
+          reason:
+              '${group.label}: energy and macros disagree by '
               '${(drift * 100).toStringAsFixed(1)}%',
         );
       }
@@ -275,7 +288,8 @@ void main() {
         expect(
           delta / 2950,
           lessThan(0.06),
-          reason: '${group.label} drifts ${delta.round()} kcal from the '
+          reason:
+              '${group.label} drifts ${delta.round()} kcal from the '
               'advertised 2950',
         );
       }

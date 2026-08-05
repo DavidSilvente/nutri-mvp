@@ -59,11 +59,7 @@ class MacroBar extends StatelessWidget {
 
 /// The three macros of a target, side by side.
 class MacroBreakdown extends StatelessWidget {
-  const MacroBreakdown({
-    super.key,
-    required this.logged,
-    required this.target,
-  });
+  const MacroBreakdown({super.key, required this.logged, required this.target});
 
   final NutritionTarget logged;
   final NutritionTarget target;

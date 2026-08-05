@@ -118,10 +118,11 @@ class GetMonthAdherence {
     final byEpochDay = <int, DayAdherence>{};
     for (final day in month.days) {
       final meals = mealsByDay[day.epochDay] ?? const <PlannedMeal>[];
-      final ordered = [...meals]..sort(
-        (a, b) =>
-            index.positionOf(a.slotId).compareTo(index.positionOf(b.slotId)),
-      );
+      final ordered = [...meals]
+        ..sort(
+          (a, b) =>
+              index.positionOf(a.slotId).compareTo(index.positionOf(b.slotId)),
+        );
 
       byEpochDay[day.epochDay] = AdherenceEvaluator.evaluateDay(
         day: day,

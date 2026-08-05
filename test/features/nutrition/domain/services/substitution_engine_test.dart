@@ -12,19 +12,16 @@ void main() {
     );
 
     MacroCandidate candidate(String id, num p, num c, num f) => MacroCandidate(
-          id: id,
-          label: 'Candidate $id',
-          target: NutritionTarget(
-            energy: Energy(kcal: 0),
-            macros: Macros(proteinG: p, carbsG: c, fatG: f),
-          ),
-        );
+      id: id,
+      label: 'Candidate $id',
+      target: NutritionTarget(
+        energy: Energy(kcal: 0),
+        macros: Macros(proteinG: p, carbsG: c, fatG: f),
+      ),
+    );
 
     test('ranks closer macro-distance options first', () {
-      final options = [
-        candidate('A', 42, 58, 22),
-        candidate('B', 30, 80, 10),
-      ];
+      final options = [candidate('A', 42, 58, 22), candidate('B', 30, 80, 10)];
 
       final ranked = SubstitutionEngine.rank(target, options);
 
@@ -32,10 +29,7 @@ void main() {
     });
 
     test('breaks ties by protein proximity to the target', () {
-      final options = [
-        candidate('C', 44, 58, 20),
-        candidate('D', 40, 64, 18),
-      ];
+      final options = [candidate('C', 44, 58, 20), candidate('D', 40, 64, 18)];
 
       final ranked = SubstitutionEngine.rank(target, options);
 

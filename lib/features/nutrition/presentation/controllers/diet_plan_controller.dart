@@ -28,8 +28,7 @@ class DietPlanController extends AsyncNotifier<void> {
 
   /// Persists [meal] as a planned assignment to a day.
   Future<void> assignMealToDay(PlannedMeal meal) async {
-    final result =
-        await ref.read(dietPlanSourceProvider).savePlannedMeal(meal);
+    final result = await ref.read(dietPlanSourceProvider).savePlannedMeal(meal);
     await _commit(result);
   }
 
@@ -40,10 +39,7 @@ class DietPlanController extends AsyncNotifier<void> {
     required DietPlan plan,
     required List<NutritionDay> days,
   }) async {
-    final result = await ref.read(applyDietProvider)(
-      plan: plan,
-      days: days,
-    );
+    final result = await ref.read(applyDietProvider)(plan: plan, days: days);
     await _commit(result);
     return switch (result) {
       Ok(value: final outcome) => outcome,
@@ -56,10 +52,9 @@ class DietPlanController extends AsyncNotifier<void> {
     required DietPlan plan,
     required List<NutritionDay> days,
   }) async {
-    final result = await ref.read(applyDietProvider).clear(
-      plan: plan,
-      days: days,
-    );
+    final result = await ref
+        .read(applyDietProvider)
+        .clear(plan: plan, days: days);
     await _commit(result);
   }
 

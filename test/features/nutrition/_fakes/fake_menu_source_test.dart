@@ -17,22 +17,25 @@ NutritionTarget _target() {
 
 void main() {
   group('FakeMenuSource', () {
-    test('savePhoto persists a photo so it is returned by listPhotos', () async {
-      final source = FakeMenuSource();
-      final photo = MenuPhoto(
-        id: 'photo-1',
-        localUri: Uri.parse('file:///data/photos/menu_1.jpg'),
-        createdAt: DateTime(2026, 8, 1, 12, 30),
-      );
+    test(
+      'savePhoto persists a photo so it is returned by listPhotos',
+      () async {
+        final source = FakeMenuSource();
+        final photo = MenuPhoto(
+          id: 'photo-1',
+          localUri: Uri.parse('file:///data/photos/menu_1.jpg'),
+          createdAt: DateTime(2026, 8, 1, 12, 30),
+        );
 
-      final saveResult = await source.savePhoto(photo);
-      final listResult = await source.listPhotos();
+        final saveResult = await source.savePhoto(photo);
+        final listResult = await source.listPhotos();
 
-      expect(saveResult, isA<Ok<MenuPhoto, NutritionFailure>>());
-      final photos =
-          (listResult as Ok<List<MenuPhoto>, NutritionFailure>).value;
-      expect(photos, [photo]);
-    });
+        expect(saveResult, isA<Ok<MenuPhoto, NutritionFailure>>());
+        final photos =
+            (listResult as Ok<List<MenuPhoto>, NutritionFailure>).value;
+        expect(photos, [photo]);
+      },
+    );
 
     test('listPhotos orders photos by recency, newest first', () async {
       final source = FakeMenuSource();
@@ -51,8 +54,7 @@ void main() {
       await source.savePhoto(newer);
 
       final result = await source.listPhotos();
-      final photos =
-          (result as Ok<List<MenuPhoto>, NutritionFailure>).value;
+      final photos = (result as Ok<List<MenuPhoto>, NutritionFailure>).value;
       expect(photos, [newer, older]);
     });
 
@@ -100,8 +102,7 @@ void main() {
       final listResult = await source.listItems('photo-1');
 
       expect(saveResult, isA<Ok<MenuItem, NutritionFailure>>());
-      final items =
-          (listResult as Ok<List<MenuItem>, NutritionFailure>).value;
+      final items = (listResult as Ok<List<MenuItem>, NutritionFailure>).value;
       expect(items, [item]);
     });
 
@@ -124,8 +125,7 @@ void main() {
       await source.saveItem(itemB);
 
       final result = await source.listItems('photo-a');
-      final items =
-          (result as Ok<List<MenuItem>, NutritionFailure>).value;
+      final items = (result as Ok<List<MenuItem>, NutritionFailure>).value;
       expect(items, [itemA]);
     });
 

@@ -86,8 +86,9 @@ void main() {
       }
       for (final id in ['c', 'a', 'b', 'c']) {
         await store.setActivePlan(id);
-        final active =
-            _unwrap(await store.listPlans()).where((p) => p.isDefault);
+        final active = _unwrap(
+          await store.listPlans(),
+        ).where((p) => p.isDefault);
         expect(active, hasLength(1), reason: 'after promoting $id');
         expect(active.single.id, id);
       }
@@ -102,21 +103,16 @@ void main() {
     });
 
     test('lists the active plan first, then newest imports', () async {
-      await store.savePlan(
-        _plan('old', importedAt: DateTime.utc(2026, 1, 1)),
-      );
-      await store.savePlan(
-        _plan('new', importedAt: DateTime.utc(2026, 7, 1)),
-      );
-      await store.savePlan(
-        _plan('mid', importedAt: DateTime.utc(2026, 4, 1)),
-      );
+      await store.savePlan(_plan('old', importedAt: DateTime.utc(2026, 1, 1)));
+      await store.savePlan(_plan('new', importedAt: DateTime.utc(2026, 7, 1)));
+      await store.savePlan(_plan('mid', importedAt: DateTime.utc(2026, 4, 1)));
       await store.setActivePlan('old');
 
-      expect(
-        _unwrap(await store.listPlans()).map((plan) => plan.id).toList(),
-        ['old', 'new', 'mid'],
-      );
+      expect(_unwrap(await store.listPlans()).map((plan) => plan.id).toList(), [
+        'old',
+        'new',
+        'mid',
+      ]);
     });
   });
 
@@ -213,41 +209,34 @@ void main() {
       expect(_unwrap(await store.selectionsFor(otherDay)), isEmpty);
     });
 
-    test('re-choosing replaces the previous choice for that component',
-        () async {
-      await store.selectOption(
-        day: day,
-        componentId: 'c1',
-        optionId: 'o1',
-      );
-      await store.selectOption(
-        day: day,
-        componentId: 'c1',
-        optionId: 'o3',
-      );
+    test(
+      're-choosing replaces the previous choice for that component',
+      () async {
+        await store.selectOption(day: day, componentId: 'c1', optionId: 'o1');
+        await store.selectOption(day: day, componentId: 'c1', optionId: 'o3');
 
-      expect(_unwrap(await store.selectionsFor(day)), {'c1': 'o3'});
-    });
+        expect(_unwrap(await store.selectionsFor(day)), {'c1': 'o3'});
+      },
+    );
 
     test('keeps choices for different components on the same day', () async {
       await store.selectOption(day: day, componentId: 'c1', optionId: 'o1');
       await store.selectOption(day: day, componentId: 'c2', optionId: 'o7');
 
-      expect(_unwrap(await store.selectionsFor(day)), {
-        'c1': 'o1',
-        'c2': 'o7',
-      });
+      expect(_unwrap(await store.selectionsFor(day)), {'c1': 'o1', 'c2': 'o7'});
     });
 
-    test('clearing a choice reverts that component to the plan default',
-        () async {
-      await store.selectOption(day: day, componentId: 'c1', optionId: 'o1');
-      await store.selectOption(day: day, componentId: 'c2', optionId: 'o2');
+    test(
+      'clearing a choice reverts that component to the plan default',
+      () async {
+        await store.selectOption(day: day, componentId: 'c1', optionId: 'o1');
+        await store.selectOption(day: day, componentId: 'c2', optionId: 'o2');
 
-      await store.clearSelection(day: day, componentId: 'c1');
+        await store.clearSelection(day: day, componentId: 'c1');
 
-      expect(_unwrap(await store.selectionsFor(day)), {'c2': 'o2'});
-    });
+        expect(_unwrap(await store.selectionsFor(day)), {'c2': 'o2'});
+      },
+    );
 
     test('clearing a choice that was never made is a no-op', () async {
       expect(

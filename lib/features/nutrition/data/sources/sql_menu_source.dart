@@ -24,9 +24,9 @@ class SqlMenuSource implements MenuSource {
   @override
   Future<Result<List<MenuPhoto>, NutritionFailure>> listPhotos() async {
     try {
-      final rows = await (_db.select(_db.menuPhotos)
-            ..orderBy([(row) => OrderingTerm.desc(row.createdAt)]))
-          .get();
+      final rows = await (_db.select(
+        _db.menuPhotos,
+      )..orderBy([(row) => OrderingTerm.desc(row.createdAt)])).get();
       return Ok(rows.map(_toPhoto).toList(growable: false));
     } catch (e) {
       return Err(StorageFailure(e.toString()));
@@ -48,7 +48,9 @@ class SqlMenuSource implements MenuSource {
   @override
   Future<Result<void, NutritionFailure>> deletePhoto(String id) async {
     try {
-      await (_db.delete(_db.menuPhotos)..where((row) => row.id.equals(id))).go();
+      await (_db.delete(
+        _db.menuPhotos,
+      )..where((row) => row.id.equals(id))).go();
       return const Ok(null);
     } catch (e) {
       return Err(StorageFailure(e.toString()));
@@ -60,9 +62,9 @@ class SqlMenuSource implements MenuSource {
     String photoId,
   ) async {
     try {
-      final rows = await (_db.select(_db.menuItems)
-            ..where((row) => row.photoId.equals(photoId)))
-          .get();
+      final rows = await (_db.select(
+        _db.menuItems,
+      )..where((row) => row.photoId.equals(photoId))).get();
       return Ok(rows.map(_toItem).toList(growable: false));
     } catch (e) {
       return Err(StorageFailure(e.toString()));
@@ -142,16 +144,12 @@ class SqlMenuSource implements MenuSource {
   }) {
     return NutritionTarget(
       energy: Energy(kcal: energyKcal),
-      macros: Macros(
-        proteinG: proteinG,
-        carbsG: carbsG,
-        fatG: fatG,
-      ),
+      macros: Macros(proteinG: proteinG, carbsG: carbsG, fatG: fatG),
     );
   }
 
   ({double energyKcal, double proteinG, double carbsG, double fatG})
-      _targetValues(NutritionTarget target) {
+  _targetValues(NutritionTarget target) {
     return (
       energyKcal: target.energy.kcal.toDouble(),
       proteinG: target.macros.proteinG.toDouble(),

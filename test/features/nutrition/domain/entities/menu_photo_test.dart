@@ -35,7 +35,6 @@ void main() {
       expect(a, b);
       expect(a.hashCode, b.hashCode);
     });
-
   });
 
   group('MenuItem', () {
@@ -87,6 +86,5 @@ void main() {
       expect(a, b);
       expect(a.hashCode, b.hashCode);
     });
-
   });
 }

@@ -95,8 +95,7 @@ class DietMealSlot {
     };
   }
 
-  static final RegExp _timePattern =
-      RegExp(r'^([01]\d|2[0-3]):[0-5]\d$');
+  static final RegExp _timePattern = RegExp(r'^([01]\d|2[0-3]):[0-5]\d$');
 
   final String id;
   final String label;

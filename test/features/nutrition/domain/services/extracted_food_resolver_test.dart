@@ -26,8 +26,9 @@ void main() {
   late ExtractedFoodResolver resolver;
 
   setUpAll(() {
-    final decoded = const FoodTableCodec()
-        .decode(File('assets/nutrition/food_table.json').readAsStringSync());
+    final decoded = const FoodTableCodec().decode(
+      File('assets/nutrition/food_table.json').readAsStringSync(),
+    );
     final catalog = switch (decoded) {
       Ok(value: final foods) => FoodCatalog(foods),
       Err(failure: final failure) => fail('food table: $failure'),
@@ -49,16 +50,15 @@ void main() {
         expect(
           resolution.needsReview,
           isFalse,
-          reason: '${food.canonicalName} -> ${resolution.food?.name} '
+          reason:
+              '${food.canonicalName} -> ${resolution.food?.name} '
               '(${resolution.best?.score.toStringAsFixed(2)})',
         );
       }
     });
 
     test('honours the stated preparation when picking the entry', () {
-      final raw = resolver.resolve(
-        extracted('white rice', preparation: 'raw'),
-      );
+      final raw = resolver.resolve(extracted('white rice', preparation: 'raw'));
       final boiled = resolver.resolve(
         extracted('white rice', preparation: 'boiled'),
       );

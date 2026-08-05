@@ -12,13 +12,13 @@ void main() {
     );
 
     MacroCandidate candidate(String id, num p, num c, num f) => MacroCandidate(
-          id: id,
-          label: 'Candidate $id',
-          target: NutritionTarget(
-            energy: Energy(kcal: 0),
-            macros: Macros(proteinG: p, carbsG: c, fatG: f),
-          ),
-        );
+      id: id,
+      label: 'Candidate $id',
+      target: NutritionTarget(
+        energy: Energy(kcal: 0),
+        macros: Macros(proteinG: p, carbsG: c, fatG: f),
+      ),
+    );
 
     test('produces identical order across repeated identical calls', () {
       final options = [
@@ -32,10 +32,8 @@ void main() {
       final second = SubstitutionEngine.rank(target, options);
       final third = SubstitutionEngine.rank(target, options);
 
-      expect(first.map((r) => r.id).toList(),
-          second.map((r) => r.id).toList());
-      expect(second.map((r) => r.id).toList(),
-          third.map((r) => r.id).toList());
+      expect(first.map((r) => r.id).toList(), second.map((r) => r.id).toList());
+      expect(second.map((r) => r.id).toList(), third.map((r) => r.id).toList());
     });
 
     test('keeps original input order when distance and protein tie', () {

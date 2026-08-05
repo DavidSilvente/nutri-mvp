@@ -22,10 +22,12 @@ void main() {
   late FakeFoodTableSource foodTable;
 
   setUpAll(() {
-    planDocument =
-        File('assets/diets/nutrium_david_2950kcal.json').readAsStringSync();
-    final tableSource =
-        File('assets/nutrition/food_table.json').readAsStringSync();
+    planDocument = File(
+      'assets/diets/nutrium_david_2950kcal.json',
+    ).readAsStringSync();
+    final tableSource = File(
+      'assets/nutrition/food_table.json',
+    ).readAsStringSync();
     final decoded = const FoodTableCodec().decode(tableSource);
     foodTable = FakeFoodTableSource(
       foods: switch (decoded) {
@@ -45,30 +47,30 @@ void main() {
   }) async {
     final store = FakeDietPlanStore();
     if (seedPlan) {
-      await store.savePlan(StoredDietPlan(
-        id: 'plan-1',
-        name: 'Ajuste 2950 kcal',
-        document: planDocument,
-        importedAt: DateTime.utc(2026, 7, 22),
-        declaredDailyEnergyKcal: 2950,
-        isDefault: true,
-        sourceLabel: 'DAVID GALERA AJUSTE 2950KCAL.pdf',
-      ));
+      await store.savePlan(
+        StoredDietPlan(
+          id: 'plan-1',
+          name: 'Ajuste 2950 kcal',
+          document: planDocument,
+          importedAt: DateTime.utc(2026, 7, 22),
+          declaredDailyEnergyKcal: 2950,
+          isDefault: true,
+          sourceLabel: 'DAVID GALERA AJUSTE 2950KCAL.pdf',
+        ),
+      );
     }
     await pumpApp(
       tester,
       DietDayScreen(day: day ?? monday),
-      overrides: fakeAppOverrides(
-        dietPlanStore: store,
-        foodTable: foodTable,
-      ),
+      overrides: fakeAppOverrides(dietPlanStore: store, foodTable: foodTable),
     );
     await tester.pumpAndSettle();
     return store;
   }
 
-  testWidgets('shows the active plan, its day group and derived energy',
-      (tester) async {
+  testWidgets('shows the active plan, its day group and derived energy', (
+    tester,
+  ) async {
     await pumpDay(tester);
 
     expect(find.text('Ajuste 2950 kcal'), findsOneWidget);
@@ -76,10 +78,7 @@ void main() {
     // The honest derived figure, not the 2950 headline.
     expect(find.text('3082 kcal'), findsOneWidget);
     // The headline is shown alongside it, with the gap stated.
-    expect(
-      find.textContaining('Plan states 2950 kcal'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Plan states 2950 kcal'), findsOneWidget);
   });
 
   testWidgets('lists every meal of the day with its own time', (tester) async {
@@ -101,22 +100,19 @@ void main() {
     expect(find.text('16:30'), findsOneWidget);
   });
 
-  testWidgets('shows each item with the plan wording verbatim',
-      (tester) async {
+  testWidgets('shows each item with the plan wording verbatim', (tester) async {
     await pumpDay(tester);
 
-    expect(
-      find.text('60 gramos de jamón cocido, extra'),
-      findsOneWidget,
-    );
+    expect(find.text('60 gramos de jamón cocido, extra'), findsOneWidget);
     expect(
       find.text('140 gramos de chapata cristal Mercadona'),
       findsOneWidget,
     );
   });
 
-  testWidgets('swapping an item changes that item and the day total',
-      (tester) async {
+  testWidgets('swapping an item changes that item and the day total', (
+    tester,
+  ) async {
     await pumpDay(tester);
 
     expect(find.text('3082 kcal'), findsOneWidget);
@@ -129,19 +125,14 @@ void main() {
 
     // The sheet lists the dietitian's options in their own order.
     expect(find.text("Plan's first choice"), findsOneWidget);
-    final beef = find.byKey(
-      const Key('option-plan-1:g0:m2:c0:o1'),
-    );
+    final beef = find.byKey(const Key('option-plan-1:g0:m2:c0:o1'));
     expect(beef, findsOneWidget);
 
     await tester.tap(beef);
     await tester.pumpAndSettle();
 
     // The swapped item now shows the chosen wording...
-    expect(
-      find.text('150 gramos de lomo ternera Mercadona'),
-      findsOneWidget,
-    );
+    expect(find.text('150 gramos de lomo ternera Mercadona'), findsOneWidget);
     expect(protein, findsNothing);
     // ...and the day total moved, because macros are derived, not stored.
     expect(find.text('3082 kcal'), findsNothing);
@@ -157,25 +148,19 @@ void main() {
     );
 
     final mondayChoices = await store.selectionsFor(monday);
-    expect(
-      switch (mondayChoices) {
-        Ok(value: final value) => value,
-        Err() => fail('expected Ok'),
-      },
-      isNotEmpty,
-    );
+    expect(switch (mondayChoices) {
+      Ok(value: final value) => value,
+      Err() => fail('expected Ok'),
+    }, isNotEmpty);
 
     // Friday shares the same day group but is a different date, so it keeps the
     // dietitian's default.
     final friday = NutritionDay.fromDateTime(DateTime.utc(2026, 8, 7));
     final fridayChoices = await store.selectionsFor(friday);
-    expect(
-      switch (fridayChoices) {
-        Ok(value: final value) => value,
-        Err() => fail('expected Ok'),
-      },
-      isEmpty,
-    );
+    expect(switch (fridayChoices) {
+      Ok(value: final value) => value,
+      Err() => fail('expected Ok'),
+    }, isEmpty);
   });
 
   testWidgets('reverting returns the item to the plan choice', (tester) async {
@@ -203,8 +188,7 @@ void main() {
     expect(swapped, findsNothing);
   });
 
-  testWidgets('flags that some items rest on estimated values',
-      (tester) async {
+  testWidgets('flags that some items rest on estimated values', (tester) async {
     // Saturday's breakfast uses jamón serrano, which has no USDA equivalent.
     final saturday = NutritionDay.fromDateTime(DateTime.utc(2026, 8, 8));
     await pumpDay(tester, day: saturday);

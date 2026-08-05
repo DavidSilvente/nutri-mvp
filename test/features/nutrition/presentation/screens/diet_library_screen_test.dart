@@ -99,7 +99,9 @@ void main() {
       );
     });
 
-    testWidgets('opens the editor from the write-a-diet button', (tester) async {
+    testWidgets('opens the editor from the write-a-diet button', (
+      tester,
+    ) async {
       await pumpLibrary(tester);
 
       await tester.tap(find.byKey(const Key('createDietButton')));

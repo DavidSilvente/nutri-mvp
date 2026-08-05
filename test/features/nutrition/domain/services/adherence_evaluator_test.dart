@@ -174,60 +174,60 @@ void main() {
       expect(result.status, MealAdherenceStatus.pending);
     });
 
-    test(
-      'judges a small meal against the absolute floor, so a snack is not '
-      'impossible to hit',
-      () {
-        final meal = plannedMeal(
-          id: 'm1',
-          snapshot: target(kcal: 120, protein: 10, carbs: 8, fat: 4),
-        );
+    test('judges a small meal against the absolute floor, so a snack is not '
+        'impossible to hit', () {
+      final meal = plannedMeal(
+        id: 'm1',
+        snapshot: target(kcal: 120, protein: 10, carbs: 8, fat: 4),
+      );
 
-        // Every macro drifts more than 15% but stays inside the 7 g floor,
-        // and energy stays inside the 75 kcal floor.
-        final result = AdherenceEvaluator.evaluateMeal(
-          meal: meal,
-          entries: [
-            entry(
-              id: 'e1',
-              kcal: 180,
-              protein: 16,
-              carbs: 13,
-              fat: 9,
-              plannedMealId: 'm1',
-            ),
-          ],
-        );
-
-        expect(result.status, MealAdherenceStatus.onTarget);
-      },
-    );
-
-    test('judges against the frozen snapshot, honouring a custom tolerance', () {
-      final meal = plannedMeal(id: 'm1');
-
+      // Every macro drifts more than 15% but stays inside the 7 g floor,
+      // and energy stays inside the 75 kcal floor.
       final result = AdherenceEvaluator.evaluateMeal(
         meal: meal,
         entries: [
           entry(
             id: 'e1',
-            kcal: 640,
-            protein: 44,
-            carbs: 56,
-            fat: 22,
+            kcal: 180,
+            protein: 16,
+            carbs: 13,
+            fat: 9,
             plannedMealId: 'm1',
           ),
         ],
-        tolerance: const AdherenceTolerance(
-          relativeFraction: 0.01,
-          macroFloorG: 0,
-          energyFloorKcal: 0,
-        ),
       );
 
-      expect(result.status, MealAdherenceStatus.off);
-      expect(result.target, meal.targetSnapshot);
+      expect(result.status, MealAdherenceStatus.onTarget);
     });
+
+    test(
+      'judges against the frozen snapshot, honouring a custom tolerance',
+      () {
+        final meal = plannedMeal(id: 'm1');
+
+        final result = AdherenceEvaluator.evaluateMeal(
+          meal: meal,
+          entries: [
+            entry(
+              id: 'e1',
+              kcal: 640,
+              protein: 44,
+              carbs: 56,
+              fat: 22,
+              plannedMealId: 'm1',
+            ),
+          ],
+          tolerance: const AdherenceTolerance(
+            relativeFraction: 0.01,
+            macroFloorG: 0,
+            energyFloorKcal: 0,
+          ),
+        );
+
+        expect(result.status, MealAdherenceStatus.off);
+        expect(result.target, meal.targetSnapshot);
+      },
+    );
   });
 
   group('AdherenceEvaluator.evaluateDay', () {
@@ -354,30 +354,27 @@ void main() {
       expect(result.completionRatio, 0);
     });
 
-    test(
-      'counts a logged-but-out-of-tolerance meal as attempted, not met',
-      () {
-        final result = AdherenceEvaluator.evaluateDay(
-          day: yesterday,
-          plannedMeals: [plannedMeal(id: 'm1', day: yesterday)],
-          entries: [
-            entry(
-              id: 'e1',
-              kcal: 1500,
-              protein: 90,
-              carbs: 150,
-              fat: 70,
-              plannedMealId: 'm1',
-            ),
-          ],
-          today: today,
-        );
+    test('counts a logged-but-out-of-tolerance meal as attempted, not met', () {
+      final result = AdherenceEvaluator.evaluateDay(
+        day: yesterday,
+        plannedMeals: [plannedMeal(id: 'm1', day: yesterday)],
+        entries: [
+          entry(
+            id: 'e1',
+            kcal: 1500,
+            protein: 90,
+            carbs: 150,
+            fat: 70,
+            plannedMealId: 'm1',
+          ),
+        ],
+        today: today,
+      );
 
-        expect(result.status, DayAdherenceStatus.missed);
-        expect(result.meals.single.status, MealAdherenceStatus.off);
-        expect(result.meals.single.entryCount, 1);
-      },
-    );
+      expect(result.status, DayAdherenceStatus.missed);
+      expect(result.meals.single.status, MealAdherenceStatus.off);
+      expect(result.meals.single.entryCount, 1);
+    });
 
     test('preserves the order in which planned meals were supplied', () {
       final meals = [
@@ -392,10 +389,10 @@ void main() {
         today: today,
       );
 
-      expect(
-        result.meals.map((m) => m.plannedMeal.id),
-        ['dinner', 'breakfast'],
-      );
+      expect(result.meals.map((m) => m.plannedMeal.id), [
+        'dinner',
+        'breakfast',
+      ]);
     });
   });
 }

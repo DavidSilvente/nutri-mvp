@@ -7,7 +7,7 @@ import '../entities/food_item.dart';
 /// what varies (bundled asset, imported plan recipes), not the lookup itself.
 class FoodCatalog {
   FoodCatalog(Iterable<FoodItem> foods)
-      : _byId = {for (final food in foods) food.id: food} {
+    : _byId = {for (final food in foods) food.id: food} {
     if (_byId.length != foods.length) {
       final seen = <String>{};
       final duplicates = <String>{};
