@@ -32,6 +32,7 @@ void main() {
     expect(find.byKey(const Key('todayTab')), findsOneWidget);
     expect(find.byKey(const Key('myDietTab')), findsOneWidget);
     expect(find.byKey(const Key('calendarTab')), findsOneWidget);
-    expect(find.byKey(const Key('dietTab')), findsOneWidget);
+    expect(find.byKey(const Key('myMealsTab')), findsOneWidget);
+    expect(find.byKey(const Key('dietTab')), findsNothing);
   });
 }
