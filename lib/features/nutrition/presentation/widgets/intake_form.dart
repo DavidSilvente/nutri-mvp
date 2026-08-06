@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nutri_mvp/core/format/nutrition_format.dart';
-import 'package:nutri_mvp/features/nutrition/domain/entities/food_item.dart';
 import 'package:nutri_mvp/features/nutrition/domain/services/derived_targets.dart';
-import 'package:nutri_mvp/features/nutrition/domain/services/food_catalog.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_target.dart';
@@ -46,20 +44,41 @@ class IntakeForm extends StatefulWidget {
   const IntakeForm({
     super.key,
     this.initialTarget,
+    this.initialLines = const [],
     this.foodFirstByDefault = true,
+    this.energyFieldKey = const Key('energyField'),
+    this.proteinFieldKey = const Key('proteinField'),
+    this.carbsFieldKey = const Key('carbsField'),
+    this.fatFieldKey = const Key('fatField'),
   });
 
-  /// Prefill for the Macros tab — a planned meal's target, or a chosen
-  /// alternative's macros. Null for a blank entry.
+  /// Prefill for the Macros tab — a planned meal's target, an existing
+  /// template's flat target, or a chosen alternative's macros. Null for a
+  /// blank entry.
   final NutritionTarget? initialTarget;
+
+  /// Seed for the Food tab — an existing template's stored composition,
+  /// already resolved against the catalog by the caller (see
+  /// `CompositionLine.fromIngredient`). Empty for a blank entry or a
+  /// composition-less (legacy) template.
+  final List<CompositionLine> initialLines;
 
   /// Which tab opens selected. Food-first is the DEFAULT for a blank entry
   /// (D1). A caller that already knows the numbers (a non-null
-  /// [initialTarget]) should open on Macros instead: pre-filling four known
-  /// numbers is strictly better than asking the user to re-derive them from
-  /// foods, which is exactly what a prefill exists to avoid — see
-  /// `RecordIntakeScreen`'s existing prefill contract.
+  /// [initialTarget]) and has no composition to show should open on Macros
+  /// instead: pre-filling four known numbers is strictly better than asking
+  /// the user to re-derive them from foods, which is exactly what a prefill
+  /// exists to avoid — see `RecordIntakeScreen`'s existing prefill contract.
   final bool foodFirstByDefault;
+
+  /// Field keys for the Macros tab, overridable so a caller embedding more
+  /// than one form-bearing widget in the same tree (or preserving an older
+  /// dialog's own key contract, e.g. `savedMealEnergyField`) does not collide
+  /// with — or silently rename — another caller's keys.
+  final Key energyFieldKey;
+  final Key proteinFieldKey;
+  final Key carbsFieldKey;
+  final Key fatFieldKey;
 
   @override
   State<IntakeForm> createState() => IntakeFormState();
@@ -83,6 +102,7 @@ class IntakeFormState extends State<IntakeForm>
   @override
   void initState() {
     super.initState();
+    _lines = List.of(widget.initialLines);
     _tabController = TabController(
       length: 2,
       vsync: this,
@@ -137,25 +157,16 @@ class IntakeFormState extends State<IntakeForm>
     ),
   );
 
-  /// Derived exactly the way saving will derive it: through
-  /// [DerivedTargets.compose], over a catalog built from just this form's
-  /// own resolved lines. Every line here comes fresh from [FoodPickerSheet],
-  /// so all of them resolve — there is no edit-path unresolved case on this
-  /// (create-only) form, unlike `CompositionEditor`'s own reuse in slice 7.
-  DerivedComposition _compose() {
-    final byId = <String, FoodItem>{};
-    for (final line in _lines) {
-      if (line.food case final food?) byId[food.id] = food;
-    }
-    return DerivedTargets.compose([
-      for (final line in _lines) line.toIngredient(),
-    ], FoodCatalog(byId.values));
-  }
+  /// Derived exactly the way saving will derive it. See
+  /// [composeCompositionLines]. A seeded edit-path line can be unresolved
+  /// (its stored `foodId` no longer in the catalog); a freshly-added line
+  /// from [FoodPickerSheet] never is.
+  DerivedComposition _compose() => composeCompositionLines(_lines);
 
   String? _requiredNonNegativeNumber(String? value) {
-    if (value == null || value.isEmpty) return 'Requerido';
+    if (value == null || value.isEmpty) return 'Required';
     final parsed = num.tryParse(value);
-    if (parsed == null || parsed < 0) return 'Debe ser un número >= 0';
+    if (parsed == null || parsed < 0) return 'Must be a number >= 0';
     return null;
   }
 
@@ -183,9 +194,9 @@ class IntakeFormState extends State<IntakeForm>
             child: Column(
               children: [
                 TextFormField(
-                  key: const Key('energyField'),
+                  key: widget.energyFieldKey,
                   controller: _energyController,
-                  decoration: const InputDecoration(labelText: 'Energía (kcal)'),
+                  decoration: const InputDecoration(labelText: 'Energy (kcal)'),
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -193,9 +204,9 @@ class IntakeFormState extends State<IntakeForm>
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  key: const Key('proteinField'),
+                  key: widget.proteinFieldKey,
                   controller: _proteinController,
-                  decoration: const InputDecoration(labelText: 'Proteína (g)'),
+                  decoration: const InputDecoration(labelText: 'Protein (g)'),
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -203,11 +214,9 @@ class IntakeFormState extends State<IntakeForm>
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  key: const Key('carbsField'),
+                  key: widget.carbsFieldKey,
                   controller: _carbsController,
-                  decoration: const InputDecoration(
-                    labelText: 'Carbohidratos (g)',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Carbs (g)'),
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -215,9 +224,9 @@ class IntakeFormState extends State<IntakeForm>
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  key: const Key('fatField'),
+                  key: widget.fatFieldKey,
                   controller: _fatController,
-                  decoration: const InputDecoration(labelText: 'Grasa (g)'),
+                  decoration: const InputDecoration(labelText: 'Fat (g)'),
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),

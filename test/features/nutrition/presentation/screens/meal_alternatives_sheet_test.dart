@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nutri_mvp/core/result.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/meal_substitute.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/planned_meal.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/saved_meal.dart';
+import 'package:nutri_mvp/features/nutrition/domain/failures/nutrition_failure.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
@@ -18,6 +21,7 @@ import 'package:nutri_mvp/features/nutrition/presentation/screens/record_intake_
 import '../../../../_helpers/pump_app.dart';
 import '../../_fakes/diet_fixture.dart';
 import '../../_fakes/fake_diet_plan_source.dart';
+import '../../_fakes/fake_diet_plan_store.dart';
 import '../../_fakes/fake_hydration_source.dart';
 import '../../_fakes/fake_nutrition_source.dart';
 import '../../_fakes/fake_option_choice_source.dart';
@@ -92,7 +96,10 @@ void main() {
     );
   }
 
-  Future<void> openSheet(WidgetTester tester) async {
+  Future<void> openSheet(
+    WidgetTester tester, {
+    List<Override> extraOverrides = const [],
+  }) async {
     await tester.binding.setSurfaceSize(const Size(1000, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -107,12 +114,18 @@ void main() {
         hydrationSourceProvider.overrideWithValue(FakeHydrationSource()),
         savedMealSourceProvider.overrideWithValue(savedMealSource),
         todayProvider.overrideWithValue(today),
+        ...extraOverrides,
       ],
     );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('alternativesButton-pm-1')));
     await tester.pumpAndSettle();
+  }
+
+  Future<List<MealSubstitute>> substitutesFor(String plannedMealId) async {
+    final result = await dietSource.listSubstitutes(plannedMealId);
+    return (result as Ok<List<MealSubstitute>, NutritionFailure>).value;
   }
 
   group('MealAlternativesSheet', () {
@@ -202,6 +215,10 @@ void main() {
         find.byKey(const Key('alternativeLabelField')),
         'Tuna salad',
       );
+      // Food is the dialog's default tab now — the manual fields below are
+      // its one-tap-away secondary path.
+      await tester.tap(find.byKey(const Key('manualEntryTab')));
+      await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const Key('alternativeEnergyField')),
         '580',
@@ -221,9 +238,108 @@ void main() {
       await tester.tap(find.byKey(const Key('saveAlternativeButton')));
       await tester.pumpAndSettle();
 
-      final saved = await dietSource.listSubstitutes('pm-1');
-      expect(saved.toString(), contains('Tuna salad'));
+      final saved = await substitutesFor('pm-1');
+      expect(saved.single.label, 'Tuna salad');
+      expect(saved.single.ingredients, isEmpty);
     });
+
+    testWidgets(
+      'creating an alternative food-first derives its macros from a picked '
+      'food, no typing',
+      (tester) async {
+        await openSheet(
+          tester,
+          extraOverrides: [
+            foodTableSourceProvider.overrideWithValue(FakeFoodTableSource()),
+          ],
+        );
+
+        await tester.tap(find.byKey(const Key('addAlternativeButton')));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('alternativeEnergyField')), findsNothing);
+
+        await tester.enterText(
+          find.byKey(const Key('alternativeLabelField')),
+          'Chicken bowl',
+        );
+        await tester.tap(find.byKey(const Key('addFoodButton')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('foodSearchField')),
+          'pollo',
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const Key('candidateOption-chicken_breast_grilled')),
+        );
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('compositionGramsField-0')),
+          '100',
+        );
+        await tester.pump();
+
+        await tester.tap(find.byKey(const Key('saveAlternativeButton')));
+        await tester.pumpAndSettle();
+
+        final saved = await substitutesFor('pm-1');
+        expect(saved.single.label, 'Chicken bowl');
+        expect(saved.single.ingredients, hasLength(1));
+        // FakeFoodTableSource's default chicken is 151 kcal/100g.
+        expect(saved.single.target.energy.kcal, 151);
+      },
+    );
+
+    testWidgets(
+      'a failed save keeps the alternative dialog open with the typed '
+      'input and shows the error inline — the retired pop-before-await debt',
+      (tester) async {
+        await openSheet(tester);
+
+        await tester.tap(find.byKey(const Key('addAlternativeButton')));
+        await tester.pumpAndSettle();
+
+        dietSource.failNextSaveSubstitute = const StorageFailure('boom');
+
+        await tester.enterText(
+          find.byKey(const Key('alternativeLabelField')),
+          'Tuna salad',
+        );
+        await tester.tap(find.byKey(const Key('manualEntryTab')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('alternativeEnergyField')),
+          '580',
+        );
+        await tester.enterText(
+          find.byKey(const Key('alternativeProteinField')),
+          '45',
+        );
+        await tester.enterText(
+          find.byKey(const Key('alternativeCarbsField')),
+          '55',
+        );
+        await tester.enterText(
+          find.byKey(const Key('alternativeFatField')),
+          '18',
+        );
+        await tester.tap(find.byKey(const Key('saveAlternativeButton')));
+        await tester.pumpAndSettle();
+
+        // The dialog is still open — nothing typed was lost, and the
+        // failure is visible instead of a silently-swallowed write.
+        expect(find.byKey(const Key('alternativeLabelField')), findsOneWidget);
+        expect(find.byKey(const Key('alternativeDialogError')), findsOneWidget);
+        final labelField = tester.widget<TextFormField>(
+          find.byKey(const Key('alternativeLabelField')),
+        );
+        expect(labelField.controller?.text, 'Tuna salad');
+
+        final saved = await substitutesFor('pm-1');
+        expect(saved, isEmpty);
+      },
+    );
 
     testWidgets(
       'groups plan substitutes and saved meals separately, plan group first',

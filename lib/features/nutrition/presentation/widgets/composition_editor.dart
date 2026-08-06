@@ -76,6 +76,27 @@ class CompositionLine {
       LoggedIngredient(foodId: foodId, quantity: quantity);
 }
 
+/// Derives a [DerivedComposition] from [lines] exactly the way saving does:
+/// through [DerivedTargets.compose], over a catalog built from just the
+/// RESOLVED lines here. An unresolved line's `foodId`, by construction, is
+/// absent from that local catalog, so [DerivedTargets.compose] zero-weights
+/// it exactly as it would at save time — no separate "ignore unresolved"
+/// branch is needed by any caller.
+///
+/// Shared by [CompositionEditor]'s live total and `IntakeForm`'s submit-time
+/// derivation — the same expression was carried independently in both places
+/// until this slice; a bug fixed here now fixes every caller at once instead
+/// of only one.
+DerivedComposition composeCompositionLines(List<CompositionLine> lines) {
+  final byId = <String, FoodItem>{};
+  for (final line in lines) {
+    if (line.food case final food?) byId[food.id] = food;
+  }
+  return DerivedTargets.compose([
+    for (final line in lines) line.toIngredient(),
+  ], FoodCatalog(byId.values));
+}
+
 /// Edits a list of [CompositionLine]s: grams per line, add via
 /// [FoodPickerSheet], remove, and a live derived total.
 ///
@@ -283,19 +304,6 @@ class _CompositionEditorState extends State<CompositionEditor> {
     widget.onChanged(List.unmodifiable(_lines));
   }
 
-  /// The live total, derived exactly the way saving will derive it: through
-  /// [DerivedTargets.compose], over a catalog built from just this editor's
-  /// own resolved lines. An unresolved line's `foodId`, by construction, is
-  /// absent from that catalog, so [DerivedTargets.compose] zero-weights it
-  /// here exactly as it would at save time — no separate "ignore unresolved"
-  /// branch is needed in this widget.
-  DerivedComposition _compose() {
-    final byId = <String, FoodItem>{};
-    for (final line in _lines) {
-      if (line.food case final food?) byId[food.id] = food;
-    }
-    return DerivedTargets.compose([
-      for (final line in _lines) line.toIngredient(),
-    ], FoodCatalog(byId.values));
-  }
+  /// The live total. See [composeCompositionLines].
+  DerivedComposition _compose() => composeCompositionLines(_lines);
 }

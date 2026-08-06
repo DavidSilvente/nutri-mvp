@@ -15,6 +15,12 @@ class FakeDietPlanSource implements DietPlanSource {
   final Map<String, PlannedMeal> _plannedMeals = {};
   final Map<String, MealSubstitute> _substitutes = {};
 
+  /// When set, the NEXT [saveSubstitute] call returns this failure instead
+  /// of writing, then resets to null. Used to exercise a caller's failure
+  /// handling — this fake otherwise has no business-rule conflict for
+  /// substitutes the way [FakeSavedMealSource] has for duplicate names.
+  NutritionFailure? failNextSaveSubstitute;
+
   @override
   Future<Result<List<PlannedMeal>, NutritionFailure>> listPlannedMeals({
     NutritionDay? day,
@@ -83,6 +89,11 @@ class FakeDietPlanSource implements DietPlanSource {
   Future<Result<MealSubstitute, NutritionFailure>> saveSubstitute(
     MealSubstitute substitute,
   ) async {
+    final failure = failNextSaveSubstitute;
+    if (failure != null) {
+      failNextSaveSubstitute = null;
+      return Err(failure);
+    }
     _substitutes[substitute.id] = substitute;
     return Ok(substitute);
   }
