@@ -23,6 +23,12 @@ final adherenceToleranceProvider = Provider<AdherenceTolerance>((ref) {
   return AdherenceTolerance.standard;
 });
 
+/// The criterion used to judge the DAY's own verdict, independent of
+/// [adherenceToleranceProvider], which stays per-meal.
+final dailyAdherenceToleranceProvider = Provider<AdherenceTolerance>((ref) {
+  return AdherenceTolerance.daily;
+});
+
 final getDayPlanProvider = Provider<GetDayPlan>((ref) {
   return GetDayPlan(
     dietPlanSource: ref.watch(dietPlanSourceProvider),
@@ -30,6 +36,7 @@ final getDayPlanProvider = Provider<GetDayPlan>((ref) {
     slotDirectory: ref.watch(mealSlotDirectoryProvider),
     choiceSource: ref.watch(optionChoiceSourceProvider),
     tolerance: ref.watch(adherenceToleranceProvider),
+    dailyTolerance: ref.watch(dailyAdherenceToleranceProvider),
   );
 });
 
@@ -39,6 +46,7 @@ final getMonthAdherenceProvider = Provider<GetMonthAdherence>((ref) {
     nutritionSource: ref.watch(nutritionSourceProvider),
     slotDirectory: ref.watch(mealSlotDirectoryProvider),
     tolerance: ref.watch(adherenceToleranceProvider),
+    dailyTolerance: ref.watch(dailyAdherenceToleranceProvider),
   );
 });
 

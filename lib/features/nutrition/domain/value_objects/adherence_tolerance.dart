@@ -24,6 +24,18 @@ class AdherenceTolerance {
   /// The default criterion: ±15% or ±7 g per macro, ±15% or ±75 kcal.
   static const standard = AdherenceTolerance();
 
+  /// The day-verdict criterion: a tighter ±10% with no absolute floor.
+  ///
+  /// Unlike [standard], this is judged against a DAILY total, not a single
+  /// small component, so the floor that keeps a snack achievable is noise
+  /// here — the whole point of a floor is to rescue small numbers, and a
+  /// day's total is never small.
+  static const daily = AdherenceTolerance(
+    relativeFraction: 0.10,
+    macroFloorG: 0,
+    energyFloorKcal: 0,
+  );
+
   /// Fraction of the target accepted as drift (0.15 == ±15%).
   final double relativeFraction;
 

@@ -72,7 +72,7 @@ void main() {
 
       expect(plan.meals, hasLength(1));
       expect(plan.meals.single.label, 'Lunch');
-      expect(plan.status, DayAdherenceStatus.missed);
+      expect(plan.status, DayAdherenceStatus.under);
     });
 
     test(
@@ -149,7 +149,7 @@ void main() {
       );
 
       expect(month.plannedDays, 1);
-      expect(month.forDay(day)!.status, DayAdherenceStatus.missed);
+      expect(month.forDay(day)!.status, DayAdherenceStatus.under);
     });
 
     test('re-runs after a planning write', () async {

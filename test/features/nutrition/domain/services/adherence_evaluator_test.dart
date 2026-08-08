@@ -241,10 +241,22 @@ void main() {
 
       expect(result.status, DayAdherenceStatus.unplanned);
       expect(result.plannedCount, 0);
-      expect(result.completionRatio, 0);
     });
 
-    test('is complete when every planned meal is on target', () {
+    test('is unplanned no matter how much was logged — no target to violate', () {
+      final result = AdherenceEvaluator.evaluateDay(
+        day: yesterday,
+        plannedMeals: [],
+        entries: [
+          entry(id: 'e1', kcal: 5000, protein: 300, carbs: 400, fat: 150),
+        ],
+        today: today,
+      );
+
+      expect(result.status, DayAdherenceStatus.unplanned);
+    });
+
+    test('is met when the daily total lands within the daily tolerance', () {
       final meals = [
         plannedMeal(id: 'm1', day: yesterday),
         plannedMeal(id: 'm2', day: yesterday),
@@ -274,10 +286,32 @@ void main() {
         today: today,
       );
 
-      expect(result.status, DayAdherenceStatus.complete);
+      expect(result.status, DayAdherenceStatus.met);
       expect(result.onTargetCount, 2);
-      expect(result.completionRatio, 1);
     });
+
+    test(
+      'a day logged entirely as extras is judged on the total, exactly as '
+      'if the entries had been attached',
+      () {
+        final meals = [plannedMeal(id: 'm1', day: yesterday)];
+
+        final result = AdherenceEvaluator.evaluateDay(
+          day: yesterday,
+          plannedMeals: meals,
+          // Never linked to 'm1' — this is the whole point of the test.
+          entries: [
+            entry(id: 'extra', kcal: 600, protein: 40, carbs: 60, fat: 20),
+          ],
+          today: today,
+        );
+
+        expect(result.status, DayAdherenceStatus.met);
+        // Per-meal detail is unaffected: nothing was logged AGAINST the meal.
+        expect(result.meals.single.status, MealAdherenceStatus.pending);
+        expect(result.entryCount, 1);
+      },
+    );
 
     test('is upcoming for a future day, never a failure', () {
       final result = AdherenceEvaluator.evaluateDay(
@@ -314,18 +348,13 @@ void main() {
 
       expect(result.status, DayAdherenceStatus.inProgress);
       expect(result.onTargetCount, 1);
-      expect(result.completionRatio, 0.5);
     });
 
-    test('is partial for a settled day where some meals were met', () {
-      final meals = [
-        plannedMeal(id: 'm1', day: yesterday),
-        plannedMeal(id: 'm2', day: yesterday),
-      ];
-
+    test('today never settles early, even when totals already match at '
+        'noon', () {
       final result = AdherenceEvaluator.evaluateDay(
-        day: yesterday,
-        plannedMeals: meals,
+        day: today,
+        plannedMeals: [plannedMeal(id: 'm1', day: today)],
         entries: [
           entry(
             id: 'e1',
@@ -339,10 +368,11 @@ void main() {
         today: today,
       );
 
-      expect(result.status, DayAdherenceStatus.partial);
+      expect(result.status, DayAdherenceStatus.inProgress);
     });
 
-    test('is missed for a settled day where no meal was met', () {
+    test('is under for a settled day with zero entries logged, exposing '
+        'entryCount == 0', () {
       final result = AdherenceEvaluator.evaluateDay(
         day: yesterday,
         plannedMeals: [plannedMeal(id: 'm1', day: yesterday)],
@@ -350,11 +380,55 @@ void main() {
         today: today,
       );
 
-      expect(result.status, DayAdherenceStatus.missed);
-      expect(result.completionRatio, 0);
+      expect(result.status, DayAdherenceStatus.under);
+      expect(result.entryCount, 0);
     });
 
-    test('counts a logged-but-out-of-tolerance meal as attempted, not met', () {
+    test(
+      'is under for a settled day logged at 60% of target, distinguishable '
+      'from the zero-entry case by a non-zero entryCount',
+      () {
+        final meals = [
+          plannedMeal(
+            id: 'm1',
+            day: yesterday,
+            snapshot: target(kcal: 1000, protein: 100, carbs: 100, fat: 50),
+          ),
+        ];
+
+        final result = AdherenceEvaluator.evaluateDay(
+          day: yesterday,
+          plannedMeals: meals,
+          entries: [
+            entry(
+              id: 'e1',
+              kcal: 200,
+              protein: 20,
+              carbs: 20,
+              fat: 10,
+              plannedMealId: 'm1',
+            ),
+            entry(
+              id: 'e2',
+              kcal: 200,
+              protein: 20,
+              carbs: 20,
+              fat: 10,
+              plannedMealId: 'm1',
+            ),
+            entry(id: 'e3', kcal: 100, protein: 10, carbs: 10, fat: 5),
+            entry(id: 'e4', kcal: 100, protein: 10, carbs: 10, fat: 5),
+          ],
+          today: today,
+        );
+
+        expect(result.status, DayAdherenceStatus.under);
+        expect(result.entryCount, 4);
+      },
+    );
+
+    test('is over when the daily total exceeds the tolerance band above '
+        'target', () {
       final result = AdherenceEvaluator.evaluateDay(
         day: yesterday,
         plannedMeals: [plannedMeal(id: 'm1', day: yesterday)],
@@ -371,9 +445,109 @@ void main() {
         today: today,
       );
 
-      expect(result.status, DayAdherenceStatus.missed);
+      expect(result.status, DayAdherenceStatus.over);
       expect(result.meals.single.status, MealAdherenceStatus.off);
       expect(result.meals.single.entryCount, 1);
+      expect(result.entryCount, 1);
+    });
+
+    group('tie-break when the energy delta is exactly zero', () {
+      test('protein exceeding tolerance decides over', () {
+        final result = AdherenceEvaluator.evaluateDay(
+          day: yesterday,
+          plannedMeals: [plannedMeal(id: 'm1', day: yesterday)],
+          entries: [
+            // Energy, carbs and fat match exactly; only protein deviates.
+            entry(
+              id: 'e1',
+              kcal: 600,
+              protein: 60,
+              carbs: 60,
+              fat: 20,
+              plannedMealId: 'm1',
+            ),
+          ],
+          today: today,
+        );
+
+        expect(result.status, DayAdherenceStatus.over);
+      });
+
+      test('carbs falling below tolerance decides under', () {
+        final result = AdherenceEvaluator.evaluateDay(
+          day: yesterday,
+          plannedMeals: [plannedMeal(id: 'm1', day: yesterday)],
+          entries: [
+            // Energy, protein and fat match exactly; only carbs deviate.
+            entry(
+              id: 'e1',
+              kcal: 600,
+              protein: 40,
+              carbs: 30,
+              fat: 20,
+              plannedMealId: 'm1',
+            ),
+          ],
+          today: today,
+        );
+
+        expect(result.status, DayAdherenceStatus.under);
+      });
+
+      test('a zero-target macro with non-zero logged decides over', () {
+        final meals = [
+          plannedMeal(
+            id: 'm1',
+            day: yesterday,
+            snapshot: target(kcal: 600, protein: 40, carbs: 0, fat: 20),
+          ),
+        ];
+
+        final result = AdherenceEvaluator.evaluateDay(
+          day: yesterday,
+          plannedMeals: meals,
+          entries: [
+            entry(
+              id: 'e1',
+              kcal: 600,
+              protein: 40,
+              carbs: 10,
+              fat: 20,
+              plannedMealId: 'm1',
+            ),
+          ],
+          today: today,
+        );
+
+        expect(result.status, DayAdherenceStatus.over);
+      });
+
+      test(
+        'equal-magnitude deviations resolve by fixed field order '
+        'protein -> carbs -> fat',
+        () {
+          final result = AdherenceEvaluator.evaluateDay(
+            day: yesterday,
+            plannedMeals: [plannedMeal(id: 'm1', day: yesterday)],
+            entries: [
+              // protein: 40 -> 48 is +20% (0.2). carbs: 60 -> 48 is -20%
+              // (0.2). Equal magnitude, opposite sign — protein comes first
+              // in field order, so its positive sign wins.
+              entry(
+                id: 'e1',
+                kcal: 600,
+                protein: 48,
+                carbs: 48,
+                fat: 20,
+                plannedMealId: 'm1',
+              ),
+            ],
+            today: today,
+          );
+
+          expect(result.status, DayAdherenceStatus.over);
+        },
+      );
     });
 
     test('preserves the order in which planned meals were supplied', () {

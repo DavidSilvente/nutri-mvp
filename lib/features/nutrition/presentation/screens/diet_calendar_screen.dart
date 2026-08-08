@@ -198,7 +198,7 @@ class _MonthSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final settled = adherence.settledDays;
-    final complete = adherence.completeDays;
+    final met = adherence.metDays;
     final percent = (adherence.completionRatio * 100).round();
 
     return Card(
@@ -213,7 +213,7 @@ class _MonthSummary extends StatelessWidget {
                   Text(
                     settled == 0
                         ? 'Nothing to judge yet'
-                        : '$complete of $settled days on plan',
+                        : '$met of $settled days on plan',
                     style: theme.textTheme.titleMedium,
                   ),
                   const SizedBox(height: 4),
@@ -332,44 +332,66 @@ class _DayCell extends StatelessWidget {
     final status = adherence?.status ?? DayAdherenceStatus.unplanned;
     final style = palette.forDay(status);
     final hasPlan = status != DayAdherenceStatus.unplanned;
+    // An under day with nothing logged at all is a different story from one
+    // that was partially eaten — both fold into the same status, so the
+    // distinction is surfaced as a badge instead of a fourth colour.
+    final isEmptyUnder =
+        status == DayAdherenceStatus.under && (adherence?.entryCount ?? 0) == 0;
 
     return Semantics(
       button: true,
       label:
           '${day.day} ${_monthNames[day.month - 1]}, '
-          '${hasPlan ? style.label : 'no plan'}',
+          '${hasPlan ? style.label : 'no plan'}'
+          '${isEmptyUnder ? ', nothing logged' : ''}',
       child: InkWell(
         key: Key('calendarDay-${day.epochDay}'),
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        child: Container(
-          decoration: BoxDecoration(
-            color: style.container,
-            borderRadius: BorderRadius.circular(14),
-            border: isToday
-                ? Border.all(color: theme.colorScheme.primary, width: 2)
-                : null,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '${day.day}',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: hasPlan
-                      ? style.onContainer
-                      : theme.colorScheme.onSurfaceVariant,
+        child: Stack(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: style.container,
+                borderRadius: BorderRadius.circular(14),
+                border: isToday
+                    ? Border.all(color: theme.colorScheme.primary, width: 2)
+                    : null,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${day.day}',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: hasPlan
+                          ? style.onContainer
+                          : theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  // The dot repeats the state as shape, not just as
+                  // background tint, which keeps the cell readable at
+                  // small sizes.
+                  if (hasPlan)
+                    Icon(style.icon, size: 12, color: style.onContainer)
+                  else
+                    const SizedBox(height: 12),
+                ],
+              ),
+            ),
+            if (isEmptyUnder)
+              Positioned(
+                top: 4,
+                right: 4,
+                child: Icon(
+                  key: Key('emptyUnderBadge-${day.epochDay}'),
+                  Icons.circle_outlined,
+                  size: 8,
+                  color: style.onContainer,
                 ),
               ),
-              const SizedBox(height: 3),
-              // The dot repeats the state as shape, not just as background
-              // tint, which keeps the cell readable at small sizes.
-              if (hasPlan)
-                Icon(style.icon, size: 12, color: style.onContainer)
-              else
-                const SizedBox(height: 12),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -383,9 +405,9 @@ class _Legend extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = AdherencePalette.of(context);
     const statuses = [
-      DayAdherenceStatus.complete,
-      DayAdherenceStatus.partial,
-      DayAdherenceStatus.missed,
+      DayAdherenceStatus.met,
+      DayAdherenceStatus.under,
+      DayAdherenceStatus.over,
       DayAdherenceStatus.upcoming,
     ];
 

@@ -184,18 +184,19 @@ void main() {
       expect(find.text('1/2 meals'), findsOneWidget);
     });
 
-    testWidgets('marks the day as partly met when some meals were met', (
-      tester,
-    ) async {
-      saveTemplate();
-      await plan('pm-breakfast', 'slot-breakfast');
-      await plan('pm-dinner', 'slot-dinner');
-      await log(id: 'e1', plannedMealId: 'pm-breakfast');
+    testWidgets(
+      'shows the day chip as under when the logged total falls short',
+      (tester) async {
+        saveTemplate();
+        await plan('pm-breakfast', 'slot-breakfast');
+        await plan('pm-dinner', 'slot-dinner');
+        await log(id: 'e1', plannedMealId: 'pm-breakfast');
 
-      await pumpScreen(tester);
+        await pumpScreen(tester);
 
-      expect(find.text('Partly'), findsOneWidget);
-    });
+        expect(find.text('Under'), findsOneWidget);
+      },
+    );
 
     testWidgets('logging a planned meal pre-fills the form with its target', (
       tester,

@@ -95,6 +95,11 @@ class DayPlan {
   DayAdherenceStatus get status => adherence.status;
   bool get hasPlan => meals.isNotEmpty;
 
+  /// Every entry considered for the day, linked or not — forwarded from
+  /// [adherence] so callers reading a plan's counts do not need to know
+  /// adherence is where it is computed.
+  int get entryCount => adherence.entryCount;
+
   @override
   String toString() =>
       'DayPlan(day: $day, meals: ${meals.length}, status: $status)';
@@ -119,6 +124,7 @@ class GetDayPlan {
     required MealSlotDirectory slotDirectory,
     required OptionChoiceSource choiceSource,
     this.tolerance = AdherenceTolerance.standard,
+    this.dailyTolerance = AdherenceTolerance.daily,
   }) : _dietPlanSource = dietPlanSource,
        _nutritionSource = nutritionSource,
        _slotDirectory = slotDirectory,
@@ -129,6 +135,10 @@ class GetDayPlan {
   final MealSlotDirectory _slotDirectory;
   final OptionChoiceSource _choiceSource;
   final AdherenceTolerance tolerance;
+
+  /// The criterion the day's own verdict is judged by — independent of
+  /// [tolerance], which stays per-meal.
+  final AdherenceTolerance dailyTolerance;
 
   Future<Result<DayPlan, NutritionFailure>> call(
     NutritionDay day, {
@@ -165,6 +175,7 @@ class GetDayPlan {
       entries: entries,
       today: today,
       tolerance: tolerance,
+      dailyTolerance: dailyTolerance,
     );
 
     final details = [

@@ -120,6 +120,61 @@ void main() {
       expect(find.text('50%'), findsOneWidget);
     });
 
+    testWidgets(
+      'shows a hollow-ring badge and extended semantics on an under day '
+      'with nothing logged',
+      (tester) async {
+        final handle = tester.ensureSemantics();
+
+        await plan('pm-11', 11);
+
+        await pumpScreen(tester);
+
+        expect(
+          find.byKey(Key('emptyUnderBadge-${day(11).epochDay}')),
+          findsOneWidget,
+        );
+        final semantics = tester.getSemantics(
+          find.byKey(Key('calendarDay-${day(11).epochDay}')),
+        );
+        expect(semantics.label, contains('nothing logged'));
+
+        handle.dispose();
+      },
+    );
+
+    testWidgets(
+      'omits the empty-under badge once something was logged, even when '
+      'the day still reads under',
+      (tester) async {
+        final handle = tester.ensureSemantics();
+
+        await plan('pm-12', 12);
+        await nutritionSource.record(
+          NutritionEntry(
+            id: 'e-12',
+            recordedAt: DateTime(2026, 7, 12, 13),
+            energy: Energy(kcal: 300),
+            macros: Macros(proteinG: 20, carbsG: 30, fatG: 10),
+            plannedMealId: 'pm-12',
+          ),
+        );
+
+        await pumpScreen(tester);
+
+        expect(
+          find.byKey(Key('emptyUnderBadge-${day(12).epochDay}')),
+          findsNothing,
+        );
+        final semantics = tester.getSemantics(
+          find.byKey(Key('calendarDay-${day(12).epochDay}')),
+        );
+        expect(semantics.label, isNot(contains('nothing logged')));
+
+        handle.dispose();
+      },
+    );
+
     testWidgets('navigates to the previous and next month', (tester) async {
       await pumpScreen(tester);
 

@@ -108,7 +108,7 @@ void main() {
       );
     });
 
-    test('marks a fully met past day as complete', () async {
+    test('marks a fully met past day as met', () async {
       await plan('pm-1', 'slot-1', 10);
       await plan('pm-2', 'slot-2', 10);
       await log(id: 'e1', plannedMealId: 'pm-1', dayOfMonth: 10);
@@ -116,8 +116,25 @@ void main() {
 
       final month = unwrap(await useCase(july, today: today));
 
-      expect(month.forDay(day(10))!.status, DayAdherenceStatus.complete);
-      expect(month.completeDays, 1);
+      expect(month.forDay(day(10))!.status, DayAdherenceStatus.met);
+      expect(month.metDays, 1);
+    });
+
+    test('a verdict driven entirely by unlinked entries still counts', () async {
+      await plan('pm-1', 'slot-1', 10);
+      // Never linked to 'pm-1' — the day's total still meets the plan.
+      await nutritionSource.record(
+        NutritionEntry(
+          id: 'extra',
+          recordedAt: DateTime(2026, 7, 10, 13),
+          energy: Energy(kcal: 600),
+          macros: Macros(proteinG: 40, carbsG: 60, fatG: 20),
+        ),
+      );
+
+      final month = unwrap(await useCase(july, today: today));
+
+      expect(month.forDay(day(10))!.status, DayAdherenceStatus.met);
     });
 
     test('never marks a future planned day as missed', () async {
@@ -145,14 +162,14 @@ void main() {
 
       final month = unwrap(await useCase(july, today: today));
 
-      expect(month.forDay(day(10))!.status, DayAdherenceStatus.complete);
-      expect(month.forDay(day(11))!.status, DayAdherenceStatus.missed);
+      expect(month.forDay(day(10))!.status, DayAdherenceStatus.met);
+      expect(month.forDay(day(11))!.status, DayAdherenceStatus.under);
     });
 
     test(
       'excludes upcoming and in-progress days from the completion ratio',
       () async {
-        // Two settled days: the 10th met, the 11th missed.
+        // Two settled days: the 10th met, the 11th under (nothing logged).
         await plan('pm-10', 'slot-1', 10);
         await log(id: 'e-10', plannedMealId: 'pm-10', dayOfMonth: 10);
         await plan('pm-11', 'slot-1', 11);
@@ -164,7 +181,7 @@ void main() {
 
         expect(month.plannedDays, 4);
         expect(month.settledDays, 2);
-        expect(month.completeDays, 1);
+        expect(month.metDays, 1);
         expect(month.completionRatio, 0.5);
       },
     );

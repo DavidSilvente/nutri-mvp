@@ -139,14 +139,14 @@ class _DayPlanBody extends StatelessWidget {
           _NoPlanCard(day: plan.day),
         if (plan.unplannedEntries.isNotEmpty) ...[
           const SizedBox(height: 12),
-          // Deliberately NOT "off plan": that is the wording the day-status
-          // chip uses for a missed day, and the same phrase meaning two
-          // different things on one screen is how a UI stops being readable.
+          // Deliberately NOT "Over"/"Under": those are the day-status chip's
+          // own wording, and the same word meaning two different things on
+          // one screen is how a UI stops being readable.
           Text('Extras', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 4),
           Text(
-            'Logged but not part of the plan. Counted in the totals, not in '
-            'adherence.',
+            'Logged but not attached to a planned meal. Still counts '
+            "towards the day's total and its verdict above.",
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -187,7 +187,7 @@ class _DayHeader extends StatelessWidget {
             ],
           ),
         ),
-        AdherenceChip.day(plan.status),
+        AdherenceChip.day(plan.status, entryCount: plan.entryCount),
       ],
     );
   }

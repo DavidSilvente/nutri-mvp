@@ -33,8 +33,8 @@ class MonthAdherence {
       .where((d) => d.status != DayAdherenceStatus.unplanned)
       .length;
 
-  int get completeDays => _byEpochDay.values
-      .where((d) => d.status == DayAdherenceStatus.complete)
+  int get metDays => _byEpochDay.values
+      .where((d) => d.status == DayAdherenceStatus.met)
       .length;
 
   /// Days already settled: neither upcoming nor still in progress, and with a
@@ -42,23 +42,22 @@ class MonthAdherence {
   int get settledDays => _byEpochDay.values
       .where(
         (d) =>
-            d.status == DayAdherenceStatus.complete ||
-            d.status == DayAdherenceStatus.partial ||
-            d.status == DayAdherenceStatus.missed,
+            d.status == DayAdherenceStatus.met ||
+            d.status == DayAdherenceStatus.under ||
+            d.status == DayAdherenceStatus.over,
       )
       .length;
 
-  /// Fraction of SETTLED days fully met, in `[0, 1]`.
+  /// Fraction of SETTLED days met, in `[0, 1]`.
   ///
   /// Deliberately excludes upcoming and in-progress days: counting a dinner
   /// not yet eaten as a failure would make the month look worse the earlier
   /// in the day you look at it.
-  double get completionRatio =>
-      settledDays == 0 ? 0 : completeDays / settledDays;
+  double get completionRatio => settledDays == 0 ? 0 : metDays / settledDays;
 
   @override
   String toString() =>
-      'MonthAdherence($month, $completeDays/$settledDays settled days met)';
+      'MonthAdherence($month, $metDays/$settledDays settled days met)';
 }
 
 /// Evaluates a whole month in one pass, for the calendar view.
@@ -71,6 +70,7 @@ class GetMonthAdherence {
     required NutritionHealthSource nutritionSource,
     required MealSlotDirectory slotDirectory,
     this.tolerance = AdherenceTolerance.standard,
+    this.dailyTolerance = AdherenceTolerance.daily,
   }) : _dietPlanSource = dietPlanSource,
        _nutritionSource = nutritionSource,
        _slotDirectory = slotDirectory;
@@ -79,6 +79,10 @@ class GetMonthAdherence {
   final NutritionHealthSource _nutritionSource;
   final MealSlotDirectory _slotDirectory;
   final AdherenceTolerance tolerance;
+
+  /// The criterion the day's own verdict is judged by — independent of
+  /// [tolerance], which stays per-meal.
+  final AdherenceTolerance dailyTolerance;
 
   Future<Result<MonthAdherence, NutritionFailure>> call(
     CalendarMonth month, {
@@ -130,6 +134,7 @@ class GetMonthAdherence {
         entries: entriesByDay[day.epochDay] ?? const <NutritionEntry>[],
         today: today,
         tolerance: tolerance,
+        dailyTolerance: dailyTolerance,
       );
     }
 
