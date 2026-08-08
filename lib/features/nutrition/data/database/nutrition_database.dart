@@ -249,6 +249,79 @@ class ComponentDefaults extends Table {
   Set<Column> get primaryKey => {componentId};
 }
 
+/// A single logged food reference within an [NutritionEntries] row's
+/// composition.
+///
+/// **`cascade` vs the `setNull` on [NutritionEntries.plannedMealId].** They
+/// differ because the relationships differ. `plannedMealId` is a
+/// cross-aggregate LINK: the entry is a historical fact that must survive its
+/// planned meal being deleted, so nulling the link is the only shape that
+/// preserves history. An ingredient row is not a fact of its own — it is a
+/// PART of its owner, exactly like [MealSubstitutes.plannedMealId] and
+/// [MenuItems.photoId], both `cascade`. With no owner it describes nothing,
+/// so `cascade` is the only shape that cannot leak orphans.
+///
+/// Composite primary key `{entryId, position}`, no surrogate id — the same
+/// shape as [ComponentSelections] and [ComponentDefaults], the other two
+/// tables whose rows have no identity of their own, and it matches the
+/// domain `LoggedIngredient` value object having no `id`. The composite PK
+/// makes duplicate positions unrepresentable rather than merely constrained.
+///
+/// `position` is 0-based and dense, assigned from list index on write; reads
+/// order `ORDER BY position ASC`, and read-back list order IS domain order.
+@DataClassName('IntakeIngredientRow')
+class IntakeIngredients extends Table {
+  TextColumn get entryId =>
+      text().references(NutritionEntries, #id, onDelete: KeyAction.cascade)();
+  TextColumn get foodId => text()();
+  RealColumn get grams => real()();
+  RealColumn get count => real().nullable()();
+  TextColumn get unit => text().nullable()();
+  IntColumn get position => integer()();
+
+  @override
+  Set<Column> get primaryKey => {entryId, position};
+}
+
+/// A single logged food reference within a [SavedMeals] row's composition.
+///
+/// Same shape and rationale as [IntakeIngredients] — see that table's doc
+/// comment for the `cascade` vs `setNull` distinction and the composite
+/// primary key rationale.
+@DataClassName('SavedMealIngredientRow')
+class SavedMealIngredients extends Table {
+  TextColumn get savedMealId =>
+      text().references(SavedMeals, #id, onDelete: KeyAction.cascade)();
+  TextColumn get foodId => text()();
+  RealColumn get grams => real()();
+  RealColumn get count => real().nullable()();
+  TextColumn get unit => text().nullable()();
+  IntColumn get position => integer()();
+
+  @override
+  Set<Column> get primaryKey => {savedMealId, position};
+}
+
+/// A single logged food reference within a [MealSubstitutes] row's
+/// composition.
+///
+/// Same shape and rationale as [IntakeIngredients] — see that table's doc
+/// comment for the `cascade` vs `setNull` distinction and the composite
+/// primary key rationale.
+@DataClassName('MealSubstituteIngredientRow')
+class MealSubstituteIngredients extends Table {
+  TextColumn get substituteId =>
+      text().references(MealSubstitutes, #id, onDelete: KeyAction.cascade)();
+  TextColumn get foodId => text()();
+  RealColumn get grams => real()();
+  RealColumn get count => real().nullable()();
+  TextColumn get unit => text().nullable()();
+  IntColumn get position => integer()();
+
+  @override
+  Set<Column> get primaryKey => {substituteId, position};
+}
+
 /// Drift database for the nutrition feature.
 ///
 /// Production usage opens a file on disk (via `driftDatabase(name: ...)`);
@@ -269,13 +342,16 @@ class ComponentDefaults extends Table {
     ComponentSelections,
     SavedMeals,
     ComponentDefaults,
+    IntakeIngredients,
+    SavedMealIngredients,
+    MealSubstituteIngredients,
   ],
 )
 class NutritionDatabase extends _$NutritionDatabase {
   NutritionDatabase(super.e);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -379,6 +455,14 @@ class NutritionDatabase extends _$NutritionDatabase {
           // v7 -> v8: the user's standing preference for a component,
           // independent of any single day. Purely additive; starts empty.
           await m.createTable(componentDefaults);
+        }
+        if (from < 9) {
+          // v8 -> v9: compositions. Purely additive — three NEW tables, no
+          // TableMigration and no ALTER on any existing table, which is
+          // exactly why the v1 -> v2 `newColumns` list needs no edit.
+          await m.createTable(intakeIngredients);
+          await m.createTable(savedMealIngredients);
+          await m.createTable(mealSubstituteIngredients);
         }
       });
     },

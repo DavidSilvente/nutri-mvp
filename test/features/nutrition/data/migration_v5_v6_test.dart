@@ -151,7 +151,7 @@ void main() {
 
       // The chain does not stop at v6: opening runs every step, all the way to
       // v8, which adds the (empty, for this test) component_defaults table.
-      expect(db.schemaVersion, 8);
+      expect(db.schemaVersion, 9);
 
       // The new table exists and is empty.
       expect(await db.select(db.savedMeals).get(), isEmpty);
@@ -208,7 +208,7 @@ void main() {
 
       // The chain does not stop at v6: opening runs every step, all the way to
       // v8, which adds the (empty, for this test) component_defaults table.
-      expect(db.schemaVersion, 8);
+      expect(db.schemaVersion, 9);
       expect(await db.select(db.savedMeals).get(), isEmpty);
     });
   });
