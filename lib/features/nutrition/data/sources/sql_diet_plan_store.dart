@@ -215,6 +215,53 @@ class SqlDietPlanStore implements DietPlanStore {
     }
   }
 
+  @override
+  Future<Result<Map<String, String>, NutritionFailure>>
+  preferredOptions() async {
+    try {
+      final rows = await _db.select(_db.componentDefaults).get();
+      return Ok({for (final row in rows) row.componentId: row.optionId});
+    } catch (e) {
+      return Err(StorageFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void, NutritionFailure>> setPreferredOption({
+    required String componentId,
+    required String optionId,
+  }) async {
+    try {
+      // componentId is the primary key, so an upsert replaces any previous
+      // preference for that component.
+      await _db
+          .into(_db.componentDefaults)
+          .insertOnConflictUpdate(
+            ComponentDefaultsCompanion.insert(
+              componentId: componentId,
+              optionId: optionId,
+            ),
+          );
+      return const Ok(null);
+    } catch (e) {
+      return Err(StorageFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<void, NutritionFailure>> clearPreferredOption(
+    String componentId,
+  ) async {
+    try {
+      await (_db.delete(
+        _db.componentDefaults,
+      )..where((row) => row.componentId.equals(componentId))).go();
+      return const Ok(null);
+    } catch (e) {
+      return Err(StorageFailure(e.toString()));
+    }
+  }
+
   Future<int> _countPlans() async {
     final count = _db.dietPlanRecords.id.count();
     final row = await (_db.selectOnly(

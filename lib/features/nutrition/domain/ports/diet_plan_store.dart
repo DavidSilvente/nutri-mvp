@@ -63,4 +63,27 @@ abstract interface class DietPlanStore {
     required NutritionDay day,
     required String componentId,
   });
+
+  /// The user's standing preferences, as component id -> option id.
+  ///
+  /// Independent of [selectionsFor]: a preference is a default for every day
+  /// that carries no day-scoped selection of its own, and a day selection
+  /// always outranks it. Components absent from the map follow the plan's
+  /// default option; only deviations from that default are stored.
+  Future<Result<Map<String, String>, NutritionFailure>> preferredOptions();
+
+  /// Records that the user prefers [optionId] for [componentId] on every day
+  /// that carries no day-scoped selection, replacing any previous preference
+  /// for that component.
+  Future<Result<void, NutritionFailure>> setPreferredOption({
+    required String componentId,
+    required String optionId,
+  });
+
+  /// Drops the recorded preference for [componentId], reverting resolution to
+  /// the plan's default option (or a day-scoped selection, if one exists). A
+  /// no-op when nothing was recorded.
+  Future<Result<void, NutritionFailure>> clearPreferredOption(
+    String componentId,
+  );
 }

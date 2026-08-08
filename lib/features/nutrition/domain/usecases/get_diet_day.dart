@@ -8,45 +8,51 @@ import '../ports/diet_plan_decoder.dart';
 import '../ports/diet_plan_store.dart';
 import '../services/derived_targets.dart';
 import '../services/food_catalog.dart';
+import '../services/resolved_component.dart';
 import '../value_objects/nutrition_day.dart';
 import '../value_objects/nutrition_target.dart';
 import 'resolve_active_diet.dart';
 
 /// One element of a meal on a specific day, with its chosen option resolved.
+///
+/// Composes [ResolvedComponent] rather than duplicating its fields, so this
+/// pipeline and `GetDayPlan`'s share one definition of "resolved" and the
+/// options sheet (which reaches both screens) can take a single input type.
+/// `food`/`target` stay here rather than on [ResolvedComponent] itself: they
+/// need a [FoodCatalog], which the month-scale pipeline that also builds
+/// [ResolvedComponent] must not pay for.
 class DietDayComponent {
   DietDayComponent({
-    required this.componentId,
-    required this.sectionLabel,
-    required this.options,
-    required this.chosen,
+    required this.resolved,
     required this.food,
     required this.target,
-    required this.isDeviation,
   });
 
-  final String componentId;
-  final String? sectionLabel;
+  final ResolvedComponent resolved;
 
-  /// Every interchangeable option, in the dietitian's preference order.
-  final List<ComponentOption> options;
-
-  /// The option in force for this day.
-  final ComponentOption chosen;
-
-  /// The food [chosen] resolves to.
+  /// The food [resolved.chosen] resolves to.
   final FoodItem food;
 
-  /// Macros for [chosen] at its quantity.
+  /// Macros for [resolved.chosen] at its quantity.
   final NutritionTarget target;
+
+  String get componentId => resolved.componentId;
+  String? get sectionLabel => resolved.sectionLabel;
+
+  /// Every interchangeable option, in the dietitian's preference order.
+  List<ComponentOption> get options => resolved.options;
+
+  /// The option in force for this day.
+  ComponentOption get chosen => resolved.chosen;
 
   /// Whether [chosen] differs from the plan's first choice, i.e. the user
   /// actively swapped it for this day.
-  final bool isDeviation;
+  bool get isDeviation => resolved.isDeviation;
 
-  bool get hasAlternatives => options.length > 1;
+  bool get hasAlternatives => resolved.hasAlternatives;
 
   /// Whether the macros shown here rest on an estimate the user should check.
-  bool get needsReview => food.source.needsReview;
+  bool get needsReview => resolved.needsReview;
 }
 
 /// A meal on a specific day.
@@ -147,12 +153,33 @@ class GetDietDay {
         selections = value;
     }
 
+    // Resolves all 3 precedence levels (day > preference > plan default), the
+    // same rule `GetDayPlan` already applies. Before this, only the day level
+    // was read here, so a standing preference set from the day plan screen
+    // silently had no effect on this screen for the same day.
+    //
+    // This still goes through `DietPlanStore` directly rather than the
+    // `OptionChoiceSource` port `GetDayPlan` uses — migrating fully onto that
+    // port is a deliberate follow-up, out of scope for this fix (see the
+    // day-shows-planned-food design notes).
+    final preferencesResult = await _store.preferredOptions();
+    final Map<String, String> preferences;
+    switch (preferencesResult) {
+      case Err(failure: final failure):
+        return Err(failure);
+      case Ok(value: final value):
+        preferences = value;
+    }
+
     return _assemble(
       day: day,
       plan: plan.plan,
       group: group,
       catalog: plan.catalog,
-      selections: selections,
+      choices: OptionChoices(
+        daySelections: selections,
+        preferences: preferences,
+      ),
     );
   }
 
@@ -161,7 +188,7 @@ class GetDietDay {
     required DietPlan plan,
     required DietPlanDayGroup group,
     required FoodCatalog catalog,
-    required Map<String, String> selections,
+    required OptionChoices choices,
   }) {
     final meals = <DietDayMeal>[];
     final unresolved = <String>{};
@@ -169,10 +196,7 @@ class GetDietDay {
     for (final slot in group.template.slots) {
       final components = <DietDayComponent>[];
       for (final component in slot.components) {
-        final chosen = DerivedTargets.optionFor(
-          component,
-          OptionChoices.day(selections),
-        );
+        final chosen = DerivedTargets.optionFor(component, choices);
         final food = catalog.byId(chosen.foodId);
         if (food == null) {
           unresolved.add(chosen.foodId);
@@ -180,13 +204,16 @@ class GetDietDay {
         }
         components.add(
           DietDayComponent(
-            componentId: component.id,
-            sectionLabel: component.sectionLabel,
-            options: component.options,
-            chosen: chosen,
+            resolved: ResolvedComponent(
+              componentId: component.id,
+              sectionLabel: component.sectionLabel,
+              options: component.options,
+              chosen: chosen,
+              isDeviation: chosen.id != component.defaultOption.id,
+              needsReview: food.source.needsReview,
+            ),
             food: food,
             target: food.targetFor(chosen.quantity),
-            isDeviation: chosen.id != component.defaultOption.id,
           ),
         );
       }

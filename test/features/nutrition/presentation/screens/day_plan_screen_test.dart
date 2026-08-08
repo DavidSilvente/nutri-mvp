@@ -475,6 +475,51 @@ void main() {
           expect(find.text('Not logged'), findsOneWidget);
         },
       );
+
+      testWidgets(
+        'tapping a component row with alternatives opens the options sheet, '
+        'and the per-meal action reads "Swap meal", never the bare word '
+        '"Alternatives"',
+        (tester) async {
+          final componentWithAlternatives = MealComponent(
+            id: 'c1',
+            position: 0,
+            options: [
+              ComponentOption(
+                id: 'c1-option-a',
+                foodId: 'c1-food-a',
+                quantity: FoodQuantity(grams: 100),
+                rawText: '140 gramos de pollo, pechuga',
+              ),
+              ComponentOption(
+                id: 'c1-option-b',
+                foodId: 'c1-food-b',
+                quantity: FoodQuantity(grams: 150),
+                rawText: '150 gramos de lomo ternera',
+              ),
+            ],
+          );
+          slotDirectory.slots.add(
+            mealSlot(
+              id: 'slot-lunch',
+              label: 'Lunch',
+              position: 0,
+              components: [componentWithAlternatives],
+            ),
+          );
+          await plan('pm-lunch', 'slot-lunch');
+
+          await pumpScreen(tester);
+
+          expect(find.text('Swap meal'), findsOneWidget);
+          expect(find.text('Alternatives'), findsNothing);
+
+          await tester.tap(find.byKey(const Key('componentRow-c1')));
+          await tester.pumpAndSettle();
+
+          expect(find.text('Options'), findsOneWidget);
+        },
+      );
     });
   });
 }

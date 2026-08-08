@@ -18,6 +18,7 @@ import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_targ
 class FakeDietPlanStore implements DietPlanStore {
   final List<StoredDietPlan> _plans = [];
   final Map<int, Map<String, String>> _selections = {};
+  final Map<String, String> _preferences = {};
 
   /// Fails every call with this failure when set, so error paths are testable.
   NutritionFailure? failWith;
@@ -144,6 +145,35 @@ class FakeDietPlanStore implements DietPlanStore {
     final failure = failWith;
     if (failure != null) return Err(failure);
     _selections[day.epochDay]?.remove(componentId);
+    return const Ok(null);
+  }
+
+  @override
+  Future<Result<Map<String, String>, NutritionFailure>>
+  preferredOptions() async {
+    final failure = failWith;
+    if (failure != null) return Err(failure);
+    return Ok(Map.of(_preferences));
+  }
+
+  @override
+  Future<Result<void, NutritionFailure>> setPreferredOption({
+    required String componentId,
+    required String optionId,
+  }) async {
+    final failure = failWith;
+    if (failure != null) return Err(failure);
+    _preferences[componentId] = optionId;
+    return const Ok(null);
+  }
+
+  @override
+  Future<Result<void, NutritionFailure>> clearPreferredOption(
+    String componentId,
+  ) async {
+    final failure = failWith;
+    if (failure != null) return Err(failure);
+    _preferences.remove(componentId);
     return const Ok(null);
   }
 }

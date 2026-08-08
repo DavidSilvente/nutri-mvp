@@ -34,6 +34,7 @@ import 'package:nutri_mvp/features/nutrition/domain/usecases/import_diet_pdf.dar
 import 'package:nutri_mvp/features/nutrition/domain/usecases/resolve_active_diet.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/save_manual_diet.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/controllers/component_choice_controller.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/controllers/diet_day_controller.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/controllers/diet_plan_controller.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart'
@@ -255,6 +256,13 @@ final planIdFactoryProvider = Provider<String Function()>((ref) {
 final dietDayControllerProvider =
     AsyncNotifierProvider.family<DietDayController, DietDay?, NutritionDay>(
       DietDayController.new,
+    );
+
+/// Writes the option a user picks for one component, day-scoped or as a
+/// standing preference. See [ComponentChoiceController].
+final componentChoiceControllerProvider =
+    AsyncNotifierProvider.family<ComponentChoiceController, void, NutritionDay>(
+      ComponentChoiceController.new,
     );
 
 /// Every stored diet, active one first — the data behind the diet picker.

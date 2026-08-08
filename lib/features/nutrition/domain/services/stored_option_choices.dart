@@ -6,14 +6,11 @@ import '../ports/option_choice_source.dart';
 import '../value_objects/nutrition_day.dart';
 import 'derived_targets.dart';
 
-/// Answers [OptionChoiceSource] from the store's day-scoped selections.
+/// Answers [OptionChoiceSource] from the store's day-scoped selections and the
+/// user's standing preferences.
 ///
 /// The one adapter between "which option is in force today" and the store
 /// that records it, so use cases never call `DietPlanStore` directly for this.
-///
-/// [preferences] stays empty here: the user-level preference table does not
-/// exist yet. Wiring it in is a data-only change confined to this class —
-/// nothing above it (the port, or its callers) needs to change when it lands.
 class StoredOptionChoices implements OptionChoiceSource {
   StoredOptionChoices(this._store);
 
@@ -24,10 +21,19 @@ class StoredOptionChoices implements OptionChoiceSource {
     NutritionDay day,
   ) async {
     final selectionsResult = await _store.selectionsFor(day);
-    return switch (selectionsResult) {
+    final Map<String, String> daySelections;
+    switch (selectionsResult) {
+      case Err(failure: final failure):
+        return Err(failure);
+      case Ok(value: final value):
+        daySelections = value;
+    }
+
+    final preferencesResult = await _store.preferredOptions();
+    return switch (preferencesResult) {
       Err(failure: final failure) => Err(failure),
-      Ok(value: final daySelections) => Ok(
-        OptionChoices(daySelections: daySelections),
+      Ok(value: final preferences) => Ok(
+        OptionChoices(daySelections: daySelections, preferences: preferences),
       ),
     };
   }

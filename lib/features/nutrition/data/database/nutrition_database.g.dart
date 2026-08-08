@@ -3781,6 +3781,236 @@ class SavedMealsCompanion extends UpdateCompanion<SavedMealRow> {
   }
 }
 
+class $ComponentDefaultsTable extends ComponentDefaults
+    with TableInfo<$ComponentDefaultsTable, ComponentDefaultRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ComponentDefaultsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _componentIdMeta = const VerificationMeta(
+    'componentId',
+  );
+  @override
+  late final GeneratedColumn<String> componentId = GeneratedColumn<String>(
+    'component_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _optionIdMeta = const VerificationMeta(
+    'optionId',
+  );
+  @override
+  late final GeneratedColumn<String> optionId = GeneratedColumn<String>(
+    'option_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [componentId, optionId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'component_defaults';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ComponentDefaultRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('component_id')) {
+      context.handle(
+        _componentIdMeta,
+        componentId.isAcceptableOrUnknown(
+          data['component_id']!,
+          _componentIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_componentIdMeta);
+    }
+    if (data.containsKey('option_id')) {
+      context.handle(
+        _optionIdMeta,
+        optionId.isAcceptableOrUnknown(data['option_id']!, _optionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_optionIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {componentId};
+  @override
+  ComponentDefaultRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ComponentDefaultRow(
+      componentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}component_id'],
+      )!,
+      optionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}option_id'],
+      )!,
+    );
+  }
+
+  @override
+  $ComponentDefaultsTable createAlias(String alias) {
+    return $ComponentDefaultsTable(attachedDatabase, alias);
+  }
+}
+
+class ComponentDefaultRow extends DataClass
+    implements Insertable<ComponentDefaultRow> {
+  /// The `MealComponent.id` this preference applies to.
+  final String componentId;
+
+  /// The preferred `ComponentOption.id`.
+  final String optionId;
+  const ComponentDefaultRow({
+    required this.componentId,
+    required this.optionId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['component_id'] = Variable<String>(componentId);
+    map['option_id'] = Variable<String>(optionId);
+    return map;
+  }
+
+  ComponentDefaultsCompanion toCompanion(bool nullToAbsent) {
+    return ComponentDefaultsCompanion(
+      componentId: Value(componentId),
+      optionId: Value(optionId),
+    );
+  }
+
+  factory ComponentDefaultRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ComponentDefaultRow(
+      componentId: serializer.fromJson<String>(json['componentId']),
+      optionId: serializer.fromJson<String>(json['optionId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'componentId': serializer.toJson<String>(componentId),
+      'optionId': serializer.toJson<String>(optionId),
+    };
+  }
+
+  ComponentDefaultRow copyWith({String? componentId, String? optionId}) =>
+      ComponentDefaultRow(
+        componentId: componentId ?? this.componentId,
+        optionId: optionId ?? this.optionId,
+      );
+  ComponentDefaultRow copyWithCompanion(ComponentDefaultsCompanion data) {
+    return ComponentDefaultRow(
+      componentId: data.componentId.present
+          ? data.componentId.value
+          : this.componentId,
+      optionId: data.optionId.present ? data.optionId.value : this.optionId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ComponentDefaultRow(')
+          ..write('componentId: $componentId, ')
+          ..write('optionId: $optionId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(componentId, optionId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ComponentDefaultRow &&
+          other.componentId == this.componentId &&
+          other.optionId == this.optionId);
+}
+
+class ComponentDefaultsCompanion extends UpdateCompanion<ComponentDefaultRow> {
+  final Value<String> componentId;
+  final Value<String> optionId;
+  final Value<int> rowid;
+  const ComponentDefaultsCompanion({
+    this.componentId = const Value.absent(),
+    this.optionId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ComponentDefaultsCompanion.insert({
+    required String componentId,
+    required String optionId,
+    this.rowid = const Value.absent(),
+  }) : componentId = Value(componentId),
+       optionId = Value(optionId);
+  static Insertable<ComponentDefaultRow> custom({
+    Expression<String>? componentId,
+    Expression<String>? optionId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (componentId != null) 'component_id': componentId,
+      if (optionId != null) 'option_id': optionId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ComponentDefaultsCompanion copyWith({
+    Value<String>? componentId,
+    Value<String>? optionId,
+    Value<int>? rowid,
+  }) {
+    return ComponentDefaultsCompanion(
+      componentId: componentId ?? this.componentId,
+      optionId: optionId ?? this.optionId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (componentId.present) {
+      map['component_id'] = Variable<String>(componentId.value);
+    }
+    if (optionId.present) {
+      map['option_id'] = Variable<String>(optionId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ComponentDefaultsCompanion(')
+          ..write('componentId: $componentId, ')
+          ..write('optionId: $optionId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$NutritionDatabase extends GeneratedDatabase {
   _$NutritionDatabase(QueryExecutor e) : super(e);
   $NutritionDatabaseManager get managers => $NutritionDatabaseManager(this);
@@ -3802,6 +4032,8 @@ abstract class _$NutritionDatabase extends GeneratedDatabase {
   late final $ComponentSelectionsTable componentSelections =
       $ComponentSelectionsTable(this);
   late final $SavedMealsTable savedMeals = $SavedMealsTable(this);
+  late final $ComponentDefaultsTable componentDefaults =
+      $ComponentDefaultsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3816,6 +4048,7 @@ abstract class _$NutritionDatabase extends GeneratedDatabase {
     dietPlanRecords,
     componentSelections,
     savedMeals,
+    componentDefaults,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -6566,6 +6799,164 @@ typedef $$SavedMealsTableProcessedTableManager =
       SavedMealRow,
       PrefetchHooks Function()
     >;
+typedef $$ComponentDefaultsTableCreateCompanionBuilder =
+    ComponentDefaultsCompanion Function({
+      required String componentId,
+      required String optionId,
+      Value<int> rowid,
+    });
+typedef $$ComponentDefaultsTableUpdateCompanionBuilder =
+    ComponentDefaultsCompanion Function({
+      Value<String> componentId,
+      Value<String> optionId,
+      Value<int> rowid,
+    });
+
+class $$ComponentDefaultsTableFilterComposer
+    extends Composer<_$NutritionDatabase, $ComponentDefaultsTable> {
+  $$ComponentDefaultsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get componentId => $composableBuilder(
+    column: $table.componentId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get optionId => $composableBuilder(
+    column: $table.optionId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ComponentDefaultsTableOrderingComposer
+    extends Composer<_$NutritionDatabase, $ComponentDefaultsTable> {
+  $$ComponentDefaultsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get componentId => $composableBuilder(
+    column: $table.componentId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get optionId => $composableBuilder(
+    column: $table.optionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ComponentDefaultsTableAnnotationComposer
+    extends Composer<_$NutritionDatabase, $ComponentDefaultsTable> {
+  $$ComponentDefaultsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get componentId => $composableBuilder(
+    column: $table.componentId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get optionId =>
+      $composableBuilder(column: $table.optionId, builder: (column) => column);
+}
+
+class $$ComponentDefaultsTableTableManager
+    extends
+        RootTableManager<
+          _$NutritionDatabase,
+          $ComponentDefaultsTable,
+          ComponentDefaultRow,
+          $$ComponentDefaultsTableFilterComposer,
+          $$ComponentDefaultsTableOrderingComposer,
+          $$ComponentDefaultsTableAnnotationComposer,
+          $$ComponentDefaultsTableCreateCompanionBuilder,
+          $$ComponentDefaultsTableUpdateCompanionBuilder,
+          (
+            ComponentDefaultRow,
+            BaseReferences<
+              _$NutritionDatabase,
+              $ComponentDefaultsTable,
+              ComponentDefaultRow
+            >,
+          ),
+          ComponentDefaultRow,
+          PrefetchHooks Function()
+        > {
+  $$ComponentDefaultsTableTableManager(
+    _$NutritionDatabase db,
+    $ComponentDefaultsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ComponentDefaultsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ComponentDefaultsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ComponentDefaultsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> componentId = const Value.absent(),
+                Value<String> optionId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ComponentDefaultsCompanion(
+                componentId: componentId,
+                optionId: optionId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String componentId,
+                required String optionId,
+                Value<int> rowid = const Value.absent(),
+              }) => ComponentDefaultsCompanion.insert(
+                componentId: componentId,
+                optionId: optionId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ComponentDefaultsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$NutritionDatabase,
+      $ComponentDefaultsTable,
+      ComponentDefaultRow,
+      $$ComponentDefaultsTableFilterComposer,
+      $$ComponentDefaultsTableOrderingComposer,
+      $$ComponentDefaultsTableAnnotationComposer,
+      $$ComponentDefaultsTableCreateCompanionBuilder,
+      $$ComponentDefaultsTableUpdateCompanionBuilder,
+      (
+        ComponentDefaultRow,
+        BaseReferences<
+          _$NutritionDatabase,
+          $ComponentDefaultsTable,
+          ComponentDefaultRow
+        >,
+      ),
+      ComponentDefaultRow,
+      PrefetchHooks Function()
+    >;
 
 class $NutritionDatabaseManager {
   final _$NutritionDatabase _db;
@@ -6588,4 +6979,6 @@ class $NutritionDatabaseManager {
       $$ComponentSelectionsTableTableManager(_db, _db.componentSelections);
   $$SavedMealsTableTableManager get savedMeals =>
       $$SavedMealsTableTableManager(_db, _db.savedMeals);
+  $$ComponentDefaultsTableTableManager get componentDefaults =>
+      $$ComponentDefaultsTableTableManager(_db, _db.componentDefaults);
 }

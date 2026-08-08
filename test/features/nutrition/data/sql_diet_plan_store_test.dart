@@ -245,4 +245,58 @@ void main() {
       );
     });
   });
+
+  group('standing preferences', () {
+    test('no preferences returns an empty map', () async {
+      expect(_unwrap(await store.preferredOptions()), isEmpty);
+    });
+
+    test('records a preference and reads it back', () async {
+      await store.setPreferredOption(componentId: 'c1', optionId: 'o1');
+
+      expect(_unwrap(await store.preferredOptions()), {'c1': 'o1'});
+    });
+
+    test(
+      're-setting replaces the previous preference for that component',
+      () async {
+        await store.setPreferredOption(componentId: 'c1', optionId: 'o1');
+        await store.setPreferredOption(componentId: 'c1', optionId: 'o3');
+
+        expect(_unwrap(await store.preferredOptions()), {'c1': 'o3'});
+      },
+    );
+
+    test('keeps preferences for different components independently', () async {
+      await store.setPreferredOption(componentId: 'c1', optionId: 'o1');
+      await store.setPreferredOption(componentId: 'c2', optionId: 'o7');
+
+      expect(_unwrap(await store.preferredOptions()), {'c1': 'o1', 'c2': 'o7'});
+    });
+
+    test(
+      'clearing a preference reverts that component to the plan default',
+      () async {
+        await store.setPreferredOption(componentId: 'c1', optionId: 'o1');
+        await store.setPreferredOption(componentId: 'c2', optionId: 'o2');
+
+        await store.clearPreferredOption('c1');
+
+        expect(_unwrap(await store.preferredOptions()), {'c2': 'o2'});
+      },
+    );
+
+    test('clearing a preference that was never made is a no-op', () async {
+      expect((await store.clearPreferredOption('c1')).isOk, isTrue);
+    });
+
+    test('a preference is independent of any day-scoped selection', () async {
+      final day = NutritionDay.fromDateTime(DateTime.utc(2026, 8, 1));
+      await store.setPreferredOption(componentId: 'c1', optionId: 'pref');
+      await store.selectOption(day: day, componentId: 'c1', optionId: 'day');
+
+      expect(_unwrap(await store.preferredOptions()), {'c1': 'pref'});
+      expect(_unwrap(await store.selectionsFor(day)), {'c1': 'day'});
+    });
+  });
 }

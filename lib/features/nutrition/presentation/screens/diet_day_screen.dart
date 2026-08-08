@@ -273,7 +273,7 @@ class _ComponentTile extends ConsumerWidget {
       onTap: component.hasAlternatives
           ? () => showComponentOptionsSheet(
               context: context,
-              component: component,
+              component: component.resolved,
               day: day,
             )
           : null,

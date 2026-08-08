@@ -12,6 +12,7 @@ import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_targ
 import 'package:nutri_mvp/features/nutrition/presentation/providers/adherence_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/hydration_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/apply_diet_sheet.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/screens/component_options_sheet.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/hydration_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/meal_alternatives_sheet.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/record_intake_screen.dart';
@@ -363,6 +364,7 @@ class _PlannedMealCard extends ConsumerWidget {
               _MealFoodList(
                 key: Key('mealFoodList-${detail.meal.id}'),
                 components: detail.components,
+                day: day,
               ),
             ],
             const SizedBox(height: 12),
@@ -411,7 +413,7 @@ class _PlannedMealCard extends ConsumerWidget {
                     key: Key('alternativesButton-${detail.meal.id}'),
                     onPressed: () => _openAlternatives(context),
                     icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-                    label: const Text('Alternatives'),
+                    label: const Text('Swap meal'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -462,9 +464,10 @@ class _PlannedMealCard extends ConsumerWidget {
 /// outer scrollable, and a nested unbounded list would either need its own
 /// scroll physics or crash on layout.
 class _MealFoodList extends StatelessWidget {
-  const _MealFoodList({super.key, required this.components});
+  const _MealFoodList({super.key, required this.components, required this.day});
 
   final List<ResolvedComponent> components;
+  final NutritionDay day;
 
   @override
   Widget build(BuildContext context) {
@@ -472,7 +475,7 @@ class _MealFoodList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final component in components)
-          _PlannedComponentRow(component: component),
+          _PlannedComponentRow(component: component, day: day),
       ],
     );
   }
@@ -482,18 +485,20 @@ class _MealFoodList extends StatelessWidget {
 /// signals that make a deviation or an estimate visible without opening
 /// anything.
 ///
-/// Not tappable yet — reaching the options sheet from here is PR3's job, once
-/// [ComponentChoiceController] exists to write through it.
+/// Tappable when [ResolvedComponent.hasAlternatives], opening the same
+/// "Options" sheet `diet_day_screen` reaches from its own per-item row —
+/// [ComponentChoiceController]'s day-plan invalidation is what lets a write
+/// made here show up there too.
 class _PlannedComponentRow extends StatelessWidget {
-  const _PlannedComponentRow({required this.component});
+  const _PlannedComponentRow({required this.component, required this.day});
 
   final ResolvedComponent component;
+  final NutritionDay day;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    return Padding(
+    final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -534,6 +539,18 @@ class _PlannedComponentRow extends StatelessWidget {
           ],
         ],
       ),
+    );
+
+    if (!component.hasAlternatives) return row;
+
+    return InkWell(
+      key: Key('componentRow-${component.componentId}'),
+      onTap: () => showComponentOptionsSheet(
+        context: context,
+        component: component,
+        day: day,
+      ),
+      child: row,
     );
   }
 }

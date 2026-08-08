@@ -228,6 +228,27 @@ class ComponentSelections extends Table {
   Set<Column> get primaryKey => {dayEpoch, componentId};
 }
 
+/// The user's standing preference for a meal component, independent of any
+/// single day.
+///
+/// Absence is meaningful, the same doctrine [ComponentSelections] follows:
+/// only deviations from the plan's default option are stored, so a user who
+/// never sets a preference writes nothing here at all. Not foreign-keyed to a
+/// plan row for the same reason [ComponentSelections] is not — a preference is
+/// keyed by the positional component id, which survives a re-import of the
+/// same plan document.
+@DataClassName('ComponentDefaultRow')
+class ComponentDefaults extends Table {
+  /// The `MealComponent.id` this preference applies to.
+  TextColumn get componentId => text()();
+
+  /// The preferred `ComponentOption.id`.
+  TextColumn get optionId => text()();
+
+  @override
+  Set<Column> get primaryKey => {componentId};
+}
+
 /// Drift database for the nutrition feature.
 ///
 /// Production usage opens a file on disk (via `driftDatabase(name: ...)`);
@@ -247,13 +268,14 @@ class ComponentSelections extends Table {
     DietPlanRecords,
     ComponentSelections,
     SavedMeals,
+    ComponentDefaults,
   ],
 )
 class NutritionDatabase extends _$NutritionDatabase {
   NutritionDatabase(super.e);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -352,6 +374,11 @@ class NutritionDatabase extends _$NutritionDatabase {
 
           await customStatement('DROP TABLE IF EXISTS diet_meal_slots;');
           await customStatement('DROP TABLE IF EXISTS diet_templates;');
+        }
+        if (from < 8) {
+          // v7 -> v8: the user's standing preference for a component,
+          // independent of any single day. Purely additive; starts empty.
+          await m.createTable(componentDefaults);
         }
       });
     },
