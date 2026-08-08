@@ -96,17 +96,28 @@ final saveManualDietProvider = Provider<SaveManualDiet>((ref) {
   );
 });
 
+/// Every food the app knows about, indexed once.
+///
+/// Extracted as its own provider so [foodMatcherProvider] (free-text search)
+/// and the composition editor's edit path (resolving a stored `foodId` back
+/// to a [FoodItem] via [FoodCatalog.byId]) share ONE indexed instance instead
+/// of each loading the food table table independently.
+final foodCatalogProvider = FutureProvider<FoodCatalog>((ref) async {
+  final result = await ref.watch(foodTableSourceProvider).loadFoods();
+  return switch (result) {
+    Ok(value: final foods) => FoodCatalog(foods),
+    Err(failure: final failure) => throw HealthFailureException(failure),
+  };
+});
+
 /// Free-text search over the shipped food table.
 ///
 /// Built once and cached, because indexing the table is the expensive part and
 /// the review screen searches on every keystroke. Kept out of the widget so a
 /// test can serve a three-food table instead of the shipped one.
 final foodMatcherProvider = FutureProvider<FoodMatcher>((ref) async {
-  final result = await ref.watch(foodTableSourceProvider).loadFoods();
-  return switch (result) {
-    Ok(value: final foods) => FoodMatcher(FoodCatalog(foods)),
-    Err(failure: final failure) => throw HealthFailureException(failure),
-  };
+  final catalog = await ref.watch(foodCatalogProvider.future);
+  return FoodMatcher(catalog);
 });
 
 /// Decodes any stored plan against the food table.

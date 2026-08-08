@@ -52,6 +52,11 @@ void main() {
 
       expect(find.text('Registrar ingesta'), findsOneWidget);
 
+      // Food-first is the default mode; this flow already knows the numbers,
+      // so it switches to the manual macros tab in one tap.
+      await tester.tap(find.byKey(const Key('manualEntryTab')));
+      await tester.pumpAndSettle();
+
       await tester.enterText(find.byKey(const Key('energyField')), '500');
       await tester.enterText(find.byKey(const Key('proteinField')), '30');
       await tester.enterText(find.byKey(const Key('carbsField')), '40');

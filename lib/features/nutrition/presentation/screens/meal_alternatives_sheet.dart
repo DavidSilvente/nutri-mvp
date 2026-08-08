@@ -5,15 +5,12 @@ import 'package:nutri_mvp/features/nutrition/domain/entities/meal_substitute.dar
 import 'package:nutri_mvp/features/nutrition/domain/services/alternative_ranker.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/get_day_plan.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/swap_tolerance.dart';
-import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
-import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
-import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_target.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/substitute_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/record_intake_screen.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/widgets/intake_form.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/widgets/macro_breakdown.dart';
-import 'package:nutri_mvp/features/nutrition/presentation/widgets/number_field.dart';
 
 /// "I don't fancy that today" — the alternatives defined for a planned meal,
 /// closest match first.
@@ -107,7 +104,7 @@ class MealAlternativesSheet extends ConsumerWidget {
             const SizedBox(height: 8),
             OutlinedButton.icon(
               key: const Key('addAlternativeButton'),
-              onPressed: () => _addAlternative(context, ref),
+              onPressed: () => _addAlternative(context),
               icon: const Icon(Icons.add_rounded, size: 18),
               label: const Text('Add an alternative'),
             ),
@@ -141,14 +138,15 @@ class MealAlternativesSheet extends ConsumerWidget {
     );
   }
 
-  Future<void> _addAlternative(BuildContext context, WidgetRef ref) async {
-    final created = await showDialog<MealSubstitute>(
+  /// The dialog performs (and awaits) the save itself, closing only on
+  /// success — the same discipline `_SavedMealDialog` already follows. A
+  /// created-then-popped-before-await shape used to live here; it is
+  /// retired, not merely relocated: see `_AddAlternativeDialogState._submit`.
+  Future<void> _addAlternative(BuildContext context) async {
+    await showDialog<void>(
       context: context,
       builder: (_) => _AddAlternativeDialog(plannedMealId: detail.meal.id),
     );
-    if (created == null) return;
-
-    await ref.read(dietPlanControllerProvider.notifier).saveSubstitute(created);
   }
 }
 
@@ -391,31 +389,38 @@ class _NoAlternatives extends StatelessWidget {
   }
 }
 
-/// Captures a new substitute: a name and the macros it brings.
-class _AddAlternativeDialog extends StatefulWidget {
+/// Captures a new substitute: a name and its composition or hand-typed
+/// macros (food-first by default — D1).
+///
+/// Saves itself and only closes on success, via the same `saving` +
+/// awaited-write + inline-error discipline `_SavedMealDialog` already uses.
+/// This retires a debt this dialog used to carry: it previously popped a
+/// freshly-built [MealSubstitute] BEFORE its write ran (the caller wrote
+/// it), so a failed write lost everything the user typed with no way to
+/// show why. That shape was tolerable only while a substitute had no
+/// reachable failure mode; a composition adds a second, genuinely failing
+/// write, so it is converted here rather than propagated.
+class _AddAlternativeDialog extends ConsumerStatefulWidget {
   const _AddAlternativeDialog({required this.plannedMealId});
 
   final String plannedMealId;
 
   @override
-  State<_AddAlternativeDialog> createState() => _AddAlternativeDialogState();
+  ConsumerState<_AddAlternativeDialog> createState() =>
+      _AddAlternativeDialogState();
 }
 
-class _AddAlternativeDialogState extends State<_AddAlternativeDialog> {
+class _AddAlternativeDialogState
+    extends ConsumerState<_AddAlternativeDialog> {
   final _formKey = GlobalKey<FormState>();
+  final _intakeFormKey = GlobalKey<IntakeFormState>();
   final _label = TextEditingController();
-  final _energy = TextEditingController();
-  final _protein = TextEditingController();
-  final _carbs = TextEditingController();
-  final _fat = TextEditingController();
+  bool _saving = false;
+  String? _error;
 
   @override
   void dispose() {
     _label.dispose();
-    _energy.dispose();
-    _protein.dispose();
-    _carbs.dispose();
-    _fat.dispose();
     super.dispose();
   }
 
@@ -436,29 +441,21 @@ class _AddAlternativeDialogState extends State<_AddAlternativeDialog> {
                 validator: (value) =>
                     (value == null || value.trim().isEmpty) ? 'Required' : null,
               ),
+              if (_error != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _error!,
+                  key: const Key('alternativeDialogError'),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ],
               const SizedBox(height: 12),
-              NumberField(
-                fieldKey: const Key('alternativeEnergyField'),
-                controller: _energy,
-                label: 'Energy (kcal)',
-              ),
-              const SizedBox(height: 12),
-              NumberField(
-                fieldKey: const Key('alternativeProteinField'),
-                controller: _protein,
-                label: 'Protein (g)',
-              ),
-              const SizedBox(height: 12),
-              NumberField(
-                fieldKey: const Key('alternativeCarbsField'),
-                controller: _carbs,
-                label: 'Carbs (g)',
-              ),
-              const SizedBox(height: 12),
-              NumberField(
-                fieldKey: const Key('alternativeFatField'),
-                controller: _fat,
-                label: 'Fat (g)',
+              IntakeForm(
+                key: _intakeFormKey,
+                energyFieldKey: const Key('alternativeEnergyField'),
+                proteinFieldKey: const Key('alternativeProteinField'),
+                carbsFieldKey: const Key('alternativeCarbsField'),
+                fatFieldKey: const Key('alternativeFatField'),
               ),
             ],
           ),
@@ -466,36 +463,68 @@ class _AddAlternativeDialogState extends State<_AddAlternativeDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
         FilledButton(
           key: const Key('saveAlternativeButton'),
-          onPressed: _submit,
+          onPressed: _saving ? null : _submit,
           style: FilledButton.styleFrom(minimumSize: const Size(88, 40)),
-          child: const Text('Save'),
+          child: _saving
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Save'),
         ),
       ],
     );
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    final form = _intakeFormKey.currentState!;
+    if (!form.validate()) return;
 
-    Navigator.of(context).pop(
-      MealSubstitute(
-        id: DateTime.now().microsecondsSinceEpoch.toString(),
-        plannedMealId: widget.plannedMealId,
-        label: _label.text.trim(),
-        target: NutritionTarget(
-          energy: Energy(kcal: num.parse(_energy.text)),
-          macros: Macros(
-            proteinG: num.parse(_protein.text),
-            carbsG: num.parse(_carbs.text),
-            fatG: num.parse(_fat.text),
-          ),
+    setState(() {
+      _error = null;
+      _saving = true;
+    });
+
+    final id = DateTime.now().microsecondsSinceEpoch.toString();
+    final label = _label.text.trim();
+    final substitute = switch (form.value) {
+      ComposedIntakeFormValue(composition: final composition) =>
+        MealSubstitute.composed(
+          id: id,
+          plannedMealId: widget.plannedMealId,
+          label: label,
+          composition: composition,
         ),
+      ManualIntakeFormValue(target: final target) => MealSubstitute(
+        id: id,
+        plannedMealId: widget.plannedMealId,
+        label: label,
+        target: target,
       ),
-    );
+    };
+
+    await ref
+        .read(dietPlanControllerProvider.notifier)
+        .saveSubstitute(substitute);
+
+    final state = ref.read(dietPlanControllerProvider);
+    if (!state.hasError) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _saving = false;
+      _error = 'Could not save this alternative';
+    });
   }
 }

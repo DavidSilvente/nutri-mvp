@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutri_mvp/core/format/nutrition_format.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/saved_meal.dart';
-import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
-import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
-import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_target.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/saved_meal_providers.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/widgets/composition_editor.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/widgets/intake_form.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/widgets/macro_breakdown.dart';
-import 'package:nutri_mvp/features/nutrition/presentation/widgets/number_field.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/widgets/saved_meal_write_mixin.dart';
 
 /// Lists the user's saved-meal catalogue and lets them create or delete
@@ -286,13 +285,21 @@ class _NoFilterMatches extends StatelessWidget {
   }
 }
 
-/// Captures a new saved meal, or edits an existing one: a name, its macros,
-/// and an optional note.
+/// Captures a new saved meal, or edits an existing one: a name, its
+/// composition or hand-typed macros (food-first by default — D1), and an
+/// optional note.
 ///
 /// [existing] is null for a create, and the meal being edited otherwise —
 /// the form is pre-filled with its values, and [id] is its own id, so the
 /// save is treated as an update rather than a conflicting create (see
 /// `SavedMealSource.saveMeal`).
+///
+/// A meal saved with a composition reopens on the Food tab, seeded with its
+/// stored ingredients resolved against the current catalog (an id the
+/// catalog no longer carries renders flagged and zero-weighted — see
+/// `CompositionEditor` — and is never dropped). A composition-less (legacy)
+/// meal reopens on the Macros tab instead, matching the spec's
+/// "Legacy saved meal opens in manual tab" requirement.
 ///
 /// Saves itself and only closes on success. On failure (a duplicate name is
 /// the likely one — e.g. a rename that collides with another entry) it
@@ -311,11 +318,8 @@ class _SavedMealDialog extends ConsumerStatefulWidget {
 class _SavedMealDialogState extends ConsumerState<_SavedMealDialog>
     with SavedMealWriteMixin<_SavedMealDialog> {
   final _formKey = GlobalKey<FormState>();
+  final _intakeFormKey = GlobalKey<IntakeFormState>();
   final _name = TextEditingController();
-  final _energy = TextEditingController();
-  final _protein = TextEditingController();
-  final _carbs = TextEditingController();
-  final _fat = TextEditingController();
   final _note = TextEditingController();
 
   @override
@@ -324,10 +328,6 @@ class _SavedMealDialogState extends ConsumerState<_SavedMealDialog>
     final existing = widget.existing;
     if (existing != null) {
       _name.text = existing.name;
-      _energy.text = existing.target.energy.kcal.toStringAsFixed(0);
-      _protein.text = existing.target.macros.proteinG.toStringAsFixed(0);
-      _carbs.text = existing.target.macros.carbsG.toStringAsFixed(0);
-      _fat.text = existing.target.macros.fatG.toStringAsFixed(0);
       _note.text = existing.portionNote ?? '';
     }
   }
@@ -335,18 +335,56 @@ class _SavedMealDialogState extends ConsumerState<_SavedMealDialog>
   @override
   void dispose() {
     _name.dispose();
-    _energy.dispose();
-    _protein.dispose();
-    _carbs.dispose();
-    _fat.dispose();
     _note.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final existing = widget.existing;
+    if (existing == null || existing.ingredients.isEmpty) {
+      return _dialog(context, initialLines: const []);
+    }
+
+    // An existing composition needs the catalog to resolve each stored
+    // `foodId` back into a line before the Food tab can seed correctly (see
+    // `CompositionLine.fromIngredient`) — a create or a composition-less
+    // (legacy) edit needs none of this and renders immediately above.
+    final catalogAsync = ref.watch(foodCatalogProvider);
+    return catalogAsync.when(
+      data: (catalog) => _dialog(
+        context,
+        initialLines: [
+          for (final ingredient in existing.ingredients)
+            CompositionLine.fromIngredient(ingredient, catalog),
+        ],
+      ),
+      loading: () => const AlertDialog(
+        content: SizedBox(
+          height: 80,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+      error: (error, _) => AlertDialog(
+        content: Text('Could not load foods: $error'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dialog(
+    BuildContext context, {
+    required List<CompositionLine> initialLines,
+  }) {
+    final existing = widget.existing;
+
     return AlertDialog(
-      title: Text(widget.existing == null ? 'New meal' : 'Edit meal'),
+      title: Text(existing == null ? 'New meal' : 'Edit meal'),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -369,28 +407,15 @@ class _SavedMealDialogState extends ConsumerState<_SavedMealDialog>
                 ),
               ],
               const SizedBox(height: 12),
-              NumberField(
-                fieldKey: const Key('savedMealEnergyField'),
-                controller: _energy,
-                label: 'Energy (kcal)',
-              ),
-              const SizedBox(height: 12),
-              NumberField(
-                fieldKey: const Key('savedMealProteinField'),
-                controller: _protein,
-                label: 'Protein (g)',
-              ),
-              const SizedBox(height: 12),
-              NumberField(
-                fieldKey: const Key('savedMealCarbsField'),
-                controller: _carbs,
-                label: 'Carbs (g)',
-              ),
-              const SizedBox(height: 12),
-              NumberField(
-                fieldKey: const Key('savedMealFatField'),
-                controller: _fat,
-                label: 'Fat (g)',
+              IntakeForm(
+                key: _intakeFormKey,
+                initialTarget: existing?.target,
+                initialLines: initialLines,
+                foodFirstByDefault: existing == null || initialLines.isNotEmpty,
+                energyFieldKey: const Key('savedMealEnergyField'),
+                proteinFieldKey: const Key('savedMealProteinField'),
+                carbsFieldKey: const Key('savedMealCarbsField'),
+                fatFieldKey: const Key('savedMealFatField'),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -427,22 +452,28 @@ class _SavedMealDialogState extends ConsumerState<_SavedMealDialog>
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    final form = _intakeFormKey.currentState!;
+    if (!form.validate()) return;
 
     final note = _note.text.trim();
-    final meal = SavedMeal(
-      id: widget.id,
-      name: _name.text.trim(),
-      target: NutritionTarget(
-        energy: Energy(kcal: num.parse(_energy.text)),
-        macros: Macros(
-          proteinG: num.parse(_protein.text),
-          carbsG: num.parse(_carbs.text),
-          fatG: num.parse(_fat.text),
+    final name = _name.text.trim();
+    final meal = switch (form.value) {
+      ComposedIntakeFormValue(composition: final composition) =>
+        SavedMeal.composed(
+          id: widget.id,
+          name: name,
+          composition: composition,
+          portionNote: note.isEmpty ? null : note,
+          createdAt: DateTime.now(),
         ),
+      ManualIntakeFormValue(target: final target) => SavedMeal(
+        id: widget.id,
+        name: name,
+        target: target,
+        portionNote: note.isEmpty ? null : note,
+        createdAt: DateTime.now(),
       ),
-      portionNote: note.isEmpty ? null : note,
-      createdAt: DateTime.now(),
-    );
+    };
 
     await submitSavedMealWrite(
       () => ref.read(savedMealControllerProvider.notifier).saveMeal(meal),

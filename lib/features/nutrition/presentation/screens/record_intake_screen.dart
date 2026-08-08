@@ -1,23 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nutri_mvp/core/format/day_format.dart';
-import 'package:nutri_mvp/core/format/nutrition_format.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/nutrition_entry.dart';
 import 'package:nutri_mvp/features/nutrition/domain/usecases/get_day_plan.dart';
-import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
-import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_target.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/providers/adherence_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/nutrition_providers.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/widgets/intake_form.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/widgets/planned_meal_field.dart';
 
-/// Screen to register a nutrition intake: energy and macros. Water is NOT
-/// part of this flow — hydration has its own dedicated screen.
+/// Screen to register a nutrition intake: food-first by default, hand-typed
+/// macros as a one-tap-away secondary path. Water is NOT part of this flow —
+/// hydration has its own dedicated screen.
 ///
 /// Three ways in, all the same form:
 /// * free-standing (no [day], no [plannedMeal]) — an unplanned intake today;
 /// * attached to a [day] — the same, but backdated to that day;
 /// * attached to a [plannedMeal] — the intake counts towards that meal's
-///   adherence, and the fields start pre-filled with its target.
+///   adherence by default, and the Macros tab starts pre-filled with its
+///   target.
+///
+/// Which planned meal the entry counts towards is always an in-screen
+/// choice via [PlannedMealField], SEEDED from [plannedMeal] — every call
+/// site's prior hardcoded attach/no-attach behaviour becomes an overridable
+/// default rather than a permanent choice.
 class RecordIntakeScreen extends ConsumerStatefulWidget {
   const RecordIntakeScreen({
     super.key,
@@ -46,59 +53,37 @@ class RecordIntakeScreen extends ConsumerStatefulWidget {
 }
 
 class _RecordIntakeScreenState extends ConsumerState<RecordIntakeScreen> {
-  final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _energyController;
-  late final TextEditingController _proteinController;
-  late final TextEditingController _carbsController;
-  late final TextEditingController _fatController;
+  final _intakeFormKey = GlobalKey<IntakeFormState>();
+  late String? _plannedMealId;
 
   @override
   void initState() {
     super.initState();
-    // Pre-filling with the target is the difference between logging a planned
-    // meal in one tap and re-typing four numbers you already decided on.
-    final prefill = widget.prefill ?? widget.plannedMeal?.target;
-    _energyController = TextEditingController(
-      text: prefill == null ? '' : NutritionFormat.amount(prefill.energy.kcal),
-    );
-    _proteinController = TextEditingController(
-      text: prefill == null
-          ? ''
-          : NutritionFormat.amount(prefill.macros.proteinG),
-    );
-    _carbsController = TextEditingController(
-      text: prefill == null
-          ? ''
-          : NutritionFormat.amount(prefill.macros.carbsG),
-    );
-    _fatController = TextEditingController(
-      text: prefill == null ? '' : NutritionFormat.amount(prefill.macros.fatG),
-    );
-  }
-
-  @override
-  void dispose() {
-    _energyController.dispose();
-    _proteinController.dispose();
-    _carbsController.dispose();
-    _fatController.dispose();
-    super.dispose();
+    _plannedMealId = widget.plannedMeal?.meal.id;
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    final form = _intakeFormKey.currentState!;
+    if (!form.validate()) return;
 
-    final entry = NutritionEntry(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      recordedAt: _recordedAt(),
-      energy: Energy(kcal: num.parse(_energyController.text)),
-      macros: Macros(
-        proteinG: num.parse(_proteinController.text),
-        carbsG: num.parse(_carbsController.text),
-        fatG: num.parse(_fatController.text),
+    final id = DateTime.now().microsecondsSinceEpoch.toString();
+    final recordedAt = _recordedAt();
+    final entry = switch (form.value) {
+      ComposedIntakeFormValue(composition: final composition) =>
+        NutritionEntry.composed(
+          id: id,
+          recordedAt: recordedAt,
+          composition: composition,
+          plannedMealId: _plannedMealId,
+        ),
+      ManualIntakeFormValue(target: final target) => NutritionEntry(
+        id: id,
+        recordedAt: recordedAt,
+        energy: target.energy,
+        macros: target.macros,
+        plannedMealId: _plannedMealId,
       ),
-      plannedMealId: widget.plannedMeal?.meal.id,
-    );
+    };
 
     await ref.read(nutritionControllerProvider.notifier).record(entry);
 
@@ -132,96 +117,62 @@ class _RecordIntakeScreenState extends ConsumerState<RecordIntakeScreen> {
     );
   }
 
-  String? _requiredNonNegativeNumber(String? value) {
-    if (value == null || value.isEmpty) return 'Requerido';
-    final parsed = num.tryParse(value);
-    if (parsed == null || parsed < 0) return 'Debe ser un número >= 0';
-    return null;
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final meal = widget.plannedMeal;
     final day = widget.day;
+    final NutritionDay pickerDay = day ?? ref.watch(todayProvider);
+    // A known target (a planned meal, or a chosen alternative) means the
+    // Macros tab should open pre-filled instead of Food: re-deriving numbers
+    // the caller already handed over would defeat the entire point of a
+    // prefill — see the class doc's "one tap, not four numbers" contract.
+    final prefill = widget.prefill ?? widget.plannedMeal?.target;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(meal == null ? 'Registrar ingesta' : 'Log ${meal.label}'),
       ),
       body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-            children: [
-              if (meal != null || day != null) ...[
-                _ContextCard(
-                  mealLabel: meal?.label,
-                  day: day,
-                  prefillLabel: widget.prefillLabel,
-                ),
-                const SizedBox(height: 20),
-              ],
-              TextFormField(
-                key: const Key('energyField'),
-                controller: _energyController,
-                decoration: const InputDecoration(labelText: 'Energía (kcal)'),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                validator: _requiredNonNegativeNumber,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          children: [
+            if (meal != null || day != null) ...[
+              _ContextCard(
+                mealLabel: meal?.label,
+                day: day,
+                prefillLabel: widget.prefillLabel,
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                key: const Key('proteinField'),
-                controller: _proteinController,
-                decoration: const InputDecoration(labelText: 'Proteína (g)'),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+              const SizedBox(height: 20),
+            ],
+            PlannedMealField(
+              day: pickerDay,
+              selectedMealId: _plannedMealId,
+              onChanged: (mealId) => setState(() => _plannedMealId = mealId),
+            ),
+            const SizedBox(height: 20),
+            IntakeForm(
+              key: _intakeFormKey,
+              initialTarget: prefill,
+              foodFirstByDefault: prefill == null,
+            ),
+            if (meal != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Adjust these to what you actually ate — the plan is met '
+                'as long as you land close.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
-                validator: _requiredNonNegativeNumber,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                key: const Key('carbsField'),
-                controller: _carbsController,
-                decoration: const InputDecoration(
-                  labelText: 'Carbohidratos (g)',
-                ),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                validator: _requiredNonNegativeNumber,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                key: const Key('fatField'),
-                controller: _fatController,
-                decoration: const InputDecoration(labelText: 'Grasa (g)'),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                validator: _requiredNonNegativeNumber,
-              ),
-              if (meal != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  'Adjust these to what you actually ate — the plan is met '
-                  'as long as you land close.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 24),
-              FilledButton(
-                key: const Key('submitButton'),
-                onPressed: _submit,
-                child: const Text('Guardar'),
               ),
             ],
-          ),
+            const SizedBox(height: 24),
+            FilledButton(
+              key: const Key('submitButton'),
+              onPressed: _submit,
+              child: const Text('Guardar'),
+            ),
+          ],
         ),
       ),
     );

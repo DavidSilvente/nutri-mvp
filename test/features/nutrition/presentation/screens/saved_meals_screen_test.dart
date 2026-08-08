@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/features/nutrition/domain/entities/saved_meal.dart';
+import 'package:nutri_mvp/features/nutrition/domain/services/derived_targets.dart';
+import 'package:nutri_mvp/features/nutrition/domain/services/food_catalog.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/energy.dart';
+import 'package:nutri_mvp/features/nutrition/domain/value_objects/food_quantity.dart';
+import 'package:nutri_mvp/features/nutrition/domain/value_objects/logged_ingredient.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/macros.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_target.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/providers/diet_plan_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/saved_meal_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/saved_meals_screen.dart';
 
 import '../../../../_helpers/pump_app.dart';
+import '../../_fakes/fake_diet_plan_store.dart';
 import '../../_fakes/fake_saved_meal_source.dart';
 
 NutritionTarget _target({
@@ -31,6 +37,10 @@ SavedMeal _meal({required String id, required String name}) {
   );
 }
 
+/// Fills the dialog's name and macros and submits it. Food-first is now the
+/// dialog's default, so an explicit tap onto the manual tab is needed before
+/// the macro fields exist to fill — harmless when a legacy edit already
+/// opened there.
 Future<void> _fillAndSubmit(
   WidgetTester tester, {
   String name = 'Tuna bowl',
@@ -40,6 +50,8 @@ Future<void> _fillAndSubmit(
   String fat = '12',
 }) async {
   await tester.enterText(find.byKey(const Key('savedMealNameField')), name);
+  await tester.tap(find.byKey(const Key('manualEntryTab')));
+  await tester.pumpAndSettle();
   await tester.enterText(find.byKey(const Key('savedMealEnergyField')), kcal);
   await tester.enterText(
     find.byKey(const Key('savedMealProteinField')),
@@ -315,5 +327,202 @@ void main() {
       expect(find.text('Chicken salad'), findsOneWidget);
       expect(find.text('Tuna bowl'), findsNothing);
     });
+
+    testWidgets(
+      'creating a meal food-first derives its macros from a picked food, '
+      'no typing',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1000, 2400));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        await pumpApp(
+          tester,
+          const SavedMealsScreen(),
+          overrides: [
+            savedMealSourceProvider.overrideWithValue(FakeSavedMealSource()),
+            foodTableSourceProvider.overrideWithValue(FakeFoodTableSource()),
+          ],
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('addSavedMealButton')));
+        await tester.pumpAndSettle();
+
+        // Food is the default — the manual tab's fields do not exist yet.
+        expect(find.byKey(const Key('savedMealEnergyField')), findsNothing);
+
+        await tester.enterText(
+          find.byKey(const Key('savedMealNameField')),
+          'Chicken bowl',
+        );
+        await tester.tap(find.byKey(const Key('addFoodButton')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('foodSearchField')),
+          'pollo',
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const Key('candidateOption-chicken_breast_grilled')),
+        );
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('compositionGramsField-0')),
+          '100',
+        );
+        await tester.pump();
+
+        await tester.tap(find.byKey(const Key('saveSavedMealButton')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Chicken bowl'), findsOneWidget);
+        // FakeFoodTableSource's default chicken is 151 kcal/100g.
+        expect(find.text('151 kcal'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'editing a saved meal composition adds a food and recomputes the '
+      'target',
+      (tester) async {
+        final chicken = FakeFoodTableSource.food(
+          'chicken_breast_grilled',
+          name: 'Pollo, pechuga',
+          kcal: 200,
+          proteinG: 30,
+          carbsG: 0,
+          fatG: 5,
+        );
+        final rice = FakeFoodTableSource.food(
+          'rice_white_raw',
+          name: 'Arroz blanco',
+          kcal: 100,
+          proteinG: 2,
+          carbsG: 20,
+          fatG: 0,
+        );
+        final composition = DerivedTargets.compose([
+          LoggedIngredient(
+            foodId: 'chicken_breast_grilled',
+            quantity: FoodQuantity(grams: 100),
+          ),
+        ], FoodCatalog([chicken, rice]));
+        final fake = FakeSavedMealSource();
+        await fake.saveMeal(
+          SavedMeal.composed(
+            id: 'm1',
+            name: 'Chicken bowl',
+            composition: composition,
+            createdAt: DateTime.utc(2026, 8, 1),
+          ),
+        );
+
+        await tester.binding.setSurfaceSize(const Size(1000, 2400));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await pumpApp(
+          tester,
+          const SavedMealsScreen(),
+          overrides: [
+            savedMealSourceProvider.overrideWithValue(fake),
+            foodTableSourceProvider.overrideWithValue(
+              FakeFoodTableSource(foods: [chicken, rice]),
+            ),
+          ],
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('editSavedMeal-m1')));
+        await tester.pumpAndSettle();
+
+        // Reopens on Food, seeded with the stored ingredient.
+        expect(find.text('Pollo, pechuga'), findsOneWidget);
+        expect(find.byKey(const Key('compositionGramsField-0')), findsOneWidget);
+
+        await tester.tap(find.byKey(const Key('addFoodButton')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('foodSearchField')),
+          'arroz',
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('candidateOption-rice_white_raw')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('compositionGramsField-1')),
+          '100',
+        );
+        await tester.pump();
+
+        await tester.tap(find.byKey(const Key('saveSavedMealButton')));
+        await tester.pumpAndSettle();
+
+        // 200 kcal (chicken) + 100 kcal (rice).
+        expect(find.text('300 kcal'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'an unresolved ingredient survives editing, stays flagged, and does '
+      'not block save',
+      (tester) async {
+        final chicken = FakeFoodTableSource.food(
+          'chicken_breast_grilled',
+          name: 'Pollo, pechuga',
+          kcal: 200,
+          proteinG: 30,
+          carbsG: 0,
+          fatG: 5,
+        );
+        final composition = DerivedTargets.compose([
+          LoggedIngredient(
+            foodId: 'chicken_breast_grilled',
+            quantity: FoodQuantity(grams: 100),
+          ),
+          LoggedIngredient(
+            foodId: 'vanished_food',
+            quantity: FoodQuantity(grams: 50),
+          ),
+        ], FoodCatalog([chicken]));
+        final fake = FakeSavedMealSource();
+        await fake.saveMeal(
+          SavedMeal.composed(
+            id: 'm1',
+            name: 'Chicken bowl',
+            composition: composition,
+            createdAt: DateTime.utc(2026, 8, 1),
+          ),
+        );
+
+        await tester.binding.setSurfaceSize(const Size(1000, 2400));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await pumpApp(
+          tester,
+          const SavedMealsScreen(),
+          overrides: [
+            savedMealSourceProvider.overrideWithValue(fake),
+            foodTableSourceProvider.overrideWithValue(
+              FakeFoodTableSource(foods: [chicken]),
+            ),
+          ],
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('editSavedMeal-m1')));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('unresolvedIcon-1')), findsOneWidget);
+
+        await tester.tap(find.byKey(const Key('saveSavedMealButton')));
+        await tester.pumpAndSettle();
+
+        // Save was not blocked — the dialog closed.
+        expect(find.byKey(const Key('savedMealNameField')), findsNothing);
+
+        // Reopening still shows the unresolved line, preserved verbatim.
+        await tester.tap(find.byKey(const Key('editSavedMeal-m1')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('unresolvedIcon-1')), findsOneWidget);
+      },
+    );
   });
 }
