@@ -3,9 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nutri_mvp/features/nutrition/domain/value_objects/nutrition_day.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/providers/adherence_providers.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_calendar_screen.dart';
-import 'package:nutri_mvp/features/nutrition/presentation/screens/diet_library_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/home_screen.dart';
 import 'package:nutri_mvp/features/nutrition/presentation/screens/hydration_screen.dart';
+import 'package:nutri_mvp/features/nutrition/presentation/screens/saved_meals_screen.dart';
 
 import '../../../../_helpers/fake_overrides.dart';
 import '../../../../_helpers/pump_app.dart';
@@ -99,15 +99,25 @@ void main() {
     },
   );
 
-  testWidgets('the diets tab opens the diet library', (tester) async {
-    await pumpHome(tester);
-    await tester.pumpAndSettle();
+  testWidgets(
+    'the bottom navigation has no diets destination and the remaining '
+    'destinations are contiguous',
+    (tester) async {
+      await pumpHome(tester);
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('dietTab')));
-    await tester.pumpAndSettle();
+      expect(find.byKey(const Key('dietTab')), findsNothing);
+      expect(find.byType(NavigationDestination), findsNWidgets(4));
 
-    expect(find.byType(DietLibraryScreen), findsOneWidget);
-  });
+      // "My meals" re-indexes from 4 to 3 once the diets tab is removed; tap
+      // it to prove the IndexedStack children stayed aligned with the new
+      // destination order.
+      await tester.tap(find.byKey(const Key('myMealsTab')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SavedMealsScreen), findsOneWidget);
+    },
+  );
 
   testWidgets('the calendar tab opens the month grid', (tester) async {
     await pumpHome(tester);
